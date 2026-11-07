@@ -789,8 +789,8 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E2-T30 | `withInstituteTx` wrapper: one transaction per unit of work, sets `app.institute_id`, `app.user_id`, `app.roles` locally; lint rule banning other DB clients | todo | P0-E1-T05, 04 RLS policy task | REQ-SEC-001 |
-| P0-E2-T31 | `SECURITY DEFINER` functions `resolve_institute(host)` and `list_active_institutes()`, returning IDs only; 5-minute isolate cache for the host lookup | todo | P0-E2-T30, 04 institutes task | REQ-MIR-002 |
+| P0-E2-T30 | `withInstituteTx` wrapper: one transaction per unit of work, sets `app.institute_id`, `app.user_id`, `app.roles` locally; lint rule banning other DB clients | todo | P0-E1-T05, P0-E2-T07 | REQ-SEC-001 |
+| P0-E2-T31 | `SECURITY DEFINER` functions `resolve_institute(host)` and `list_active_institutes()`, returning IDs only; 5-minute isolate cache for the host lookup | todo | P0-E2-T30, P0-E2-T06 | REQ-MIR-002 |
 | P0-E2-T32 | Seed a "Test Institute" with its own host alias in preview and CI, and run 04's cross-institute tests as `app_user` through the real wrapper | todo | P0-E2-T31, P0-E1-T07 | REQ-SEC-002 |
 
 ### P0-E3 Localization plumbing
@@ -802,39 +802,39 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 | P0-E3-T03 | Translation files by namespace in both languages, typed keys, CI check for keys missing in one language, lint rule against literal interface text | todo | P0-E3-T01, P0-E1-T07 | REQ-LNG-001, REQ-LNG-002 |
 | P0-E3-T04 | Set `lang` and `dir` on `<html>` from the locale; expose direction to the design system; lint for physical CSS properties (with 02 §8) | todo | P0-E3-T01 | REQ-LNG-006 |
 | P0-E3-T05 | Formatting module for rupee amounts, numbers and dates per locale; check Urdu `Intl` data on Workers; fixed-pattern fallback if missing | todo | P0-E3-T01 | REQ-LNG-012 |
-| P0-E3-T06 | `pickLocalized` helper with `isFallback` flag and a notice component hook; per-block `lang` and `dir` for fallback text and posts | todo | P0-E3-T01, 04 bilingual field format | REQ-LNG-009, REQ-LNG-010 |
+| P0-E3-T06 | `pickLocalized` helper with `isFallback` flag and a notice component hook; per-block `lang` and `dir` for fallback text and posts | todo | P0-E3-T01, P0-E2-T03 | REQ-LNG-009, REQ-LNG-010 |
 | P0-E3-T07 | Language switch plumbing: same path in the other locale, sets the cookie, saves `users.locale` when signed in | todo | P0-E3-T02, P0-E5-T01 | REQ-LNG-003, REQ-LNG-004 |
 | P0-E3-T08 | `hreflang` alternates and a per-host `sitemap.xml` listing both languages | todo | P0-E3-T01, P0-E1-T09 | REQ-LNG-008 |
-| P0-E3-T09 | Bilingual skeleton page for the P0 test: logo and name from institute settings, Urdu page right to left | todo | P0-E3-T04, P0-E1-T09, P0-E4 | REQ-PUB-007, REQ-LNG-006 |
+| P0-E3-T09 | Bilingual skeleton page for the P0 test: logo and name from institute settings, Urdu page right to left | todo | P0-E3-T04, P0-E1-T09, P0-E4-T09 | REQ-PUB-007, REQ-LNG-006 |
 
 ### P0-E5 Authentication, roles and permission checks
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E5-T01 | Set up Better Auth with the Postgres adapter through `withInstituteTx`; map to `users` with `institute_id`; host-only cookies | todo | P0-E2-T30, 04 users and auth tables task | REQ-DPR-004 |
+| P0-E5-T01 | Set up Better Auth with the Postgres adapter through `withInstituteTx`; map to `users` with `institute_id`; host-only cookies | todo | P0-E2-T30, P0-E2-T08 | REQ-DPR-004 |
 | P0-E5-T02 | Email and password sign-in and sign-up for donors; email verification and password reset through the `EmailSender` interface (console adapter until P1-E3-T30) | todo | P0-E5-T01 | REQ-DPR-004 |
 | P0-E5-T03 | Username sign-in for students; block student and staff self-signup; server action for staff to create a student with a one-time password and forced change | todo | P0-E5-T01, P0-E5-T04 | REQ-STU-001 |
 | P0-E5-T04 | Roles from `user_roles`; `can(user, action, resource)` generated from the 05 §7 matrix, deny by default; tests per role | todo | P0-E5-T01 | REQ-ROL-001, REQ-ROL-002 |
 | P0-E5-T05 | Pass user id and roles into each transaction; middleware guard for `/[locale]/admin/**`; `can()` call required in every server action (lint or test) | todo | P0-E5-T04, P0-E2-T30 | REQ-SEC-001 |
 | P0-E5-T06 | TOTP two-factor for admin and finance officer: forced enrolment, 10 backup codes, no trusted devices, 5-try lockout | todo | P0-E5-T04 | REQ-SEC-003 |
-| P0-E5-T07 | Rate limits on sign-in, reset and two-factor; Turnstile after 3 failures and on sign-up and reset; neutral error messages in both languages | todo | P0-E5-T02 | REQ-SEC-009 (proposed) |
+| P0-E5-T07 | Rate limits on sign-in, reset and two-factor; Turnstile after 3 failures and on sign-up and reset; neutral error messages in both languages | todo | P0-E5-T02 | REQ-SEC-010 (proposed) |
 | P0-E5-T08 | Bootstrap script for Moazam's first admin account; admin creates teacher, editor and finance officer accounts | todo | P0-E5-T04, P0-E5-T06 | REQ-ROL-004 |
 | P0-E5-T09 | Session rules per role (§6.5); sign out of all devices; end sessions on role change and password reset | todo | P0-E5-T04 | REQ-SEC-003 |
-| P0-E5-T10 | Write sign-in, failed two-factor, role change and account creation events to `audit_log` with IDs only | todo | P0-E5-T04, 04 audit_log task | REQ-ROL-008 |
+| P0-E5-T10 | Write sign-in, failed two-factor, role change and account creation events to `audit_log` with IDs only | todo | P0-E5-T04, P0-E2-T11 | REQ-ROL-008 |
 
 ### P1-E3 Manual donation recording and guest donors (owned by 06; architecture tasks)
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P1-E3-T30 | `EmailSender` adapter for the service chosen in Q-06; sending subdomain with SPF, DKIM, DMARC; bilingual layout; guest trail-link email through the queue | todo | P0-E1-T06, P0-E3-T03 | REQ-DPR-002, REQ-LNG-011 |
-| P1-E3-T31 | `PaymentProvider` interface and `applyPaymentEvent`; `bank_transfer` provider used by the admin recording form; idempotency key on provider reference | todo | P0-E2-T30, 04 donations and trail_events task | REQ-PAY-001, REQ-PAY-006 |
-| P1-E3-T32 | Guest trail tokens: 32 random bytes, hash stored, token-for-cookie exchange with clean redirect, `no-referrer`, log redaction | todo | P0-E1-T11, 04 donors task | REQ-SEC-004, REQ-SEC-005 |
+| P1-E3-T31 | `PaymentProvider` interface and `applyPaymentEvent`; `bank_transfer` provider used by the admin recording form; idempotency key on provider reference | todo | P0-E2-T30, P1-E3-T41, P1-E3-T42 | REQ-PAY-001, REQ-PAY-006 |
+| P1-E3-T32 | Guest trail tokens: 32 random bytes, hash stored, token-for-cookie exchange with clean redirect, `no-referrer`, log redaction | todo | P0-E1-T11, P1-E3-T40 | REQ-SEC-004, REQ-SEC-005 |
 
 ### P2-E1 Spending entries with receipts (owned by 06; architecture tasks)
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P2-E1-T30 | R2 buckets per environment, `media.azeem-lateef.com`, presigned upload flow with `media_assets` rows, signature check and pending clean-up, first used for receipt photos | todo | P0-E1-T06, 04 media_assets task | REQ-PRF-003, REQ-TRL-011 |
+| P2-E1-T30 | R2 buckets per environment, `media.azeem-lateef.com`, presigned upload flow with `media_assets` rows, signature check and pending clean-up, first used for receipt photos | todo | P0-E1-T06, P0-E2-T09 | REQ-PRF-003, REQ-TRL-011 |
 | P2-E1-T31 | Browser image compression to `w480` and `w1280` WebP with EXIF removed; server check of size and missing EXIF | todo | P2-E1-T30 | REQ-PRF-002, REQ-CHS-007 (proposed) |
 
 ### P2-E7 Email receipts and notifications
@@ -842,7 +842,7 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P2-E7-T01 | Jobs Worker with `queue` handler, `jobs-<env>` queue, batch of 10, 3 retries, dead-letter queue and admin count | todo | P0-E1-T06, P1-E3-T30 | REQ-DON-011 |
-| P2-E7-T02 | Receipt email message: enqueue after a donation is recorded; idempotent send with the "receipt sent" marker | todo | P2-E7-T01, 06 receipt number task | REQ-DON-010, REQ-DON-011 |
+| P2-E7-T02 | Receipt email message: enqueue after a donation is recorded; idempotent send with the "receipt sent" marker | todo | P2-E7-T01, P1-E3-T03 | REQ-DON-010, REQ-DON-011 |
 | P2-E7-T03 | `scheduled` handler with the two cron schedules; 15-minute sweeper re-enqueues unsent receipts and deferred emails | todo | P2-E7-T01 | REQ-DON-011 |
 | P2-E7-T04 | Receipt and notification templates in Urdu and English with plain-text parts; "Anonymous" in staff emails; no names in subjects | todo | P2-E7-T02 | REQ-LNG-011, REQ-DPR-009 |
 | P2-E7-T05 | Daily email counter (stop at 90) with the priority order in §10.3; bounce and complaint webhook marks addresses undeliverable | todo | P2-E7-T03 | REQ-DON-011, REQ-PRF-005 |
@@ -871,7 +871,7 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P4-E5-T01 | Opt-in and unsubscribe plumbing: opaque unsubscribe token, one-click page, `List-Unsubscribe` header | todo | P2-E7-T04, 06 opt-in field task | REQ-PAY-007, REQ-DON-015 (proposed) |
+| P4-E5-T01 | Opt-in and unsubscribe plumbing: opaque unsubscribe token, one-click page, `List-Unsubscribe` header | todo | P2-E7-T04, P4-E5-T60 | REQ-PAY-007, REQ-DON-018 (proposed) |
 | P4-E5-T02 | Monthly run on the 1st: per-institute recipient list, a run record to prevent double sends, enqueue within the daily allowance and spread the rest | todo | P4-E5-T01, P2-E7-T05 | REQ-PAY-007 |
 | P4-E5-T03 | Render the admin's bilingual newsletter (from 05 §8) into each donor's language, with new projects from 05 §10 | todo | P4-E5-T02, P4-E4 | REQ-PAY-007, REQ-LNG-011 |
 | P4-E5-T04 | Reminder run report for the admin (sent, deferred, bounced) and a check against upgrade trigger T-6 | todo | P4-E5-T02 | REQ-PRF-005 |
@@ -932,5 +932,5 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 These are not approved. Do not build on them until they are added to [01](01-requirements-checklist.md) with an open question in [00 §6](00-MASTER-PLAN.md#open-questions).
 
 - [ ] REQ-CHS-007 (proposed) Uploaded images have location and device metadata (EXIF) removed before they are stored. MUST → 03 §8
-- [ ] REQ-SEC-009 (proposed) Sign-in, password reset and two-factor attempts are rate-limited, and repeated failures lock the account for a short time. SHOULD → 03 §6
-- [ ] REQ-DON-015 (proposed) Every monthly reminder or newsletter email has a one-click unsubscribe link that works without signing in. MUST → 03 §9
+- [ ] REQ-SEC-010 (proposed) Sign-in, password reset and two-factor attempts are rate-limited, and repeated failures lock the account for a short time. SHOULD → 03 §6
+- [ ] REQ-DON-018 (proposed) Every monthly reminder or newsletter email has a one-click unsubscribe link that works without signing in. MUST → 03 §9

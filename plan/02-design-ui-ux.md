@@ -720,7 +720,7 @@ Shown on the student's first login, after any password step required by [03 §6]
 | Step | Screen | What the student does | Requirement |
 | --- | --- | --- | --- |
 | 1 | **Welcome.** Logo, "Welcome to {institute name}'s student hub." | Choose Urdu or English (two large buttons, each in its own script). | REQ-LNG-003 |
-| 2 | **Your pen name.** "This is your pen name. Other students see this name, not your real name. Your teachers can see who you are, to keep everyone safe." Shows the persona created with the account. | Keep it, or type a new one (checked for contact details and full names; see proposed REQ-CHS-007), or tap "Suggest a name" for three suggestions. | REQ-STU-002, REQ-STU-003 |
+| 2 | **Your pen name.** "This is your pen name. Other students see this name, not your real name. Your teachers can see who you are, to keep everyone safe." Shows the persona created with the account. | Keep it, or type a new one (checked for contact details and full names; see proposed REQ-CHS-010), or tap "Suggest a name" for three suggestions. | REQ-STU-002, REQ-STU-003 |
 | 3 | **Your picture.** A grid of 24 preset pattern avatars in theme colours. | Pick one. No photo upload (PD-02-06). | REQ-STU-002, REQ-CHS-001 |
 | 4 | **About you.** Optional bio, 140 characters, with hint "Write about what you like learning. Do not write your real name, phone number or address." | Write or skip. Same check as step 2. | REQ-STU-002, REQ-CHS-002 |
 | 5 | **Staying safe.** Four short rules with icons: be kind; never share phone, email or address; your teachers can see posts; use **Report** if something is wrong. | Tap "I understand". No consent step (D-016). | REQ-STU-011, REQ-CHS-003 |
@@ -798,15 +798,15 @@ There are no photos or videos yet (Q-05). The site must look finished without th
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E4-T01 | Define the `theme` settings shape (colour, font, radius tokens) and seed Markaz Al Azeem's Direction A values in `institute_settings` | todo | P0-E2 | REQ-MIR-005, REQ-MIR-001 |
+| P0-E4-T01 | Define the `theme` settings shape (colour, font, radius tokens) and seed Markaz Al Azeem's Direction A values in `institute_settings` | todo | P0-E2-T04 | REQ-MIR-005, REQ-MIR-001 |
 | P0-E4-T02 | Load the theme by request domain and write tokens as inline CSS custom properties on `<html>` | todo | P0-E4-T01, P0-E1 | REQ-MIR-005, REQ-MIR-002 |
 | P0-E4-T03 | Theme contrast check: refuse saving a theme that fails a §5 pair; automated test over Direction A and B values | todo | P0-E4-T01 | REQ-ACC-001, REQ-MIR-005 |
 | P0-E4-T04 | Font pipeline: subset and self-host Noto Naskh Arabic, Source Serif 4 and Noto Nastaliq Urdu; `local()`, preload and `font-display` rules; measure sizes; run shaping test strings | todo | P0-E1 | REQ-PRF-001, REQ-LNG-006 |
 | P0-E4-T05 | Type scale and base text styles for `/ur` and `/en`, in `rem`, with size-adjusted fallback faces | todo | P0-E4-T02, P0-E4-T04 | REQ-LNG-006, REQ-ACC-005 |
-| P0-E4-T06 | Spacing tokens, breakpoints, grid, logical-property base CSS, icon mirroring, and a lint rule against physical left/right properties | todo | P0-E4-T02, P0-E3 | REQ-LNG-006 |
-| P0-E4-T07 | Formatting and bidi helpers: amount, date, date-time, relative time, isolated names and LTR values, with snapshot tests in both languages | todo | P0-E4-T06, P0-E3 | REQ-LNG-007, REQ-LNG-012 |
+| P0-E4-T06 | Spacing tokens, breakpoints, grid, logical-property base CSS, icon mirroring, and a lint rule against physical left/right properties | todo | P0-E4-T02, P0-E3-T04 | REQ-LNG-006 |
+| P0-E4-T07 | Formatting and bidi helpers: amount, date, date-time, relative time, isolated names and LTR values, with snapshot tests in both languages | todo | P0-E4-T06, P0-E3-T04 | REQ-LNG-007, REQ-LNG-012 |
 | P0-E4-T08 | Buttons, links, text fields, amount field, choice cards, select, checkbox, switch, error summary | todo | P0-E4-T05, P0-E4-T06 | REQ-ACC-002, REQ-ACC-004 |
-| P0-E4-T09 | Header, footer, language switch and logo slot from institute settings; optimised logo exports (48 to 512 px) | todo | P0-E4-T08, P0-E3 | REQ-LNG-003, REQ-PUB-007 |
+| P0-E4-T09 | Header, footer, language switch and logo slot from institute settings; optimised logo exports (48 to 512 px) | todo | P0-E4-T08, P0-E3-T04 | REQ-LNG-003, REQ-PUB-007 |
 | P0-E4-T10 | Feedback components: notice (incl. translation-missing), toast, empty state, skeleton, "Show more" | todo | P0-E4-T08 | REQ-LNG-009, REQ-ACC-002 |
 | P0-E4-T11 | Badges, progress bar, cause card, avatar and persona chip, copy field | todo | P0-E4-T08, P0-E4-T07 | REQ-PUB-002, REQ-ACC-001 |
 | P0-E4-T12 | Placeholder kit: SVG pattern generator from tokens, cause icon sprite, 24 persona avatar presets, initials avatar | todo | P0-E4-T02 | REQ-CHS-001, REQ-MIR-005 |
@@ -814,7 +814,7 @@ There are no photos or videos yet (Q-05). The site must look finished without th
 | P0-E4-T14 | Media frame: responsive image with `srcset`, YouTube facade, audio player, data-saver "tap to load" | todo | P0-E4-T12, P0-E1 | REQ-PRF-002, REQ-PRF-004 |
 | P0-E4-T15 | Component gallery pages at `/ur/_design` and `/en/_design` (admin only), with keyboard, screen reader, 200% zoom and 320 px checks | todo | P0-E4-T08, P0-E4-T09, P0-E4-T10, P0-E4-T11, P0-E4-T12, P0-E4-T13, P0-E4-T14 | REQ-ACC-002, REQ-ACC-003, REQ-ACC-004, REQ-ACC-005 |
 | P0-E4-T16 | Page-weight budget check in CI (HTML, CSS, JS, fonts) and a manual slow-3G test script for the 5-second target | todo | P0-E4-T04, P0-E4-T15 | REQ-PRF-001 |
-| P0-E4-T17 | Shared terms and tone: seed the §11 glossary and example strings into the translation files; native Urdu review by a staff member | todo | P0-E3 | REQ-LNG-001 |
+| P0-E4-T17 | Shared terms and tone: seed the §11 glossary and example strings into the translation files; native Urdu review by a staff member | todo | P0-E3-T03 | REQ-LNG-001 |
 
 ### P3-E7 Onboarding walkthrough (owner: 02)
 
@@ -864,6 +864,6 @@ There are no photos or videos yet (Q-05). The site must look finished without th
 These are not approved. Do not build on them until they are added to [01](01-requirements-checklist.md) with an open question in [00 §6](00-MASTER-PLAN.md#open-questions).
 
 - [ ] REQ-DON-015 (proposed) Donor can send a bank-transfer notice with amount, transfer date, reference code, email, cause or all needs, type and name display choice, which the admin confirms against the bank statement before the donation is recorded. SHOULD → 06 §4
-- [ ] REQ-CHS-007 (proposed) A persona's display name and bio are checked for phone numbers, email addresses, street addresses and full real names before they are saved. MUST → 07 §12
+- [ ] REQ-CHS-010 (proposed) A persona's display name and bio are checked for phone numbers, email addresses, street addresses and full real names before they are saved. MUST → 07 §12
 - [ ] REQ-ACC-006 (proposed) Theme colours that fail the WCAG AA contrast pairs cannot be saved in institute settings. MUST → 02 §5
 - [ ] REQ-PRF-006 (proposed) Images and video posters below the first screen load only when scrolled into view, and only on tap when the browser asks to save data. SHOULD → 02 §9

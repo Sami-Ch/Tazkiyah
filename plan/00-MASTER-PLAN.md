@@ -1,6 +1,6 @@
 # Tazkiyah master plan
 
-**Status:** planning · **Last updated:** 2026-11-07 · **Owner:** Sami
+**Status:** plan complete, awaiting review · **Last updated:** 2026-11-07 · **Owner:** Sami
 
 This is the source of truth for Tazkiyah. Every agent and developer reads it first. If two documents disagree, the master plan wins, and the specialist document is fixed.
 
@@ -33,6 +33,7 @@ Admissions, student fee collection, attendance, online classes, clinic patient r
 | [06-donations-and-trail.md](06-donations-and-trail.md) | Donation lifecycle, causes, Zakat, all-needs split, trail and FIFO, spending, donor identity, sponsorship, receipts |
 | [07-content-hub-student-teacher.md](07-content-hub-student-teacher.md) | Accounts and personas, consent, threads, scopes, moderation, verified articles, media and child-safety rules |
 | [08-decision-log.md](08-decision-log.md) | Every non-trivial decision with date, options and reason |
+| [09-consistency-check.md](09-consistency-check.md) | The latest consistency check: coverage table, fixes made and items left for people |
 | [../docs/agent-prompt.md](../docs/agent-prompt.md) | The brief this plan was written from |
 
 **Rule:** if two documents disagree, the master plan wins, and the specialist document is fixed.
@@ -70,7 +71,7 @@ The owner document of an epic writes that epic's tasks in its **Tasks** section,
 | --- | --- | --- | --- | --- |
 | P1-E3-T01 | Admin form to record a bank-transfer donation | todo | P0-E2-T03, P1-E2-T01 | REQ-DON-008, REQ-PAY-001 |
 
-The **task registry** in section 7 lists every task from every document in one place. When a task's status changes, update both the owner document and the registry.
+The **task index** in section 7 shows which document holds each epic's tasks. A task's status lives only in the document that holds its row. Tasks are numbered by document so IDs never clash: T01–T19 by the epic's owner, T20–T29 by 02, T30–T39 by 03, T40–T49 by 04, T50–T59 by 05, T60–T69 by 06 and T70–T79 by 07.
 
 ### Epics
 
@@ -171,12 +172,63 @@ Each phase ends in a test that a person can run by hand. Online payments come la
 | Q-05 | When photos and videos of the madrasa will be available | Moazam | P1 |
 | Q-06 | Which email sending service fits the free tier | Sami (03) | P0 |
 | Q-07 | Confirm the proposed performance and takedown targets ([D-026](08-decision-log.md#d-026), [D-027](08-decision-log.md#d-027)) | Sami | P0 |
+| Q-08 | Approve or reject the proposed requirements in [01](01-requirements-checklist.md#proposed-awaiting-approval) | Sami | Before the phase of each one |
+| Q-09 | Approve or reject the proposed decisions from the specialist documents ([08](08-decision-log.md#proposed-decisions-from-the-specialist-documents)) | Sami | P0 |
+| Q-10 | May the admin and finance officer see who gave an anonymous donation, so they can record transfers, send receipts and reconcile? (04-D11, 06-P08) | Sami | P1 |
+| Q-11 | With no private messages, how can a student raise a serious worry with staff through the hub? Until answered, the walkthrough tells students to speak to a teacher in person (07 Q-07-01) | Moazam | P3 |
+| Q-12 | Should media in a student's post wait for a teacher's check before other students see it? (07 Q-07-02, PD-07-05) | Moazam | P3 |
+| Q-13 | May faces appear inside a class or the madrasa without consent? Proposed: no (07 Q-07-03) | Moazam | P3 |
+| Q-14 | Are "lesson" and "resource" enough as labels on existing post types? (07 Q-07-04) | Sami | P3 |
+| Q-15 | Does anything change when a former student turns 18? (07 Q-07-05) | Moazam | P3 |
+| Q-16 | Which teachers can widen a post's scope? (07 Q-07-06) | Moazam | P3 |
+| Q-17 | Who approves a verified article for public view: an editor or admin (REQ-TCH-004), or the class teacher or principal (REQ-MOD-003)? Default: editor or admin (07 Q-07-07, PD-07-07) | Sami | P3 |
+| Q-18 | Can an orphan have more than one sponsor? Default: one (06-P15) | Moazam | P4 |
+| Q-19 | Must a tax receipt show the real name of an anonymous donor? (06 §14) | Moazam | P5 |
+| Q-20 | Who reviews the Urdu wording, for example قلمی نام for persona and کفیل for sponsor? (02 P0-E4-T17) | Moazam | P0 |
+| Q-21 | Server-rendered pages may need more than the free 10 ms of CPU per request, making Workers Paid (about $5 a month) the likely first upgrade. Who pays it, and should it be raised as a tech-costs cause? (03 §14) | Sami | P0 |
 
-## 7. Task registry
+## 7. Task index
 
-Compiled in step 4 from the **Tasks** sections of documents 02 to 07. See section 3 for the format.
+Compiled in the consistency check on 2026-11-07: **327 tasks**, all `todo` (P0 76, P1 67, P2 51, P3 95, P4 26, P5 12). Every requirement in [01](01-requirements-checklist.md) is covered by at least one task, every task-level dependency points to a task that exists, and there are no dependency loops. A dependency on a whole epic means every task in that epic must be done.
 
-*(Filled in by the consistency check.)*
+| Epic | Tasks by document | Count |
+| --- | --- | --- |
+| P0-E1 | [03](03-architecture.md#tasks) T01–T15 | 15 |
+| P0-E2 | [04](04-database.md#tasks) T01–T19 · [03](03-architecture.md#tasks) T30–T32 | 22 |
+| P0-E3 | [03](03-architecture.md#tasks) T01–T09 | 9 |
+| P0-E4 | [02](02-design-ui-ux.md#tasks) T01–T17 | 17 |
+| P0-E5 | [03](03-architecture.md#tasks) T01–T10 · [05](05-public-pages-roles-admin.md#tasks) T50–T52 | 13 |
+| P1-E1 | [05](05-public-pages-roles-admin.md#tasks) T01–T15 · [02](02-design-ui-ux.md#tasks) T20–T21 · [04](04-database.md#tasks) T40 | 18 |
+| P1-E2 | [06](06-donations-and-trail.md#tasks) T01–T06 · [04](04-database.md#tasks) T40 · [05](05-public-pages-roles-admin.md#tasks) T50 | 8 |
+| P1-E3 | [06](06-donations-and-trail.md#tasks) T01–T12 · [03](03-architecture.md#tasks) T30–T32 · [04](04-database.md#tasks) T40–T47 | 23 |
+| P1-E4 | [06](06-donations-and-trail.md#tasks) T01–T05 · [02](02-design-ui-ux.md#tasks) T20 · [04](04-database.md#tasks) T40 | 7 |
+| P1-E5 | [05](05-public-pages-roles-admin.md#tasks) T01–T10 · [04](04-database.md#tasks) T40 | 11 |
+| P2-E1 | [06](06-donations-and-trail.md#tasks) T01–T05 · [03](03-architecture.md#tasks) T30–T31 · [04](04-database.md#tasks) T40 · [05](05-public-pages-roles-admin.md#tasks) T50 | 9 |
+| P2-E2 | [06](06-donations-and-trail.md#tasks) T01–T05 · [04](04-database.md#tasks) T40–T42 | 8 |
+| P2-E3 | [06](06-donations-and-trail.md#tasks) T01–T04 · [02](02-design-ui-ux.md#tasks) T20 · [04](04-database.md#tasks) T40 | 6 |
+| P2-E4 | [06](06-donations-and-trail.md#tasks) T01–T03 · [04](04-database.md#tasks) T40 | 4 |
+| P2-E5 | [06](06-donations-and-trail.md#tasks) T01–T07 · [02](02-design-ui-ux.md#tasks) T20 · [04](04-database.md#tasks) T40–T41 · [05](05-public-pages-roles-admin.md#tasks) T50–T51 | 12 |
+| P2-E6 | [06](06-donations-and-trail.md#tasks) T01–T03 · [04](04-database.md#tasks) T40 · [05](05-public-pages-roles-admin.md#tasks) T50–T51 | 6 |
+| P2-E7 | [03](03-architecture.md#tasks) T01–T05 · [06](06-donations-and-trail.md#tasks) T60 | 6 |
+| P3-E1 | [07](07-content-hub-student-teacher.md#tasks) T01–T13 · [04](04-database.md#tasks) T40–T41 | 15 |
+| P3-E2 | [07](07-content-hub-student-teacher.md#tasks) T01–T05 · [04](04-database.md#tasks) T40 | 6 |
+| P3-E3 | [07](07-content-hub-student-teacher.md#tasks) T01–T14 · [02](02-design-ui-ux.md#tasks) T20–T21 · [04](04-database.md#tasks) T40–T41 | 18 |
+| P3-E4 | [03](03-architecture.md#tasks) T01–T09 · [04](04-database.md#tasks) T40 · [07](07-content-hub-student-teacher.md#tasks) T70–T73 | 14 |
+| P3-E5 | [07](07-content-hub-student-teacher.md#tasks) T01–T11 · [03](03-architecture.md#tasks) T30 · [04](04-database.md#tasks) T40–T41 · [05](05-public-pages-roles-admin.md#tasks) T50 | 15 |
+| P3-E6 | [07](07-content-hub-student-teacher.md#tasks) T01–T06 · [02](02-design-ui-ux.md#tasks) T20 · [04](04-database.md#tasks) T40 | 8 |
+| P3-E7 | [02](02-design-ui-ux.md#tasks) T01–T07 · [07](07-content-hub-student-teacher.md#tasks) T70 | 8 |
+| P3-E8 | [05](05-public-pages-roles-admin.md#tasks) T01–T07 · [04](04-database.md#tasks) T40 · [07](07-content-hub-student-teacher.md#tasks) T70–T72 | 11 |
+| P4-E1 | [06](06-donations-and-trail.md#tasks) T01–T04 · [02](02-design-ui-ux.md#tasks) T20 · [04](04-database.md#tasks) T40 | 6 |
+| P4-E2 | [06](06-donations-and-trail.md#tasks) T01–T03 · [04](04-database.md#tasks) T40 | 4 |
+| P4-E3 | [06](06-donations-and-trail.md#tasks) T01–T02 · [04](04-database.md#tasks) T40 · [05](05-public-pages-roles-admin.md#tasks) T50 | 4 |
+| P4-E4 | [05](05-public-pages-roles-admin.md#tasks) T01–T05 · [06](06-donations-and-trail.md#tasks) T60 | 6 |
+| P4-E5 | [03](03-architecture.md#tasks) T01–T04 · [06](06-donations-and-trail.md#tasks) T60–T61 | 6 |
+| P5-E1 | [03](03-architecture.md#tasks) T01–T02 | 2 |
+| P5-E2 | [03](03-architecture.md#tasks) T01–T02 | 2 |
+| P5-E3 | [03](03-architecture.md#tasks) T01–T02 | 2 |
+| P5-E4 | [06](06-donations-and-trail.md#tasks) T01 · [03](03-architecture.md#tasks) T30 | 2 |
+| P5-E5 | [06](06-donations-and-trail.md#tasks) T01–T02 · [03](03-architecture.md#tasks) T30 | 3 |
+| P5-E6 | [06](06-donations-and-trail.md#tasks) T01 | 1 |
 
 ## 8. Glossary
 
@@ -191,7 +243,9 @@ Every document uses these words with these meanings.
 | **Donation** | One gift of money by one donor, with an amount, a date, a type (*Zakat*, *Sadaqah* or *general*) and a cause or *all needs*. |
 | **Allocation** | The link that assigns money to a cause (from an all-needs split) or assigns part of a donation to a spending entry (through first-in-first-out matching). |
 | **Spending entry** | One recorded use of money from a cause, such as a wheat purchase, with an amount, a date, a description and an optional receipt. |
-| **Trail** | The append-only sequence of events for a donation: *received*, *allocated*, *spent* and *reported*. |
+| **Trail** | The append-only sequence of events for a donation: *received*, *allocated*, *spent* and *reported*, plus *reversal* events that correct an earlier event without changing it. |
+| **Transfer notice** | A donor's message saying they sent a bank transfer. It is the *notified* state of a donation, waiting for the admin to confirm it against the bank. It has no receipt and no trail event until confirmed. |
+| **Pledge** | A promise to give monthly or yearly. Until card payments arrive, the admin records each payment as a one-off donation linked to the pledge. |
 | **First in, first out (FIFO)** | The matching rule: a spending entry draws on the oldest unspent donations in its cause first. |
 | **Donor** | Anyone who gives. A *guest donor* gives with only an email and gets a private trail link. An *account donor* has a login. |
 | **Donor wall** | The public list of donations. It always shows amounts. It shows the donor's name only where they chose that. |
@@ -204,3 +258,4 @@ Every document uses these words with these meanings.
 | **Verified article** | A published article made from a thread by a teacher and marked as authentic knowledge. |
 | **Module** | A feature an institute can switch on or off: student hub, teacher hub or new projects. |
 | **Admin** | The role with full control of one institute. At Markaz Al Azeem, this is the principal. |
+| **Principal** | Not a role: a marker on one admin (`institute_settings.principal_user_id`). The principal gives the first sign-off on orphan consent, assigns the second, and can approve posts going public. |

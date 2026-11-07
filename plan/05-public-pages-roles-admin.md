@@ -69,7 +69,7 @@ New decisions made in this document. They are not yet in 08 and are logged there
 | P05-10 | The donate page has a short "Tell us about your transfer" form. It creates an unconfirmed transfer notice that the admin or finance officer confirms against the bank. The state names are set in 06 §4. | With manual recording, this is how a guest "gives by entering only an email" (REQ-DPR-001) and how the donor's choices (cause, type, name or anonymous) reach the admin without a phone call. |
 | P05-11 | A new project is a cause with "Show on new projects page" turned on. There is no separate projects table. | The brief says new initiatives are causes. Reusing causes gives projects the trail, Zakat rules and donor wall for free (REQ-DON-013). |
 | P05-12 | When a module is off, its pages return "not found", its menu items and home blocks disappear, and its data stays untouched. | Switching a module back on must restore everything. Hiding is safer than deleting. |
-| P05-13 | Fixed page text (home intro, about, facilities, daily life) is stored as bilingual content in `institute_settings`, with photos in `media_assets`. To be confirmed by 04 §5. | The shared table list has no pages table, and this text is per institute, rarely changes and is small. |
+| P05-13 | Fixed page text (home intro, about, facilities, daily life) is stored as bilingual content in `site_pages` (04 §5), with photos in `media_assets`. Settled in the consistency check. | The shared table list has no pages table, and this text is per institute, rarely changes and is small. |
 | P05-14 | Any staff role can take down a public post at once. | Fast takedown is a child-safety control (REQ-CHS-004, R-04). A wrong takedown costs little and is restored by an approver. |
 | P05-15 | New causes start with `accepts_zakat` off. The admin must turn it on per cause. | R-05: an ineligible cause receiving Zakat is the worse error. |
 
@@ -167,7 +167,7 @@ Every page exists under both prefixes. The table shows the path once, after the 
 - **Purpose:** the story and trustworthiness of the madrasa.
 - **Who:** everyone.
 - **Blocks:** 1. Title and intro. 2. History (founded 2019, part of Jama Masjid Al-Azeem). 3. Mission, including what Tazkiyah means. 4. Message from the principal. 5. Staff in numbers (no staff photos unless the person agrees). 6. Registration status, for example "Legal registration is in progress. Donations are not yet tax-deductible" (REQ-PAY-008). 7. Links to Facilities and Daily life.
-- **Data:** site page text in `institute_settings` (P05-13), `media_assets`.
+- **Data:** site page text in `site_pages` (P05-13), `media_assets`.
 - **Empty states:** a missing section is left out. No photos uses placeholders.
 - **Phase:** P1.
 
@@ -483,7 +483,7 @@ The persona-to-student link is visible only to the student's teachers and admins
 | Turn a thread into a verified article | — | — | — | yes | — | — | yes |
 | Remove a verified mark | — | — | — | the verifying teacher | — | — | yes |
 
-² REQ-MOD-002 says teachers can hide or remove *any* class or madrasa post; REQ-CHS-003 speaks of *their* classes. This matrix allows any madrasa post and class posts in any class, as REQ-MOD-002 says. 07 §8 may narrow it.
+² Teachers can hide or remove any class or madrasa post, as REQ-MOD-002 says (D-031). REQ-CHS-003 is the minimum: every teacher sees all posts in their own classes.
 
 Any staff role can take down a public post (P05-14); only approvers can restore it. The public-approval and scope-widening rows follow REQ-MOD-003 and REQ-MOD-007; see the note in "Tasks" about how 07 should reconcile them.
 
@@ -594,7 +594,7 @@ The principal records donations and spending by hand on a phone (R-03). Every ad
 - **Pages:** home intro and facts strip, about, facilities (cards), daily life (timeline rows and photos).
 - **Fields:** text pairs (Urdu, English) per section; photos with alt text in both languages (REQ-ACC-003) and the required "No student faces or names are visible" tick.
 - **Actions:** save draft, preview, publish.
-- **Tables:** `institute_settings` (P05-13), `media_assets`.
+- **Tables:** `site_pages` (P05-13), `media_assets`.
 
 ### 8.11 Moderation queue (`/admin/moderation`)
 
@@ -738,12 +738,12 @@ Status for every task is `todo`. In "Depends on", a bare epic ID (such as `P0-E3
 | P1-E1-T01 | Public layout: header with logo and name from institute settings, main menu, Donate button, language switch, footer with contact | todo | P0-E3, P0-E4 | REQ-PUB-007, REQ-LNG-003, REQ-MIR-001 |
 | P1-E1-T02 | Routes and page stubs for every public and signed-in page under `/ur` and `/en`; not-found page; module-off handling; `noindex` on private pages | todo | P1-E1-T01 | REQ-PUB-001, REQ-LNG-008 |
 | P1-E1-T03 | Media placeholder block for pages, facility cards and causes without photos | todo | P0-E4 | REQ-PUB-001, REQ-ACC-003 |
-| P1-E1-T04 | About, facilities and daily life pages reading bilingual text from institute settings, with fallback notice | todo | P1-E1-T02, P1-E1-T03, P1-E5-T05 | REQ-PUB-001, REQ-LNG-009, REQ-CHS-001, REQ-DON-014 |
+| P1-E1-T04 | About, facilities and daily life pages reading bilingual text from `site_pages`, with fallback notice | todo | P1-E1-T02, P1-E1-T03, P1-E5-T05 | REQ-PUB-001, REQ-LNG-009, REQ-CHS-001, REQ-DON-014 |
 | P1-E1-T05 | Causes list page: filter chips, cause cards with progress and type labels, all-needs card, closed campaigns | todo | P1-E1-T02, P1-E2 | REQ-PUB-001, REQ-DON-005, REQ-LNG-012 |
 | P1-E1-T06 | Cause page: money box, Zakat line, story, Donate; closed, archived and draft states; empty spending block | todo | P1-E1-T05 | REQ-PUB-003, REQ-DON-006, REQ-DON-007, REQ-ROL-005 |
 | P1-E1-T07 | Home page: hero, active causes with progress, facts strip, contact strip; later blocks hidden until their phase | todo | P1-E1-T05 | REQ-PUB-002, REQ-PUB-007 |
 | P1-E1-T08 | Donate page: cause or all-needs choice, type with Zakat filter, amount, bank details with copy buttons | todo | P1-E1-T06, P1-E5-T03 | REQ-PUB-008, REQ-DON-001, REQ-DON-002, REQ-DON-004 |
-| P1-E1-T09 | "Tell us about your transfer" form on the donate page and its thank-you state | todo | P1-E1-T08, P1-E3 | REQ-DPR-001, REQ-DPR-006, REQ-PAY-001, REQ-PAY-007 |
+| P1-E1-T09 | "Tell us about your transfer" form on the donate page and its thank-you state | todo | P1-E1-T08, P1-E3-T07 | REQ-DPR-001, REQ-DPR-006, REQ-PAY-001, REQ-PAY-007 |
 | P1-E1-T10 | Contact page from institute settings, with tap-to-call, WhatsApp and static map link | todo | P1-E1-T02, P1-E5-T03 | REQ-PUB-006 |
 | P1-E1-T11 | Login and create-donor-account pages, with two-factor step for staff and role-based landing | todo | P0-E5 | REQ-DPR-004, REQ-SEC-003, REQ-STU-001, REQ-ROL-003 |
 | P1-E1-T12 | Account page: profile, language, password, two-factor, donor links | todo | P1-E1-T11 | REQ-DPR-004, REQ-LNG-004 |
@@ -809,7 +809,7 @@ Status for every task is `todo`. In "Depends on", a bare epic ID (such as `P0-E3
 - Screens specified in §8 for epics where 05 is not listed (all-needs split in P2-E4, consent records in P3-E2 and P4-E2, classes and personas in P3-E1, donation recording and notices in P1-E3, my donations and the guest trail page in P1-E4) are built by those epics' owners from the specs here.
 - 06 §4 should name the state of an unconfirmed transfer notice (P05-10).
 - 07 §7 and §8 should state how REQ-MOD-003 (class teacher or principal approves public) and REQ-MOD-007 (only admin or chosen teachers widen scope) fit together. This document reads them as: going public is an approval by the class teacher or principal; widening between class and madrasa is for the admin and chosen teachers.
-- 04 §5 should confirm where site page text lives (P05-13) and §8 should add the project columns on `causes` (§10.1).
+- Settled in the consistency check: site page text lives in `site_pages` (04 §5), and `causes.listed_as_project` marks a new project (04 §8.1).
 
 ## Acceptance criteria
 

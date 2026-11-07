@@ -61,7 +61,7 @@ New decisions made in this document. They are **not yet in [08](08-decision-log.
 | 04-D6 | **The persona-to-student link lives in its own table, `persona_links`.** Posts, threads and sponsorships point at the persona, never at the student's user row. | A `user_id` column on `personas` | Any row a student can read (a post, a persona) carries no path to the real student. Only RLS on `persona_links` decides who can make that link. |
 | 04-D7 | **Users are per institute.** The same email at two institutes is two user rows. | One global user table | Keeps the rule "every table has `institute_id`" with no exception. A future shared identity can be a new table that links user rows, with no change to these tables. |
 | 04-D8 | **State fields are `text` with a `CHECK` list**, not Postgres enum types. | Native enums | Easier to read and to change in a migration. Values reserved for the future (`community`, `to_institute`) are in the list now but blocked by a rule, so enabling them is not a schema change. |
-| 04-D9 | **New donations default to anonymous** (`is_anonymous = true`) and trails default to private. The donor chooses to show their name. | Default to showing names | Agent rule 8: privacy wins over convenience. See proposed REQ-DPR-011 at the end. |
+| 04-D9 | **New donations default to anonymous** (`is_anonymous = true`) and trails default to private. The donor chooses to show their name. | Default to showing names | Agent rule 8: privacy wins over convenience. See proposed REQ-DPR-012 at the end. |
 | 04-D10 | **FIFO order is the donation's `received_at`, then `id`.** All-needs money allocated to a cause later keeps its original received date. | Order by allocation date | Matches the glossary: the oldest donations pay first. 06 §8 may confirm or change this; the data supports both. |
 | 04-D11 | **Admins and finance officers can see who gave an anonymous donation**, because they record bank transfers, send receipts and reconcile. Every other path (public views, editor and teacher screens, exports for others, logs, the audit log) never contains the name. | Hide the name from admins too | Manual bank recording (D-008) needs the payer's name. This is how this document reads REQ-DPR-009. See the conflict note under Requirements covered. |
 
@@ -633,6 +633,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `amount_paisa` | `bigint not null` | `> 0`, PKR value used for the ledger. Equal to `amount_minor` when `currency = 'PKR'`. |
 | `fx_rate` | `numeric(18,8) null` | Required when `currency <> 'PKR'`. Recorded once, never recalculated. |
 | `frequency` | `text not null default 'one_off'` | `one_off`, `monthly`, `yearly` (REQ-DON-003). Only `one_off` until card payments arrive (D-008). |
+| `pledge_id` | `uuid null` | The pledge this payment belongs to (§8.8). |
 | `method` | `text not null` | `bank_transfer` now (REQ-PAY-001). Reserved: `card`, `jazzcash`, `easypaisa`, `platform_transfer`. |
 | `bank_account_id` | `uuid null` | Account the money arrived in. |
 | `bank_reference` | `text null` | REQ-DON-008. Partial unique index on `(institute_id, bank_account_id, bank_reference)` where `status = 'recorded'`, so the same transfer is not recorded twice. |
@@ -642,7 +643,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `recorded_at`, `recorded_by` | | |
 | `is_anonymous` | `bool not null default true` | REQ-DPR-006, 04-D9. Donor or admin can change it. |
 | `trail_public` | `bool not null default false` | REQ-TRL-008, REQ-TRL-009. Donor can change it. |
-| `receipt_number` | `text not null` | `{prefix}-{year}-{6 digits}`, `unique (institute_id, receipt_number)` (REQ-DON-010). |
+| `receipt_number` | `text not null` | `{prefix}-{year}-{5-digit sequence}`, for example `MAA-2026-00042` (06 §14), `unique (institute_id, receipt_number)` (REQ-DON-010). |
 | `receipt_language` | `text not null` | Copied from the donor at recording time. |
 | `status` | `text not null default 'recorded'` | `recorded`, `reversed`. Changed only by the reversal function. |
 | `private_note` | `text null` | Staff only. Must not hold an anonymous donor's name (reviewed in the admin form, [05 §8](05-public-pages-roles-admin.md)). |
@@ -706,6 +707,48 @@ Covers REQ-DPR-007 and REQ-DPR-008. Tests for REQ-DPR-009: for an anonymous dona
 The token is 32 random bytes from a secure generator, written as base64url (43 characters). It carries no personal data (REQ-SEC-005). It is sent only by email.
 
 `app.use_trail_token(token text)` (definer) hashes the token, looks for a row in the current institute that is not revoked or expired, and if found sets `app.trail_donor_id` for the transaction. Otherwise it returns null. Tokens from another institute never match (§6.6, test 8). Admins, finance officers and the donor can revoke a link and issue a new one.
+
+### 8.7 `transfer_notices`: donations waiting for confirmation
+
+Added in the consistency check (D-030). Until online payments arrive, a donor can tell the madrasa about a bank transfer ([06 §4.2](06-donations-and-trail.md)). The notice is the *notified* state of that donation. It lives here, not in `donations`, so the ledger only ever holds money that has arrived, and every `donations` row keeps its receipt number.
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id`, `institute_id` | | |
+| `donor_id` | `uuid not null` | Guest donor found or created by email (REQ-DPR-001). |
+| `cause_id` | `uuid null` | Null means all needs. |
+| `donation_type` | `text not null` | `zakat`, `sadaqah`, `general`. Zakat only for causes with `accepts_zakat` (same trigger as `donations`). |
+| `amount_paisa` | `bigint not null` | `> 0`. |
+| `transfer_date` | `date not null` | As stated by the donor. |
+| `bank_account_id` | `uuid null` | The account the donor says they paid into. |
+| `bank_reference` | `text null` | As stated by the donor. |
+| `is_anonymous` | `bool not null default true` | The donor's name choice, copied to the donation on confirmation. |
+| `pledge_id` | `uuid null` | Set when the donor asked to give monthly or yearly (§8.8). |
+| `status` | `text not null default 'notified'` | `notified`, `confirmed`, `rejected`, `expired` ([06 §4](06-donations-and-trail.md)). |
+| `donation_id` | `uuid null` | Set on confirmation. `unique (institute_id, donation_id)`. |
+| `decided_at`, `decided_by`, `decision_note` | | Staff only. |
+| `created_at` | `timestamptz not null` | A notice with no decision after 30 days becomes `expired`. |
+
+Confirming calls `app.record_donation()` (§9), which creates the `donations` row, its receipt number and the *received* event in one transaction. A notice creates no trail event, no receipt and no donor wall entry. RLS: staff read all notices of their institute; a donor reads only their own, through their account or trail token.
+
+### 8.8 `recurring_pledges`
+
+Added in the consistency check (D-030). Until card payments arrive, "monthly" or "yearly" means a pledge: the donor promises to give each period, and the admin records each payment as a normal one-off donation linked to the pledge ([06 §13](06-donations-and-trail.md)).
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id`, `institute_id` | | |
+| `donor_id` | `uuid not null` | |
+| `cause_id` | `uuid null` | Null means all needs. |
+| `donation_type` | `text not null` | As in `donations`. |
+| `frequency` | `text not null` | `monthly`, `yearly` (REQ-DON-003). |
+| `amount_paisa` | `bigint not null` | `> 0`. The amount promised each period. |
+| `starts_on` | `date not null` | |
+| `status` | `text not null default 'active'` | `active`, `lapsed`, `cancelled`. Lapses after 3 missed periods (06 §13). |
+| `missed_periods` | `smallint not null default 0` | Set by the monthly job. |
+| `created_at`, `cancelled_at` | | The donor or admin can cancel. |
+
+`donations` gains `pledge_id uuid null`, linking each recorded payment to its pledge. `donations.frequency` stays `one_off` for every manually recorded payment; `monthly` and `yearly` are used on `donations` only for automatic card charges in P5.
 
 ## 9. Trail events and allocations
 
@@ -1180,7 +1223,7 @@ Neon's free tier storage limit ([03 §14](03-architecture.md)) is ample for thes
 
 ### 13.4 Retention
 
-These periods are **proposed** (see proposed REQ-SEC-009) and need Moazam's confirmation, especially for financial records once registration completes (Q-02).
+These periods are **proposed** (see proposed REQ-SEC-011) and need Moazam's confirmation, especially for financial records once registration completes (Q-02).
 
 | Data | Rule |
 | --- | --- |
@@ -1188,7 +1231,7 @@ These periods are **proposed** (see proposed REQ-SEC-009) and need Moazam's conf
 | `audit_log` | Same as financial records. |
 | `consent_records` | Kept while the student's account exists, plus 10 years. Withdrawn records are kept as evidence. |
 | `users`, `personas`, `persona_links` for students who left | Kept live (D-028). |
-| `donors` personal fields | On a verified request from the donor, `app.erase_donor()` clears `legal_name`, `email`, `phone`, `display_name`, `photo_media_id` and `profile_links`, sets `erased_at`, revokes trail links and forces `is_anonymous = true` on their donations. Donation and trail rows stay (proposed REQ-DPR-012). |
+| `donors` personal fields | On a verified request from the donor, `app.erase_donor()` clears `legal_name`, `email`, `phone`, `display_name`, `photo_media_id` and `profile_links`, sets `erased_at`, revokes trail links and forces `is_anonymous = true` on their donations. Donation and trail rows stay (proposed REQ-DPR-013). |
 | `trail_links` | Revoked or expired rows deleted 1 year after revocation or expiry. |
 | `posts` taken down | Row kept. `body`, `title` and attachments purged after 1 year, leaving a tombstone for the audit trail. |
 | `post_reports` | Deleted 2 years after being closed. |
@@ -1235,8 +1278,8 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E2-T01 | Create database roles `tazkiyah_owner` and `tazkiyah_app`, schemas `app` and `public_api`, and baseline grants on Neon | todo | P0-E1 | REQ-SEC-001 |
-| P0-E2-T02 | Set up the migration folder, naming rule and the apply-on-Neon-branch-then-main flow | todo | P0-E2-T01, P0-E1 | REQ-MIR-003 |
+| P0-E2-T01 | Create database roles `tazkiyah_owner` and `tazkiyah_app`, schemas `app` and `public_api`, and baseline grants on Neon | todo | P0-E1-T04 | REQ-SEC-001 |
+| P0-E2-T02 | Set up the migration folder, naming rule and the apply-on-Neon-branch-then-main flow | todo | P0-E2-T01, P0-E1-T04 | REQ-MIR-003 |
 | P0-E2-T03 | Add the `localized_text` domain, `app.localize()` with fallback flag, and the shared `updated_at` and `forbid_change` trigger functions | todo | P0-E2-T02 | REQ-LNG-009, REQ-TRL-002 |
 | P0-E2-T04 | Create `institutes`, `institute_settings`, `institute_domains` and `institute_bank_accounts` with composite keys and checks | todo | P0-E2-T03 | REQ-MIR-001, REQ-MIR-003 |
 | P0-E2-T05 | Write the session context functions (`current_institute_id`, `current_user_id`, `current_trail_donor_id`) and document the per-request transaction contract with 03 §6 | todo | P0-E2-T04 | REQ-SEC-001 |
@@ -1249,10 +1292,10 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P0-E2-T12 | Add module validation on `enabled_modules` and `app.module_enabled()` | todo | P0-E2-T04, P0-E2-T05 | REQ-ROL-010 |
 | P0-E2-T13 | Write the catalog meta-test (institute id, composite unique, RLS, `iso` policy, grants, owner and `BYPASSRLS` checks, view filters) | todo | P0-E2-T07 | REQ-SEC-001 |
 | P0-E2-T14 | Build the isolation test harness: seed test institute B and generate the eight behaviour tests per table and view | todo | P0-E2-T13, P0-E2-T09, P0-E2-T10, P0-E2-T11 | REQ-SEC-002 |
-| P0-E2-T15 | Write the production seed: Markaz Al Azeem settings in Urdu and English, domains, logo asset, theme tokens and the first admin account | todo | P0-E2-T04, P0-E2-T08, P0-E2-T09, P0-E4 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-007 |
+| P0-E2-T15 | Write the production seed: Markaz Al Azeem settings in Urdu and English, domains, logo asset, theme tokens and the first admin account | todo | P0-E2-T04, P0-E2-T08, P0-E2-T09, P0-E4-T01, P0-E4-T09 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-007 |
 | P0-E2-T16 | Build the append-only test kit (update, delete, truncate as app and as owner) and apply it to `audit_log` | todo | P0-E2-T11 | REQ-TRL-002 |
 | P0-E2-T17 | Write `app.run_retention()` with a per-table rule list (empty rules until tables exist) and its audit row | todo | P0-E2-T11 | REQ-SEC-001 |
-| P0-E2-T18 | Restore drill: restore a Neon branch from point in time and rerun the catalog and isolation tests on it | todo | P0-E2-T14, P0-E1 | REQ-SEC-002, REQ-SEC-006 |
+| P0-E2-T18 | Restore drill: restore a Neon branch from point in time and rerun the catalog and isolation tests on it | todo | P0-E2-T14, P0-E1-T04 | REQ-SEC-002, REQ-SEC-006 |
 | P0-E2-T19 | Check query plans of policy helpers with seeded volume (5,000 donations, 20,000 posts) and add missing indexes | todo | P0-E2-T14 | REQ-SEC-001, REQ-PRF-005 |
 
 ### Schema tasks inside other epics
@@ -1267,6 +1310,8 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P1-E3-T43 | Write `app.record_donation()`: donation, received event, cause allocation and allocated event in one transaction | todo | P1-E3-T42 | REQ-DON-008, REQ-TRL-001, REQ-PAY-001 |
 | P1-E3-T44 | Create `trail_links` and the issue, `use_trail_token` and revoke functions, with RLS through the trail donor | todo | P1-E3-T40, P0-E2-T05 | REQ-SEC-004, REQ-DPR-002, REQ-SEC-005 |
 | P1-E3-T45 | Write the donation reversal function (reversal events and allocation reversals; refuse while spent allocations remain) | todo | P1-E3-T43 | REQ-DON-012, REQ-TRL-003 |
+| P1-E3-T46 | Create `transfer_notices` with RLS, the Zakat check, 30-day expiry and the confirm path into `app.record_donation()` (§8.7) | todo | P1-E3-T43, P1-E3-T44 | REQ-DPR-001, REQ-DON-015 (proposed), REQ-PAY-001 |
+| P1-E3-T47 | Create `recurring_pledges` and add `donations.pledge_id` (§8.8) | todo | P1-E3-T41 | REQ-DON-003 |
 | P1-E4-T40 | Create the `app.donor_trail` view for account and token donors, with share-per-spend columns | todo | P1-E3-T43, P1-E3-T44 | REQ-TRL-007, REQ-DPR-010 |
 | P1-E5-T40 | Add the audit log filter indexes and an admin read view with actor names resolved and redaction kept | todo | P0-E2-T11 | REQ-ROL-009, REQ-SEC-008 |
 | P2-E1-T40 | Create `spending_entries` and `spending_reports` with receipt link, column lock after matching, RLS and audit | todo | P1-E2-T40, P0-E2-T09 | REQ-TRL-011, REQ-TRL-012, REQ-ROL-007 |
@@ -1314,7 +1359,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 
 These are not approved. Nothing may be built on them until Sami or Moazam approves them. Each needs an open question in [00 §6](00-MASTER-PLAN.md#open-questions).
 
-- [ ] REQ-DPR-011 (proposed) A new donation is anonymous on the donor wall unless the donor chooses to show their name. MUST → 06 §10
-- [ ] REQ-DPR-012 (proposed) On a verified request, a donor's personal details are erased while their donations and trail stay as anonymous records. SHOULD → 04 §13
+- [ ] REQ-DPR-012 (proposed) A new donation is anonymous on the donor wall unless the donor chooses to show their name. MUST → 06 §10
+- [ ] REQ-DPR-013 (proposed) On a verified request, a donor's personal details are erased while their donations and trail stay as anonymous records. SHOULD → 04 §13
 - [ ] REQ-TRL-015 (proposed) A cause cannot stop accepting Zakat while it holds unspent Zakat money. MUST → 06 §6
-- [ ] REQ-SEC-009 (proposed) Donations, allocations, spending entries, trail events and the audit log are kept for at least 10 years and are never deleted inside that period. MUST → 04 §13
+- [ ] REQ-SEC-011 (proposed) Donations, allocations, spending entries, trail events and the audit log are kept for at least 10 years and are never deleted inside that period. MUST → 04 §13

@@ -70,7 +70,7 @@ These are new choices this document needs. They are written here as proposals, n
 | 06-P01 | Until P5, the donor tells the madrasa about a transfer through a public **transfer notice** form. This creates a donation in the state *notified*. It gets no trail event, receipt or donor-wall entry until the admin confirms it against the bank. | Admin records everything from the bank alone; donor notice first. | The cause, Zakat choice and name or anonymous setting must come from the donor, not from a guess. A bank statement shows only a name and an amount. |
 | 06-P02 | FIFO orders money in a cause by the date it **entered that cause**: the donation date for a gift to a cause, and the split date for an all-needs piece. Ties go to the lower receipt number. | Order by original donation date; order by entry date. | "Oldest unspent donations in its cause" (REQ-TRL-004) means oldest in the cause. Split money was not in the cause before the split. |
 | 06-P03 | A match is final. FIFO never moves an existing match. A correction is always a reversal plus new matching. | Re-run FIFO from scratch after every change; final matches. | The trail is append-only (REQ-TRL-002). A donor's history must not change under them. |
-| 06-P04 | A spending entry may be larger than the cause's unspent money. The uncovered part is a **shortfall**. The next money to enter the cause fills the oldest shortfall first. | Block the entry; mark the rest "paid by the madrasa" forever; shortfall filled by later money. | Wheat is bought in bulk at harvest, often before donations arrive. Later donors really are repaying that purchase. See REQ-TRL-015 (proposed). |
+| 06-P04 | A spending entry may be larger than the cause's unspent money. The uncovered part is a **shortfall**. The next money to enter the cause fills the oldest shortfall first. | Block the entry; mark the rest "paid by the madrasa" forever; shortfall filled by later money. | Wheat is bought in bulk at harvest, often before donations arrive. Later donors really are repaying that purchase. See REQ-TRL-016 (proposed). |
 | 06-P05 | A cause's Zakat flag cannot be switched off while the cause holds unspent Zakat. The admin must first move that Zakat to another Zakat-eligible cause, with a reason the donor sees. | Allow switching off; block; block with a move. | Prevents Zakat being spent on a cause just declared ineligible (risk R-05). |
 | 06-P06 | The donation type (Zakat, Sadaqah or general) is never shown on public pages: not on the donor wall, a public trail, or a public profile. Only the donor and finance staff see it. | Show type publicly; hide it. | Whether someone pays Zakat says something about their wealth. Privacy wins (00 §4 rule 8). The donor wall still shows amounts (D-010). |
 | 06-P07 | If the donor has not chosen, a donation is anonymous. This covers donations recorded straight from the bank with no notice. | Default named; default anonymous. | Privacy wins. A bank statement name is not consent to publish it. |
@@ -102,6 +102,8 @@ Until online payments arrive (REQ-PAY-001), money reaches the madrasa only by ba
 
 ### 4.2 The transfer notice form
 
+In the database a *notified* donation is a row in `transfer_notices`, and it becomes a row in `donations` only when the admin confirms it ([04 §8.7](04-database.md)). Pledges are stored in `recurring_pledges` ([04 §8.8](04-database.md)).
+
 The public form on the donate page asks for:
 
 - email address (required; it is the only thing a guest donor must give, REQ-DPR-001);
@@ -118,7 +120,7 @@ The form never asks for a phone number, address or national ID number. Personal 
 
 ### 4.3 Recording without a notice
 
-Many donors will send money and tell nobody. When the admin finds a credit on the statement with no notice, he records it directly with the same fields. If the donor is not known, he records it with no donor ("unknown donor"). It is then anonymous (06-P07), gets no email, and can be attached to a donor later if they get in touch. See REQ-DON-016 (proposed).
+Many donors will send money and tell nobody. When the admin finds a credit on the statement with no notice, he records it directly with the same fields. If the donor is not known, he records it with no donor ("unknown donor"). It is then anonymous (06-P07), gets no email, and can be attached to a donor later if they get in touch. See REQ-DON-017 (proposed).
 
 ### 4.4 States
 
@@ -386,7 +388,7 @@ Only one FIFO run per cause can happen at a time. The run takes a lock on the ca
 
 ### 8.5 Shortfalls
 
-A spending entry can be larger than the money in its cause (06-P04, REQ-TRL-015 proposed). For example, the wheat is bought on credit at harvest. The uncovered part is the entry's shortfall. The admin sees it. The public cause page shows it as "Rs 70,000 still to be covered by donations". Because the need queue is ordered by date, the next money into the cause fills the oldest shortfall first. The donor's trail then says their gift "paid towards" that earlier purchase.
+A spending entry can be larger than the money in its cause (06-P04, REQ-TRL-016 proposed). For example, the wheat is bought on credit at harvest. The uncovered part is the entry's shortfall. The admin sees it. The public cause page shows it as "Rs 70,000 still to be covered by donations". Because the need queue is ordered by date, the next money into the cause fills the oldest shortfall first. The donor's trail then says their gift "paid towards" that earlier purchase.
 
 ### 8.6 Worked example: Wheat stock, March to May 2026
 
@@ -891,13 +893,13 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E3-T01 | Recording rules: save donation, *received* and *allocated* events in one transaction (§4.4, §4.5), including unknown donor | todo | P1-E2-T03, P0-E2 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-008, REQ-TRL-001, REQ-TRL-002, REQ-DON-016 (proposed, needs approval for unknown donor only) |
+| P1-E3-T01 | Recording rules: save donation, *received* and *allocated* events in one transaction (§4.4, §4.5), including unknown donor | todo | P1-E2-T03, P0-E2 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-008, REQ-TRL-001, REQ-TRL-002, REQ-DON-017 (proposed, needs approval for unknown donor only) |
 | P1-E3-T02 | Phone-friendly admin form to record a bank transfer, with duplicate warning and large-amount confirmation | todo | P1-E3-T01, P1-E5, P0-E5 | REQ-DON-008, REQ-PAY-001 |
 | P1-E3-T03 | Receipt numbering per institute per year (§14.1) | todo | P1-E3-T01 | REQ-DON-010 |
 | P1-E3-T04 | Guest donors and private trail-link tokens: create, hash, revoke (§11.2) | todo | P1-E3-T01 | REQ-DPR-001, REQ-DPR-002, REQ-SEC-004 |
-| P1-E3-T05 | Email the private link to a new guest donor when their first donation is received | todo | P1-E3-T04, 03 email sending (see 03 §10) | REQ-DPR-002, REQ-LNG-011 |
+| P1-E3-T05 | Email the private link to a new guest donor when their first donation is received | todo | P1-E3-T04, P1-E3-T30 | REQ-DPR-002, REQ-LNG-011 |
 | P1-E3-T06 | Anonymity read layer: name fields hidden for anonymous donations outside donor and finance roles (§10.4) | todo | P1-E3-T01 | REQ-DPR-006, REQ-DPR-009, REQ-SEC-008 |
-| P1-E3-T07 | Public transfer notice form creating *notified* donations (§4.2) | todo | P1-E3-T01, P1-E1 | REQ-DON-001, REQ-DON-002, REQ-DON-003, REQ-DON-004, REQ-DPR-001, REQ-DPR-006 |
+| P1-E3-T07 | Public transfer notice form creating *notified* donations (§4.2) | todo | P1-E3-T01, P1-E1-T08 | REQ-DON-001, REQ-DON-002, REQ-DON-003, REQ-DON-004, REQ-DPR-001, REQ-DPR-006 |
 | P1-E3-T08 | Admin queue to confirm, reject or expire transfer notices | todo | P1-E3-T07, P1-E3-T02 | REQ-DON-008, REQ-PAY-001 |
 | P1-E3-T09 | Reverse a donation before any spending, with a reason; receipt marked cancelled (§15.2, §15.3) | todo | P1-E3-T01, P1-E3-T03 | REQ-DON-012, REQ-TRL-003 |
 | P1-E3-T10 | Recurring pledges: create from the notice form or by admin, and link recorded payments (§13.1) | todo | P1-E3-T02, P1-E3-T07 | REQ-DON-003 |
@@ -919,7 +921,7 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P2-E1-T01 | Phone-friendly spending entry form saving drafts in a daily or weekly batch (§9.1, §9.2) | todo | P1-E2-T01, P1-E5 | REQ-TRL-011, REQ-ROL-007 |
-| P2-E1-T02 | Receipt photo on a spending entry, with public or private setting from the cause default | todo | P2-E1-T01, P1-E2-T03, 03 media storage (see 03 §8) | REQ-TRL-011, REQ-ROL-007, REQ-PRF-002 |
+| P2-E1-T02 | Receipt photo on a spending entry, with public or private setting from the cause default | todo | P2-E1-T01, P1-E2-T03, P2-E1-T30 | REQ-TRL-011, REQ-ROL-007, REQ-PRF-002 |
 | P2-E1-T03 | "Record batch": drafts become final and FIFO runs | todo | P2-E1-T01, P2-E2-T01 | REQ-TRL-004, REQ-TRL-011 |
 | P2-E1-T04 | Reverse a spending entry with a reason, releasing its matches | todo | P2-E1-T03, P2-E2-T03 | REQ-TRL-003 |
 | P2-E1-T05 | Admin view of unspent balance per cause by type, shortfalls and all-needs pools (§9.4) | todo | P2-E2-T01 | REQ-TRL-013 |
@@ -929,7 +931,7 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P2-E2-T01 | FIFO matching for one cause with a per-cause lock, writing spend allocations and *spent* events (§8.4) | todo | P1-E3-T01, P2-E1-T01 | REQ-TRL-001, REQ-TRL-004, REQ-TRL-005 |
-| P2-E2-T02 | Shortfalls: entries larger than unspent money, filled by the next money in (§8.5) *(needs approval)* | todo | P2-E2-T01 | REQ-TRL-004, REQ-TRL-015 (proposed) |
+| P2-E2-T02 | Shortfalls: entries larger than unspent money, filled by the next money in (§8.5) *(needs approval)* | todo | P2-E2-T01 | REQ-TRL-004, REQ-TRL-016 (proposed) |
 | P2-E2-T03 | Reversals after spending: release matches and re-run FIFO (§15.3) | todo | P2-E2-T01, P1-E3-T09 | REQ-DON-012, REQ-TRL-003 |
 | P2-E2-T04 | Automated tests: the §8.6 worked example as a fixture, plus the six money rules in §8.3 | todo | P2-E2-T02, P2-E2-T03 | REQ-TRL-004, REQ-TRL-005, REQ-TRL-006, REQ-TRL-007 |
 | P2-E2-T05 | Donor trail shows *spent* and *reported* events, with description, share and public receipt photo | todo | P2-E2-T01, P1-E4-T01 | REQ-TRL-007, REQ-ORP-009 |
@@ -1056,7 +1058,7 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 
 These are not approved. Nothing may be built on them until they are (00 §4 rule 4). Each needs an open question in [00 §6](00-MASTER-PLAN.md#open-questions).
 
-- [ ] REQ-DON-015 (proposed) Admin can record a cash donation, such as a Friday collection, with the same fields as a bank transfer and the method set to cash. SHOULD → 06 §4
-- [ ] REQ-DON-016 (proposed) Admin can record a donation with no known donor, which is shown as anonymous and can later be attached to a donor. SHOULD → 06 §4
-- [ ] REQ-TRL-015 (proposed) A spending entry larger than its cause's unspent money is recorded with a shortfall, and the next money into the cause fills the oldest shortfall first. MUST → 06 §8
+- [ ] REQ-DON-016 (proposed) Admin can record a cash donation, such as a Friday collection, with the same fields as a bank transfer and the method set to cash. SHOULD → 06 §4
+- [ ] REQ-DON-017 (proposed) Admin can record a donation with no known donor, which is shown as anonymous and can later be attached to a donor. SHOULD → 06 §4
+- [ ] REQ-TRL-016 (proposed) A spending entry larger than its cause's unspent money is recorded with a shortfall, and the next money into the cause fills the oldest shortfall first. MUST → 06 §8
 - [ ] REQ-ORP-010 (proposed) Full-profile consent for a sponsor expires 12 months after its second sign-off unless both sign-offs are given again. SHOULD → 06 §12

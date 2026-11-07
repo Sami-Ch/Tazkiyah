@@ -189,3 +189,33 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-MIR-003 Adding a second institute needs no schema change. MUST → 04 §5
 - [ ] REQ-MIR-004 The post scope field can hold a future community value without a schema change. SHOULD → 04 §11
 - [ ] REQ-MIR-005 Theme colours come from institute settings, not from code. MUST → 02 §5
+
+## Proposed (awaiting approval)
+
+Raised by the specialist documents and numbered in the consistency check. None of these may be built until Sami approves it (open question Q-08). Approving one means removing "(proposed)" and moving it to its category above.
+
+- [ ] REQ-DON-015 (proposed) Donor can send a transfer notice with amount, transfer date, bank reference, email, cause or all needs, type and name choice, which the admin confirms against the bank. MUST → 06 §4
+- [ ] REQ-DON-016 (proposed) Admin can record a cash donation, such as a Friday collection, with the method set to cash. SHOULD → 06 §4
+- [ ] REQ-DON-017 (proposed) Admin can record a donation with no known donor, shown as anonymous and attachable to a donor later. SHOULD → 06 §4
+- [ ] REQ-DON-018 (proposed) Every reminder or newsletter email has a one-click unsubscribe link that works without signing in. MUST → 03 §9
+- [ ] REQ-TRL-015 (proposed) A cause cannot stop accepting Zakat while it holds unspent Zakat money. MUST → 06 §6
+- [ ] REQ-TRL-016 (proposed) A spending entry larger than its cause's unspent money is recorded with a shortfall, which the next money into the cause fills first. MUST → 06 §8
+- [ ] REQ-DPR-011 (proposed) Staff can make a donation anonymous or its trail private, but only the donor can make it named or public. MUST → 05 §7
+- [ ] REQ-DPR-012 (proposed) A new donation is anonymous unless the donor chooses to show their name. MUST → 06 §10
+- [ ] REQ-DPR-013 (proposed) On a verified request, a donor's personal details are erased while their donations and trail stay as anonymous records. SHOULD → 04 §13
+- [ ] REQ-ORP-010 (proposed) Full-profile consent for a sponsor expires 12 months after its second sign-off unless both sign-offs are given again. SHOULD → 06 §12
+- [ ] REQ-PUB-009 (proposed) The site has a privacy page in Urdu and English saying what is stored about donors, students and consent, and who can see it. SHOULD → 05 §5
+- [ ] REQ-ROL-011 (proposed) No role, including admin, can edit or delete an audit log entry. MUST → 05 §9
+- [ ] REQ-ROL-012 (proposed) Switching a module off hides its pages and menu items and leaves its data unchanged. MUST → 05 §8
+- [ ] REQ-ROL-013 (proposed) The last active admin of an institute cannot remove their own admin role or deactivate their own account. SHOULD → 05 §6
+- [ ] REQ-SEC-009 (proposed) Each time a staff member opens the real name behind a persona, the view is written to the audit log. SHOULD → 05 §9
+- [ ] REQ-SEC-010 (proposed) Sign-in, password reset and two-factor attempts are rate-limited, and repeated failures lock the account for a short time. SHOULD → 03 §6
+- [ ] REQ-SEC-011 (proposed) Donations, allocations, spending entries, trail events and the audit log are kept for at least 10 years. MUST → 04 §13
+- [ ] REQ-CHS-007 (proposed) Every uploaded image, audio or video file has its location and camera details removed before it is stored. MUST → 07 §11
+- [ ] REQ-CHS-008 (proposed) Withdrawing parent consent takes the student's public posts down and hides their real name and face within one minute. MUST → 07 §5
+- [ ] REQ-CHS-009 (proposed) A student can raise a private concern that only their teachers and admins can see (Q-11). SHOULD → 07 §12
+- [ ] REQ-CHS-010 (proposed) A persona's display name and bio are checked for phone numbers, email addresses, street addresses and full real names before saving. MUST → 07 §12
+- [ ] REQ-MOD-008 (proposed) Visitors can report a published post on a public page without logging in. SHOULD → 07 §8
+- [ ] REQ-MOD-009 (proposed) Media in a student's post is shown to other students only after a teacher checks it (Q-12). MUST → 07 §11
+- [ ] REQ-ACC-006 (proposed) Theme colours that fail the WCAG AA contrast pairs cannot be saved in institute settings. MUST → 02 §5
+- [ ] REQ-PRF-006 (proposed) Images below the first screen load only when scrolled into view, and only on tap when the browser asks to save data. SHOULD → 02 §9

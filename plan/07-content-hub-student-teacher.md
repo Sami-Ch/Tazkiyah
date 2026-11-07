@@ -61,7 +61,7 @@ These are this document's own design choices. Each one needs a `D-` entry in [08
 
 | ID | Decision | Reason |
 | --- | --- | --- |
-| PD-07-01 | A person may approve a post for public view only if they meet both rules: they are the class teacher or the principal (REQ-MOD-003), and they are an admin or a teacher the admin chose to widen scopes (REQ-MOD-007). | Both requirements are MUST. Requiring both satisfies each and is the safer reading. |
+| PD-07-01 | Approving a post for public view is done by the class teacher of the post's class or by the principal (REQ-MOD-003). Widening a post's scope inside the madrasa, from class to madrasa (and later to community), is done only by an admin or a teacher the admin chose (REQ-MOD-007). Going public is approval, not widening. | Sami's answer: a post goes public through the teacher or the principal. Settled in the consistency check (D-029). |
 | PD-07-02 | A post has two separate states: an inside state (`visible`, `hidden`, `removed`) and a public state (`none`, `draft`, `submitted`, `approved`, `published`, `taken_down`). | Class and madrasa posts never need approval, while the public path does. Keeping them apart stops one from blocking the other. |
 | PD-07-03 | Phone numbers, email addresses and contact links are blocked when a student posts. Text that looks like a street address is posted but flagged for a teacher. | Phones and emails are easy to detect reliably. Addresses are not, and blocking on a guess would break REQ-MOD-001 for innocent posts. |
 | PD-07-04 | Student avatars come only from a preset set of illustrations with no human faces. Students cannot upload a photo as an avatar. | Removes the most common way a child's face would appear. |
@@ -187,10 +187,10 @@ The profile shows on every teacher post and in the teacher hub (REQ-TCH-001).
 | Post and reply in class or madrasa scope | Yes | Yes | No | Yes |
 | Create a poll | Yes | Yes | No | Yes |
 | Vote in a poll | Yes | Yes | No | Yes |
-| Hide or remove a post | No | Own classes and madrasa scope | No | All |
+| Hide or remove a post | No | Any class or madrasa post (REQ-MOD-002, D-031) | No | All |
 | Take down a post | No | Own classes and madrasa scope | No | All |
 | Widen a post's scope | No | Only if chosen by admin | No | Yes |
-| Approve a student post for public view | No | Own classes, and only if chosen by admin (PD-07-01) | No | Yes |
+| Approve a student post for public view | No | Own classes (PD-07-01) | No | Yes |
 | Turn a thread into a verified article | No | Threads they can see | No | Yes |
 | Review teacher work for public view | No | No | Yes | Yes |
 | Record a consent record | No | Yes (first sign-off for non-orphans) | No | Yes |
@@ -419,7 +419,7 @@ stateDiagram-v2
 | `draft` | `none` | The author | |
 | `draft` | `submitted` | The author | Consent covering `public_work` is active (section 5.2). Contact-detail scan passes. |
 | `submitted` | `draft` | An approver (reject with a note), or the author (withdraw) | |
-| `submitted` | `approved` | An approver: an admin, or a class teacher of the post's class whom the admin chose (PD-07-01). For a madrasa-scope post, the class teacher of any class the author is in. Nobody approves their own post. | The approver has seen the post and its media |
+| `submitted` | `approved` | An approver: the principal, or a class teacher of the post's class (PD-07-01). For a madrasa-scope post, the class teacher of any class the author is in. Nobody approves their own post. | The approver has seen the post and its media |
 | `approved` | `published` | The system, at once | Consent still active. Inside state is `visible`. No open report. Student media cleared (PD-07-05). |
 | `approved` or `published` | `submitted` | The author edits the post | PD-07-06 |
 | `submitted`, `approved` or `published` | `taken_down` | A teacher (own classes and madrasa scope), an admin, the report threshold, or consent withdrawal | Always allowed. Needs a reason. |

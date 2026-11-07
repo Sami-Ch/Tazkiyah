@@ -169,3 +169,105 @@ Every non-trivial decision, newest at the bottom. A changed decision gets a new 
 **Decision:** A student's account and persona stay active after they leave the madrasa.
 **Options:** Archive the account; keep it live.
 **Reason:** Matches the idea that students can keep their persona for life.
+
+## D-029
+**Date:** 2026-11-07 · **Decided by:** Consistency check, from Sami's answer on post approval
+**Decision:** A post goes public with approval from the class teacher of its class or the principal (REQ-MOD-003). Widening a post's scope inside the madrasa, from class to madrasa, is done only by an admin or a teacher the admin chose (REQ-MOD-007). Going public is approval, not widening.
+**Options:** Approver must meet both rules (07 draft); approval and widening are separate acts.
+**Reason:** Sami said a post goes public "through the teacher or principal". The 07 draft's stricter reading was fixed to match; 04 and 05 already read it this way.
+
+## D-030
+**Date:** 2026-11-07 · **Decided by:** Consistency check (proposed with REQ-DON-015)
+**Decision:** A transfer notice is stored in its own table, `transfer_notices`, and becomes a row in `donations` only when the admin confirms it. Pledges are stored in `recurring_pledges`, and each recorded payment links to its pledge.
+**Options:** A *notified* status inside `donations`; a separate table.
+**Reason:** The ledger then only ever holds money that has arrived, and every donation keeps a receipt number. 02, 05 and 06 each proposed the notice form; 04 had no table for it or for pledges.
+
+## D-031
+**Date:** 2026-11-07 · **Decided by:** Consistency check
+**Decision:** Teachers can hide or remove any class or madrasa post, not only posts in their own classes.
+**Options:** Own classes only (07 draft); any class or madrasa post (REQ-MOD-002, 05 draft).
+**Reason:** The checklist outranks the specialist documents, and REQ-MOD-002 says "any". Sami can narrow it.
+
+## Proposed decisions from the specialist documents
+
+Each specialist document records its own decisions in its §3, with the options it considered and its reasons. They are numbered here so they can be approved or rejected (open question Q-09). Until approved they are **proposed**: agents may plan with them, but a change to one needs a new entry here.
+
+| D | Label | Doc | Decision (first sentence) | Status |
+| --- | --- | --- | --- | --- |
+| D-032 | PD-02-01 | [02](02-design-ui-ux.md) | Direction A, "Night and Paper", is the recommended visual direction (§4). | proposed |
+| D-033 | PD-02-02 | [02](02-design-ui-ux.md) | Urdu text uses Naskh (Noto Naskh Arabic) everywhere. | proposed |
+| D-034 | PD-02-03 | [02](02-design-ui-ux.md) | Latin body text uses the phone's system font. | proposed |
+| D-035 | PD-02-04 | [02](02-design-ui-ux.md) | Numbers use Western digits (0 to 9) in both languages. | proposed |
+| D-036 | PD-02-05 | [02](02-design-ui-ux.md) | Theme values live only in `institute_settings`. | proposed |
+| D-037 | PD-02-06 | [02](02-design-ui-ux.md) | Students choose a persona avatar from preset pattern avatars. | proposed |
+| D-038 | PD-02-07 | [02](02-design-ui-ux.md) | No stock photos, and no generated images of the madrasa or of children, are used as placeholders. | proposed |
+| D-039 | PD-02-08 | [02](02-design-ui-ux.md) | Lists use a "Show more" button with 20 items per page, not infinite scroll. | proposed |
+| D-040 | AR-01 | [03](03-architecture.md) | Run Next.js on Cloudflare Workers with the OpenNext adapter (`@opennextjs/cloudflare`). | proposed |
+| D-041 | AR-02 | [03](03-architecture.md) | Connect through Cloudflare Hyperdrive with node-postgres (`pg`), one explicit transaction per request, with transaction-local settings for RLS. | proposed |
+| D-042 | AR-03 | [03](03-architecture.md) | Use Better Auth, self-hosted in our own Postgres, with its username and two-factor plugins. | proposed |
+| D-043 | AR-04 | [03](03-architecture.md) | Use next-intl for routing and translations. | proposed |
+| D-044 | AR-05 | [03](03-architecture.md) | Store media in Cloudflare R2, two buckets (public and private). | proposed |
+| D-045 | AR-06 | [03](03-architecture.md) | Run background work in a separate jobs Worker using Cron Triggers and Cloudflare Queues. | proposed |
+| D-046 | AR-07 | [03](03-architecture.md) | Propose Resend as the email service. | proposed |
+| D-047 | AR-08 | [03](03-architecture.md) | Take the daily backup with a nightly GitHub Actions job that runs `pg_dump` and stores an encrypted file in a private R2 bucket. | proposed |
+| D-048 | AR-09 | [03](03-architecture.md) | Put the Neon project in the available region nearest Pakistan (check Mumbai first, then Singapore), and turn on Smart Placement for the web Worker if it lowers response time. | proposed |
+| D-049 | AR-10 | [03](03-architecture.md) | Use a monorepo with `apps/web`, `apps/jobs`, `packages/core` (domain logic, DB access, permission checks), `packages/i18n` and `packages/email`. | proposed |
+| D-050 | 04-D1 | [04](04-database.md) | Money rule: every amount is a `bigint` in minor units. | proposed |
+| D-051 | 04-D2 | [04](04-database.md) | Composite keys for isolation. | proposed |
+| D-052 | 04-D3 | [04](04-database.md) | Isolation is a restrictive RLS policy on every table, ANDed with the role policies. | proposed |
+| D-053 | 04-D4 | [04](04-database.md) | Roles come from the database, not from the session. | proposed |
+| D-054 | 04-D5 | [04](04-database.md) | Bilingual fixed content uses a `localized_text` JSON domain, for example `{"ur": "گندم کا ذخیرہ", "en": "Wheat stock"}`. | proposed |
+| D-055 | 04-D6 | [04](04-database.md) | The persona-to-student link lives in its own table, `persona_links`. | proposed |
+| D-056 | 04-D7 | [04](04-database.md) | Users are per institute. | proposed |
+| D-057 | 04-D8 | [04](04-database.md) | State fields are `text` with a `CHECK` list, not Postgres enum types. | proposed |
+| D-058 | 04-D9 | [04](04-database.md) | New donations default to anonymous (`is_anonymous = true`) and trails default to private. | proposed |
+| D-059 | 04-D10 | [04](04-database.md) | FIFO order is the donation's `received_at`, then `id`. | proposed |
+| D-060 | 04-D11 | [04](04-database.md) | Admins and finance officers can see who gave an anonymous donation, because they record bank transfers, send receipts and reconcile. | proposed |
+| D-061 | P05-01 | [05](05-public-pages-roles-admin.md) | URL slugs are the same English words under both prefixes, for example `/ur/causes` and `/en/causes`. | proposed |
+| D-062 | P05-02 | [05](05-public-pages-roles-admin.md) | The admin area is a set of pages under the language prefix (`/ur/admin`, `/en/admin`) and is fully translated. | proposed |
+| D-063 | P05-03 | [05](05-public-pages-roles-admin.md) | A user can hold several roles in `user_roles`. | proposed |
+| D-064 | P05-04 | [05](05-public-pages-roles-admin.md) | *Principal*, *assigned second signer*, *scope widener*, *class teacher* and *sponsor* are markers on top of roles, not roles. | proposed |
+| D-065 | P05-05 | [05](05-public-pages-roles-admin.md) | The finance officer records, confirms and reverses donations, records spending entries and publishes reports. | proposed |
+| D-066 | P05-06 | [05](05-public-pages-roles-admin.md) | The editor edits fixed page text and cause text and reviews teacher work. | proposed |
+| D-067 | P05-07 | [05](05-public-pages-roles-admin.md) | Staff can always make something more private: make a donation anonymous, make a trail private, take down a public post. | proposed |
+| D-068 | P05-08 | [05](05-public-pages-roles-admin.md) | The donor wall does not show the donation type (Zakat, Sadaqah or general). | proposed |
+| D-069 | P05-09 | [05](05-public-pages-roles-admin.md) | The audit log never stores a donor's name or email, or a student's real name. | proposed |
+| D-070 | P05-10 | [05](05-public-pages-roles-admin.md) | The donate page has a short "Tell us about your transfer" form. | proposed |
+| D-071 | P05-11 | [05](05-public-pages-roles-admin.md) | A new project is a cause with "Show on new projects page" turned on. | proposed |
+| D-072 | P05-12 | [05](05-public-pages-roles-admin.md) | When a module is off, its pages return "not found", its menu items and home blocks disappear, and its data stays untouched. | proposed |
+| D-073 | P05-13 | [05](05-public-pages-roles-admin.md) | Fixed page text (home intro, about, facilities, daily life) is stored as bilingual content in `institute_settings`, with photos in `media_assets`. | proposed |
+| D-074 | P05-14 | [05](05-public-pages-roles-admin.md) | Any staff role can take down a public post at once. | proposed |
+| D-075 | P05-15 | [05](05-public-pages-roles-admin.md) | New causes start with `accepts_zakat` off. | proposed |
+| D-076 | 06-P01 | [06](06-donations-and-trail.md) | Until P5, the donor tells the madrasa about a transfer through a public transfer notice form. | proposed |
+| D-077 | 06-P02 | [06](06-donations-and-trail.md) | FIFO orders money in a cause by the date it entered that cause: the donation date for a gift to a cause, and the split date for an all-needs piece. | proposed |
+| D-078 | 06-P03 | [06](06-donations-and-trail.md) | A match is final. | proposed |
+| D-079 | 06-P04 | [06](06-donations-and-trail.md) | A spending entry may be larger than the cause's unspent money. | proposed |
+| D-080 | 06-P05 | [06](06-donations-and-trail.md) | A cause's Zakat flag cannot be switched off while the cause holds unspent Zakat. | proposed |
+| D-081 | 06-P06 | [06](06-donations-and-trail.md) | The donation type (Zakat, Sadaqah or general) is never shown on public pages: not on the donor wall, a public trail, or a public profile. | proposed |
+| D-082 | 06-P07 | [06](06-donations-and-trail.md) | If the donor has not chosen, a donation is anonymous. | proposed |
+| D-083 | 06-P08 | [06](06-donations-and-trail.md) | For an anonymous donation, only the donor, the admin and the finance officer can see who gave it. | proposed |
+| D-084 | 06-P09 | [06](06-donations-and-trail.md) | A donor's public profile counts and lists only their named donations. | proposed |
+| D-085 | 06-P10 | [06](06-donations-and-trail.md) | One private trail link per guest donor, covering all their donations. | proposed |
+| D-086 | 06-P11 | [06](06-donations-and-trail.md) | A spending entry has three states: *draft* (editable, not matched), *recorded* (final, matched by FIFO, visible in donors' private trails) and *reported* (in a published report, visible publicly). | proposed |
+| D-087 | 06-P12 | [06](06-donations-and-trail.md) | Receipt numbers look like `MAA-2026-00042`: a prefix from institute settings, the year of recording, and a 5-digit sequence per institute per year. | proposed |
+| D-088 | 06-P13 | [06](06-donations-and-trail.md) | Every receipt shows both Urdu and English on one page. | proposed |
+| D-089 | 06-P14 | [06](06-donations-and-trail.md) | Sponsorship donations go to one shared cause, Orphan sponsorship. | proposed |
+| D-090 | 06-P15 | [06](06-donations-and-trail.md) | An orphan has at most one active sponsor in this version. | proposed |
+| D-091 | 06-P16 | [06](06-donations-and-trail.md) | A sponsor must have a donor account. | proposed |
+| D-092 | 06-P17 | [06](06-donations-and-trail.md) | Full-profile consent is per sponsorship and lasts 12 months, after which it expires unless both sign-offs are given again. | proposed |
+| D-093 | 06-P18 | [06](06-donations-and-trail.md) | Progress updates written by a teacher need the admin's approval before the sponsor sees them. | proposed |
+| D-094 | 06-P19 | [06](06-donations-and-trail.md) | A recurring pledge is a promise, not a payment. | proposed |
+| D-095 | 06-P20 | [06](06-donations-and-trail.md) | Each cause has a setting "receipt photos public by default". | proposed |
+| D-029 | PD-07-01 | [07](07-content-hub-student-teacher.md) | Approving a post for public view is done by the class teacher of the post's class or by the principal (REQ-MOD-003). | settled |
+| D-096 | PD-07-02 | [07](07-content-hub-student-teacher.md) | A post has two separate states: an inside state (`visible`, `hidden`, `removed`) and a public state (`none`, `draft`, `submitted`, `approved`, `published`, `taken_down`). | proposed |
+| D-097 | PD-07-03 | [07](07-content-hub-student-teacher.md) | Phone numbers, email addresses and contact links are blocked when a student posts. | proposed |
+| D-098 | PD-07-04 | [07](07-content-hub-student-teacher.md) | Student avatars come only from a preset set of illustrations with no human faces. | proposed |
+| D-099 | PD-07-05 | [07](07-content-hub-student-teacher.md) | Media in a student's post (an upload or a YouTube link) is shown to other students only after a teacher checks it. | proposed |
+| D-100 | PD-07-06 | [07](07-content-hub-student-teacher.md) | Editing a post that is `submitted`, `approved` or `published` sends it back to `submitted`, and it leaves public pages until approved again. | proposed |
+| D-101 | PD-07-07 | [07](07-content-hub-student-teacher.md) | A verified article goes public only after review by an editor or an admin, and only if every student it quotes has active consent. | proposed |
+| D-102 | PD-07-08 | [07](07-content-hub-student-teacher.md) | Lessons and resources in the teacher hub are labels on existing post types, not new post types. | proposed |
+| D-103 | PD-07-09 | [07](07-content-hub-student-teacher.md) | The two-sign-off support for an orphan's consent record is built in P3-E2, and P4-E2 reuses it. | proposed |
+| D-104 | PD-07-10 | [07](07-content-hub-student-teacher.md) | When a student reveals their real name, it shows as their first name and the first letter of their family name (for example "Ahmed R."), as entered by staff. | proposed |
+| D-105 | PD-07-11 | [07](07-content-hub-student-teacher.md) | Replies in a thread are flat (one level), with an optional "replying to" link. | proposed |
+| D-106 | PD-07-12 | [07](07-content-hub-student-teacher.md) | When a student leaves, an admin moves them into an "Alumni" class owned by an admin. | proposed |
+| D-107 | PD-07-13 | [07](07-content-hub-student-teacher.md) | Report thresholds: three reports from different users hide a class or madrasa post until a teacher reviews it. | proposed |
