@@ -16,6 +16,7 @@ It does three things:
 | `plan/01-requirements-checklist.md` | Every requirement as one testable line. |
 | `plan/02` to `plan/07` | Specialist plans: design, architecture, database, pages and roles, donations, content hub. |
 | `plan/08-decision-log.md` | Every decision with its reason. |
+| `plan/09-consistency-check.md` | The latest consistency check: coverage, fixes and open items. |
 | `docs/agent-prompt.md` | The brief the plan was written from. |
 | `assets/logo/` | The Markaz Al Azeem logo. |
 
