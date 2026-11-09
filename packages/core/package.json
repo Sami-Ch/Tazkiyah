@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "exports": {
     "./db/schema": "./src/db/schema.ts",
-    "./db/identity": "./src/db/identity.ts"
+    "./db/identity": "./src/db/identity.ts",
+    "./permissions": "./src/permissions.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2"

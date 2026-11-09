@@ -1,3 +1,4 @@
+import { can, roles, type Role } from "@tazkiyah/core/permissions";
 import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
@@ -31,16 +32,14 @@ export async function checkWorkspaceAccess(
     rows: [account],
   } = await tx.execute<{
     eligible: boolean;
-    admin: boolean;
-    editor: boolean;
-    requireMfa: boolean;
+    roles: Role[];
     enrolled: boolean;
   }>(sql`
     select
       app.is_staff() and u.status = 'active' and not u.must_change_password as eligible,
-      app.has_role('admin') as admin,
-      app.has_role('editor') as editor,
-      app.has_role('admin') or app.has_role('finance_officer') as "requireMfa",
+      array(
+        select r from unnest(${roles}::text[]) as r where app.has_role(r)
+      ) as roles,
       u.two_factor_enabled and exists (
         select from identity.two_factor f
         where f.institute_id = u.institute_id and f.user_id = u.id and f.verified
@@ -48,15 +47,20 @@ export async function checkWorkspaceAccess(
     from app.users u where u.id = ${access.user.id}
   `);
   if (!account?.eligible) return { state: "denied" };
+  const actor = { roles: account.roles };
+  // Two-factor is required for the admin and finance officer roles (03 §6.4).
+  const requireMfa =
+    account.roles.includes("admin") ||
+    account.roles.includes("finance_officer");
   const allowed = {
     state: "allowed",
     name: access.user.name,
-    canInvite: account.admin,
-    canEditPages: account.admin || account.editor,
-    canRecordTransfers: account.requireMfa,
-    twoFactorVerified: account.requireMfa,
+    canInvite: can(actor, "staff.manage"),
+    canEditPages: can(actor, "site_pages.edit"),
+    canRecordTransfers: can(actor, "donation.record"),
+    twoFactorVerified: requireMfa,
   } as const;
-  if (!account.requireMfa) return allowed;
+  if (!requireMfa) return allowed;
 
   const {
     rows: [session],

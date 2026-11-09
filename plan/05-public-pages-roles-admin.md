@@ -795,6 +795,8 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 | P0-E5-T50 | Permission matrix of §7 as one shared definition, with one automated test per row | todo | P0-E2 | REQ-ROL-001, REQ-ROL-002 |
 | P0-E5-T51 | Route and action guards for `/admin`, `/account`, `/hub` and the sponsor area, driven by the shared matrix | todo | P0-E5-T50 | REQ-ROL-002, REQ-SEC-007 |
 | P0-E5-T52 | Seed Moazam as admin and principal of Markaz Al Azeem; confirm no guardian role exists | todo | P0-E5-T50 | REQ-ROL-001, REQ-ROL-003 |
+
+2026-11-09 · P0-E5-T04 (03) built the shared definition in [`packages/core/src/permissions.ts`](../packages/core/src/permissions.ts), with a test for every §7 row that compares it with these tables. P0-E5-T50 stays `todo` until its P0-E2 dependency is done. Then it only needs a review.
 | P1-E2-T50 | Cause admin screens: list with ordering, bilingual form, Zakat and scholar fields, states draft, active, closed and archived, editor read-only money fields | todo | P1-E5-T02, P1-E2-T03, P1-E2-T04, P1-E2-T40 | REQ-DON-009, REQ-DON-005, REQ-DON-006, REQ-DON-007, REQ-ROL-005 |
 | P2-E1-T50 | Spending batch screen on the phone: rows, live unspent balance, receipt camera, save, submit batch, report publish | todo | P1-E5-T02, P2-E1-T02, P2-E1-T05, P2-E1-T40, P2-E6-T01 | REQ-ROL-007, REQ-TRL-011, REQ-TRL-012, REQ-TRL-013 |
 | P2-E5-T50 | Donor wall page: amount, cause, date, name or "Anonymous", filters; no donor ID in anonymous rows | todo | P1-E1-T02, P2-E5-T04, P2-E5-T20, P2-E5-T41 | REQ-DPR-007, REQ-DPR-008, REQ-DPR-009 |
