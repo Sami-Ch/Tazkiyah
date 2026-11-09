@@ -800,7 +800,7 @@ The local design preview uses clearly labelled and credited sample media from Wa
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E4-T01 | Define the `theme` settings shape (colour, font, radius tokens) and seed Markaz Al Azeem's Direction A values in `institute_settings` | todo | P0-E2-T04 | REQ-MIR-005, REQ-MIR-001 |
+| P0-E4-T01 | Define the `theme` settings shape (colour, font, radius tokens) and seed Markaz Al Azeem's Direction A values in `institute_settings` | done | P0-E2-T04 | REQ-MIR-005, REQ-MIR-001 |
 | P0-E4-T02 | Load the theme by request domain and write tokens as inline CSS custom properties on `<html>` | todo | P0-E4-T01, P0-E1 | REQ-MIR-005, REQ-MIR-002 |
 | P0-E4-T03 | Theme contrast check: refuse saving a theme that fails a §5 pair; automated test over Direction A and B values | todo | P0-E4-T01 | REQ-ACC-001, REQ-MIR-005 |
 | P0-E4-T04 | Font pipeline: subset and self-host Noto Naskh Arabic, Source Serif 4 and Noto Nastaliq Urdu; `local()`, preload and `font-display` rules; measure sizes; run shaping test strings | todo | P0-E1 | REQ-PRF-001, REQ-LNG-006 |
@@ -817,6 +817,8 @@ The local design preview uses clearly labelled and credited sample media from Wa
 | P0-E4-T15 | Component gallery pages at `/ur/_design` and `/en/_design` (admin only), with keyboard, screen reader, 200% zoom and 320 px checks | todo | P0-E4-T08, P0-E4-T09, P0-E4-T10, P0-E4-T11, P0-E4-T12, P0-E4-T13, P0-E4-T14 | REQ-ACC-002, REQ-ACC-003, REQ-ACC-004, REQ-ACC-005 |
 | P0-E4-T16 | Page-weight budget check in CI (HTML, CSS, JS, fonts) and a manual slow-3G test script for the 5-second target | todo | P0-E4-T04, P0-E4-T15 | REQ-PRF-001 |
 | P0-E4-T17 | Shared terms and tone: seed the §11 glossary and example strings into the translation files; native Urdu review by a staff member | todo | P0-E3-T03 | REQ-LNG-001 |
+
+2026-11-09 · P0-E4-T01: [`packages/core/src/theme.ts`](../packages/core/src/theme.ts) defines the theme shape (`version`, `direction`, `color`, `font` from the hosted list, `radius`) with Direction A and B values. A test confirms that the Markaz Al Azeem seed stores Direction A. [`0018_theme_shape.sql`](../db/drizzle/0018_theme_shape.sql) adds `app.valid_theme()`, which lets the database accept only listed names and `#RRGGBB` colours. An empty theme means the platform default ([D-117](08-decision-log.md#d-117)). P0-E4-T03: `checkTheme()` returns every shape problem and every failing §5 pair by name, using each direction's own pairs. The test recomputes every ratio in §5 for both directions, and all match to within 0.01. No screen saves a theme yet. When P1-E5-T03 adds theme editing, it must refuse a save that `checkTheme()` rejects.
 
 ### P3-E7 Onboarding walkthrough (owner: 02)
 

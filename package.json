@@ -15,7 +15,7 @@
     "build:worker": "npm run build:worker -w @tazkiyah/web",
     "preview:worker": "npm run preview:worker -w @tazkiyah/web",
     "lint": "eslint apps packages db drizzle.config.ts",
-    "typecheck": "npm run typecheck -w @tazkiyah/web && tsc --noEmit --strict --skipLibCheck --module nodenext --target es2022 packages/core/src/db/schema.ts packages/core/src/db/identity.ts packages/core/src/permissions.ts drizzle.config.ts",
+    "typecheck": "npm run typecheck -w @tazkiyah/web && tsc --noEmit --strict --skipLibCheck --module nodenext --target es2022 packages/core/src/db/schema.ts packages/core/src/db/identity.ts packages/core/src/permissions.ts packages/core/src/theme.ts drizzle.config.ts",
     "test": "vitest run",
     "db:generate": "node db/generate.mjs",
     "db:migrate": "node db/migrate.mjs",

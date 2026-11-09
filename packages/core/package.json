@@ -5,7 +5,8 @@
   "exports": {
     "./db/schema": "./src/db/schema.ts",
     "./db/identity": "./src/db/identity.ts",
-    "./permissions": "./src/permissions.ts"
+    "./permissions": "./src/permissions.ts",
+    "./theme": "./src/theme.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2"

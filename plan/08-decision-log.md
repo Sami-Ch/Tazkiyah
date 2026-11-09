@@ -327,3 +327,9 @@ Run the full migration history and every `db/test/*.sql` suite inside `npm test`
 Close P0-E5-T01 on its local proofs, and move "verify sign-in on the hosted preview through `AUTH_HYPERDRIVE`" into P0-E1-T06. That task already owns Worker bindings and secrets, and the check needs a Cloudflare account. Options: mark P0-E5-T01 `blocked` until Cloudflare is set up; move the hosted check. Reason: every database proof in 03 §6.1 passes, and blocking the task would also block every P0-E5 task after it for a reason that belongs to deployment. Sami may reverse this.
 
 P0-E5-T04 also builds the shared matrix definition that P0-E5-T50 names. `can()` cannot be built from the 05 §7 matrix without it. P0-E5-T50 keeps its own status and dependency.
+
+## D-117
+
+2026-11-09 · Build agent (P0-E4-T01) · Fixes a conflict between [02 §5](02-design-ui-ux.md#5-colour) and [04 §5.3](04-database.md#53-institute_settings-one-row-per-institute)
+
+04 showed `theme` as a flat map of colours. 02, which owns the theme shape, stores a nested object with `version`, `direction`, `color`, `font` and `radius`, and the seed already writes that shape. 04 now points to the 02 shape. The database check allows only listed names and well-formed values, so `{}` (the platform default) stays valid. Completeness and contrast are checked by `checkTheme()` before a save. Options: flat colours only; the nested 02 shape. Reason: 02 owns visual tokens, and fonts and radii need a place in the same setting.

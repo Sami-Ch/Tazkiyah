@@ -258,7 +258,7 @@ The domain accepts a nonempty JSON object of language codes and nonblank strings
 | `short_name` | `localized_text null` | For small screens. |
 | `parent_body` | `localized_text null` | `Jama Masjid Al-Azeem`. |
 | `logo_media_id` | `uuid null` FK `media_assets` | The selected Markaz Al Azeem Emblem ([D-108](08-decision-log.md#d-108)). |
-| `theme` | `jsonb not null` | Colour tokens defined in [02 §5](02-design-ui-ux.md), for example `{"primary":"#…","surface":"#…"}`. A check allows only token names listed by 02 and values matching `^#[0-9a-fA-F]{6}$` (REQ-MIR-005). |
+| `theme` | `jsonb not null` | The theme object defined in [02 §5](02-design-ui-ux.md): `{"version":1,"direction":…,"color":{"primary":"#…",…},"font":{…},"radius":{…}}`. `app.valid_theme()` allows only the names listed by 02, colours matching `^#[0-9a-fA-F]{6}$`, hosted fonts and whole-number radii. `{}` means the platform default (REQ-MIR-005, [D-117](08-decision-log.md#d-117)). |
 | `languages` | `text[] not null default '{ur,en}'` | Supported content languages, in fallback order. |
 | `default_language` | `text not null default 'en'` | Content default. Visitor language follows [03 §7](03-architecture.md#72-choosing-the-language). |
 | `timezone` | `text not null default 'Asia/Karachi'` | |

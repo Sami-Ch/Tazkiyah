@@ -241,7 +241,7 @@ export const instituteSettings = app
       }),
       check(
         "institute_settings_theme_check",
-        sql`jsonb_typeof(theme) = 'object'::text`,
+        sql`app.valid_theme(theme)`,
       ),
       check(
         "institute_settings_languages_check",
