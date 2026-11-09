@@ -10,6 +10,7 @@ export type AdminAccess =
       canInvite: boolean;
       canEditPages: boolean;
       canRecordTransfers: boolean;
+      canCreateStudents: boolean;
       twoFactorVerified: boolean;
     }
   | { state: "signed-out" | "denied" | "enroll" | "unavailable" };
@@ -59,6 +60,7 @@ export async function checkWorkspaceAccess(
     canInvite: can(actor, "staff.manage"),
     canEditPages: can(actor, "site_pages.edit"),
     canRecordTransfers: can(actor, "donation.record"),
+    canCreateStudents: can(actor, "student_account.create"),
     twoFactorVerified: requireMfa,
   } as const;
   if (!requireMfa) return allowed;

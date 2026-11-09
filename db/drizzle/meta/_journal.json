@@ -141,6 +141,13 @@
       "when": 1794230884038,
       "tag": "0019_donor_sign_up",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794233596722,
+      "tag": "0020_student_accounts",
+      "breakpoints": true
     }
   ]
 }

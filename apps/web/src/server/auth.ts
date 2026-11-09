@@ -57,6 +57,7 @@ import {
 } from "./staff-invitations";
 import { checkWorkspaceAccess, type AdminAccess } from "./workspace-access";
 import { authEmailSender, emailPaths, sendAuthEmail } from "./auth-email";
+import { createStudentAccount, setFirstPassword } from "./student-accounts";
 
 const authSchema = {
   user: users,
@@ -82,6 +83,8 @@ const postEndpoints = new Set([
   "/site-page",
   "/cause",
   "/staff-invite/accept",
+  "/student-account",
+  "/first-password",
   "/manual-donation",
   "/bank-account",
   "/donor-trail",
@@ -428,6 +431,12 @@ async function runAuth(request: Request, path: string) {
                 required: false,
                 returned: false,
               },
+              // Tells the sign-in page to ask for a new password first.
+              mustChangePassword: {
+                type: "boolean",
+                input: false,
+                required: false,
+              },
             },
           },
           session: {
@@ -522,6 +531,12 @@ async function runAuth(request: Request, path: string) {
         if (path === "/staff-invite/accept") {
           return acceptStaffInvitation(tx, request);
         }
+        if (path === "/first-password") {
+          const session = await currentSession();
+          return session
+            ? setFirstPassword(tx, request, session)
+            : privateJson({ code: "denied" }, 403);
+        }
         if (path === "/staff-access") {
           const session = await currentSession();
           return session
@@ -534,6 +549,7 @@ async function runAuth(request: Request, path: string) {
           path === "/staff-directory" ||
           path === "/audit-workspace" ||
           path === "/donor-link" ||
+          path === "/student-account" ||
           path === "/bank-settings" ||
           path === "/bank-account" ||
           path === "/manual-donation-workspace" ||
@@ -546,6 +562,15 @@ async function runAuth(request: Request, path: string) {
           const session = await currentSession();
           const access = await checkWorkspaceAccess(tx, session);
           if (path === "/admin-access") return privateJson(access);
+          if (path === "/student-account") {
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canCreateStudents
+            )
+              return privateJson({ code: "denied" }, 403);
+            return createStudentAccount(tx, request, session.session.id);
+          }
           if (path === "/donor-link") {
             if (!session || access.state !== "allowed" || !access.canInvite)
               return privateJson({ code: "denied" }, 403);

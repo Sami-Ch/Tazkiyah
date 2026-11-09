@@ -21,6 +21,7 @@ const staff = {
   finance: "21000000-0000-4000-8000-000000000002",
   editor: "21000000-0000-4000-8000-000000000003",
   donor: "21000000-0000-4000-8000-000000000004",
+  teacher: "21000000-0000-4000-8000-000000000005",
 } as const;
 let enrolledAdmin: Browser;
 
@@ -43,6 +44,7 @@ beforeAll(async () => {
     ["finance_officer", staff.finance],
     ["editor", staff.editor],
     ["donor", staff.donor],
+    ["teacher", staff.teacher],
   ]) {
     await db.query(
       `with tenant as (select institute_id from app.institute_domains where domain = 'azeem-lateef.com')
@@ -555,5 +557,163 @@ describe("donor sign-up, email verification and password reset (P0-E5-T02)", () 
     });
     expect(response.status).toBe(200);
     expect(outbox.length).toBe(before);
+  });
+});
+
+describe("student accounts made by staff (P0-E5-T03)", () => {
+  async function signedIn(email: string) {
+    const browser = new Browser();
+    await spreadOverTime();
+    await browser.post("/sign-in/email", { email, password });
+    return browser;
+  }
+
+  let student: { username: string; password: string };
+
+  it("lets a teacher create a student with a generated username and starting password", async () => {
+    const teacher = await signedIn("teacher@example.test");
+    const year = new Date().getFullYear();
+    const first = await teacher.post("/student-account", {
+      name: "Ahmed Raza",
+    });
+    expect(first.status).toBe(201);
+    expect(first.json.username).toBe(`maa-${year}-0001`);
+    expect(first.json.password).toMatch(/^[a-km-np-z2-9]{10}$/);
+    const second = await teacher.post("/student-account", {
+      name: "Bilal Khan",
+      password: "chosen by teacher",
+    });
+    expect(second.json).toEqual({
+      username: `maa-${year}-0002`,
+      password: "chosen by teacher",
+    });
+    student = first.json;
+
+    const [row] = await asOwner<Record<string, unknown>>(
+      `select u.status, u.must_change_password, u.email,
+         array(select role from app.user_roles r where r.user_id = u.id) as roles,
+         (select actor_user_id from app.audit_log a
+          where a.entity_id = u.id::text and a.action = 'users.insert') as created_by
+       from app.users u where username = $1`,
+      [student.username],
+    );
+    expect(row).toEqual({
+      status: "active",
+      must_change_password: true,
+      email: null,
+      roles: ["student"],
+      created_by: staff.teacher,
+    });
+  });
+
+  it("refuses student creation to editors, donors, students and visitors", async () => {
+    for (const email of ["editor@example.test", "donor@example.test"]) {
+      const browser = await signedIn(email);
+      expect(
+        (await browser.post("/student-account", { name: "Someone" })).status,
+      ).toBe(403);
+    }
+    expect(
+      (await new Browser().post("/student-account", { name: "Someone" }))
+        .status,
+    ).toBe(403);
+    const pupil = new Browser();
+    await spreadOverTime();
+    await pupil.post("/sign-in/username", {
+      username: student.username,
+      password: student.password,
+    });
+    expect(
+      (await pupil.post("/student-account", { name: "Someone" })).status,
+    ).toBe(403);
+    expect(
+      await asOwner(`select from app.users where full_name = 'Someone'`),
+    ).toHaveLength(0);
+  });
+
+  it("signs a student in by username and asks for a new password first", async () => {
+    const pupil = new Browser();
+    await spreadOverTime();
+    const signIn = await pupil.post("/sign-in/username", {
+      username: student.username.toUpperCase(),
+      password: student.password,
+    });
+    expect(signIn.status).toBe(200);
+    expect((await pupil.get("/get-session")).json.user).toMatchObject({
+      username: student.username,
+      mustChangePassword: true,
+    });
+    expect(await pupil.access()).toEqual({ state: "denied" });
+  });
+
+  it("replaces the starting password once and signs out other devices", async () => {
+    const phone = new Browser();
+    const tablet = new Browser();
+    for (const device of [phone, tablet]) {
+      await spreadOverTime();
+      await device.post("/sign-in/username", {
+        username: student.username,
+        password: student.password,
+      });
+    }
+    const newPassword = "my own secret";
+    expect(
+      (
+        await phone.post("/first-password", {
+          currentPassword: "wrong password",
+          newPassword,
+        })
+      ).status,
+    ).toBe(400);
+    const changed = await phone.post("/first-password", {
+      currentPassword: student.password,
+      newPassword,
+    });
+    expect(changed.status).toBe(200);
+    expect((await tablet.get("/get-session")).json).toBeNull();
+    expect((await phone.get("/get-session")).json.user).toMatchObject({
+      mustChangePassword: false,
+    });
+    expect(
+      (
+        await phone.post("/first-password", {
+          currentPassword: newPassword,
+          newPassword: "and another one",
+        })
+      ).status,
+    ).toBe(403);
+
+    await spreadOverTime();
+    const old = await new Browser().post("/sign-in/username", {
+      username: student.username,
+      password: student.password,
+    });
+    expect(old.status).toBe(401);
+    await spreadOverTime();
+    const fresh = await new Browser().post("/sign-in/username", {
+      username: student.username,
+      password: newPassword,
+    });
+    expect(fresh.status).toBe(200);
+  });
+
+  it("never sends a student a reset email", async () => {
+    await asOwner(
+      `update app.users set email = 'pupil@example.test' where username = $1`,
+      [student.username],
+    );
+    const lines: string[] = [];
+    const info = vi
+      .spyOn(console, "info")
+      .mockImplementation((line: string) => void lines.push(line));
+    try {
+      const response = await new Browser().post("/request-password-reset", {
+        email: "pupil@example.test",
+      });
+      expect(response.status).toBe(200);
+      expect(lines).toEqual([]);
+    } finally {
+      info.mockRestore();
+    }
   });
 });
