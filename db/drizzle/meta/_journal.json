@@ -148,6 +148,13 @@
       "when": 1794233596722,
       "tag": "0020_student_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794234123774,
+      "tag": "0021_lookup_indexes",
+      "breakpoints": true
     }
   ]
 }

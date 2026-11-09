@@ -1179,6 +1179,7 @@ Every table has its primary key and `unique (institute_id, id)`. Postgres does n
 | --- | --- | --- |
 | `institute_domains` | `unique (lower(domain))` | Domain lookup on every request |
 | `user_roles` | PK `(institute_id, user_id, role)` | `app.has_role()` in every policy |
+| `users` | `unique (institute_id, lower(email))`, `unique (institute_id, lower(username))`; `(institute_id, email)`, `(institute_id, username)` | Case-blind uniqueness; Better Auth sign-in looks up the stored lower-case value |
 | `class_members` | `(institute_id, user_id) where ended_at is null`; `(class_id, member_role)` | Teacher and member helpers |
 | `persona_links` | `unique (persona_id)`, `unique (user_id)` | Tracing, own persona |
 | `donors` | `unique (institute_id, email)`, `unique (institute_id, user_id)` | Guest reuse, claiming |
@@ -1200,7 +1201,7 @@ Every table has its primary key and `unique (institute_id, id)`. Postgres does n
 | `media_assets` | `(institute_id, status, deleted_at)` | Purge job |
 | `audit_log` | `(institute_id, occurred_at desc)`; `(institute_id, entity_table, entity_id)`; `(institute_id, actor_user_id, occurred_at desc)` | Admin filters |
 
-Helper functions used in policies are `stable` and small, so Postgres can cache them within a statement. A P0 task (P0-E2-T19) checks query plans with seeded data.
+Helper functions used in policies are `stable` and small, so Postgres can cache them within a statement. A P0 task (P0-E2-T19) checks query plans with seeded data. The catalog test fails when a composite foreign key has no index led by its columns; a partial index on `column is not null` counts.
 
 ### 13.2 Migrations
 
@@ -1291,7 +1292,9 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P0-E2-T16 | Verify the runtime grants and owner guards for audit updates, deletes and truncation | done | P0-E2-T11 | REQ-TRL-002 |
 | P0-E2-T17 | Write `app.run_retention()` with a per-table rule list (empty rules until tables exist) and its audit row | done | P0-E2-T11 | REQ-SEC-001 |
 | P0-E2-T18 | Restore drill: restore a Neon branch from point in time and rerun the catalog and isolation tests on it | blocked | P0-E2-T14, P0-E1-T04 | REQ-SEC-002, REQ-SEC-006 |
-| P0-E2-T19 | Check query plans of policy helpers with seeded volume (5,000 donations, 20,000 posts) and add missing indexes | todo | P0-E2-T14 | REQ-SEC-001, REQ-PRF-005 |
+| P0-E2-T19 | Check query plans of policy helpers with seeded volume (5,000 donations, 20,000 posts) and add missing indexes | in progress | P0-E2-T14 | REQ-SEC-001, REQ-PRF-005 |
+
+2026-11-09 · P0-E2-T19 (donations and auth part done; the posts part waits for the `posts` table of P3-E3-T40): [`db/test/query_plans.sql`](../db/test/query_plans.sql) records 5,000 donations in one institute and 1,000 in another through `identity.record_manual_donation`, with 500 guest donors, 500 trail links and 2,000 user accounts. Every lookup of a few rows must use a named index: the recent donations list, receipt lookup, guest trail page and token, donor history, allocations and trail events of one donation, guest donor by email and donations of one cause. Under RLS as `tazkiyah_auth`, the session, user, credential and verification lookups must use their indexes, and the policy's institute check runs once per statement (an `InitPlan`). The check found two gaps, fixed in [`0021_lookup_indexes.sql`](../db/drizzle/0021_lookup_indexes.sql). First, Better Auth looks users up by `email = ` and `username = `, which the `lower()` unique indexes cannot serve, so sign-in read every user in the institute. Second, 15 composite foreign keys had no index, among them `donations.cause_id` and `allocations.donation_id`. The catalog test now enforces the rule. Dropping either new index makes the suite fail. Left for P1-E2: one cause's public totals read all the institute's donations through a hash join. That is fine at this volume, but its cost grows with every donation.
 
 2026-11-09 · Blocked: P0-E2-T18 needs a live Neon branch for the point-in-time restore. The suites it reruns now run locally with `npm test`.
 

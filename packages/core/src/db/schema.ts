@@ -199,6 +199,18 @@ export const instituteSettings = app
       logoMediaId: uuid("logo_media_id"),
     },
     (table) => [
+      index("institute_settings_principal_user").on(
+        table.instituteId,
+        table.principalUserId,
+      ),
+      index("institute_settings_updated_by").on(
+        table.instituteId,
+        table.updatedBy,
+      ),
+      index("institute_settings_logo_media").on(
+        table.instituteId,
+        table.logoMediaId,
+      ),
       foreignKey({
         columns: [table.instituteId],
         foreignColumns: [institutes.id],
@@ -239,10 +251,7 @@ export const instituteSettings = app
         using: sql`(select app.has_role('admin'))`,
         withCheck: sql`(select app.has_role('admin'))`,
       }),
-      check(
-        "institute_settings_theme_check",
-        sql`app.valid_theme(theme)`,
-      ),
+      check("institute_settings_theme_check", sql`app.valid_theme(theme)`),
       check(
         "institute_settings_languages_check",
         sql`array_position(languages, NULL::text) IS NULL`,
@@ -322,6 +331,10 @@ export const users = app
         table.instituteId,
         sql`lower(username)`,
       ),
+      // Better Auth looks users up by the stored, already lower-case value,
+      // which the lower() indexes above cannot serve (P0-E2-T19).
+      index("users_email_lookup").on(table.instituteId, table.email),
+      index("users_username_lookup").on(table.instituteId, table.username),
       index("users_photo_media").on(table.instituteId, table.photoMediaId),
       foreignKey({
         columns: [table.instituteId],
@@ -850,6 +863,7 @@ export const causes = app
         .notNull(),
     },
     (table) => [
+      index("causes_cover_media").on(table.instituteId, table.coverMediaId),
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.slug),
       foreignKey({
@@ -1011,6 +1025,8 @@ export const donations = app
         .notNull(),
     },
     (table) => [
+      index("donations_cause").on(table.instituteId, table.causeId),
+      index("donations_recorded_by").on(table.instituteId, table.recordedBy),
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.operationId),
       unique().on(table.instituteId, table.receiptNumber),
@@ -1094,6 +1110,8 @@ export const allocations = app
         .notNull(),
     },
     (table) => [
+      index("allocations_donation").on(table.instituteId, table.donationId),
+      index("allocations_created_by").on(table.instituteId, table.createdBy),
       unique().on(table.instituteId, table.id),
       index().on(table.instituteId, table.causeId, table.donationId),
       foreignKey({
@@ -1139,6 +1157,8 @@ export const trailEvents = app
         .notNull(),
     },
     (table) => [
+      index("trail_events_cause").on(table.instituteId, table.causeId),
+      index("trail_events_recorded_by").on(table.instituteId, table.recordedBy),
       unique().on(table.instituteId, table.id),
       uniqueIndex("trail_events_one_received")
         .on(table.instituteId, table.donationId)
@@ -1193,6 +1213,9 @@ export const trailLinks = app
       revokedBy: uuid("revoked_by"),
     },
     (table) => [
+      index("trail_links_donor").on(table.instituteId, table.donorId),
+      index("trail_links_created_by").on(table.instituteId, table.createdBy),
+      index("trail_links_revoked_by").on(table.instituteId, table.revokedBy),
       unique().on(table.instituteId, table.id),
       unique("trail_links_token_hash_unique").on(table.tokenHash),
       uniqueIndex("trail_links_one_active")
@@ -1251,6 +1274,11 @@ export const receiptEmailJobs = app
       finishedAt: timestamp("finished_at", { withTimezone: true }),
     },
     (table) => [
+      index("receipt_email_jobs_donor").on(table.instituteId, table.donorId),
+      index("receipt_email_jobs_trail_link").on(
+        table.instituteId,
+        table.trailLinkId,
+      ),
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.donationId),
       index("receipt_email_jobs_pending")

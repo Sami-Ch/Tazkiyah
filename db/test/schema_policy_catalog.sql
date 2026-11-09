@@ -73,3 +73,28 @@ begin
   end loop;
 end
 $test$;
+
+-- 04 §13.1: every composite foreign key has an index whose leading columns are
+-- the key's columns (P0-E2-T19).
+do $test$
+declare
+  missing text;
+begin
+  select string_agg(c.conrelid::regclass || ' ' || c.conname, ', ') into missing
+  from pg_catalog.pg_constraint c
+  join pg_catalog.pg_namespace n on n.oid = c.connamespace
+  where c.contype = 'f' and cardinality(c.conkey) > 1
+    and n.nspname in ('app', 'identity', 'mail')
+    and not exists (
+      select 1 from pg_catalog.pg_index i
+      where i.indrelid = c.conrelid
+        -- A partial index on "column is not null" still serves the key.
+        and (i.indpred is null or pg_get_expr(i.indpred, i.indrelid) = format('(%I IS NOT NULL)',
+          (select a.attname from pg_catalog.pg_attribute a
+           where a.attrelid = c.conrelid and a.attnum = c.conkey[cardinality(c.conkey)])))
+        and (i.indkey::int2[])[0:cardinality(c.conkey) - 1] @> c.conkey
+        and (i.indkey::int2[])[0:cardinality(c.conkey) - 1] <@ c.conkey
+    );
+  assert missing is null, 'Foreign keys without a leading index: ' || missing;
+end
+$test$;
