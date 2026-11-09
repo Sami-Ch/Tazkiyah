@@ -324,3 +324,32 @@ describe("session rules per role (03 §6.5)", () => {
     expect(await phone.access()).toEqual({ state: "signed-out" });
   });
 });
+
+describe("auth events in the audit log (P0-E5-T10)", () => {
+  it("records sign-ins and failed codes with IDs only", async () => {
+    const rows = await asOwner<{
+      action: string;
+      entity_id: string;
+      row: string;
+    }>(
+      `select action, entity_id, a::text as row from app.audit_log a
+       where action like 'auth.%'`,
+    );
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        action: "auth.signed_in",
+        entity_id: staff.editor,
+      }),
+    );
+    expect(
+      rows.filter(
+        (r) =>
+          r.action === "auth.two_factor_failed" &&
+          r.entity_id === staff.finance,
+      ).length,
+    ).toBeGreaterThanOrEqual(5);
+    expect(rows.filter((r) => /@example\.test|password/.test(r.row))).toEqual(
+      [],
+    );
+  });
+});
