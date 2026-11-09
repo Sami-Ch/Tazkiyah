@@ -956,20 +956,76 @@ export const donors = app
       instituteId: uuid("institute_id")
         .notNull()
         .references(() => institutes.id),
-      email: text().notNull(),
-      preferredLanguage: text("preferred_language").notNull(),
+      kind: text().default("person").notNull(),
+      userId: uuid("user_id"),
+      // Lower-case text instead of citext; the check keeps it case-blind.
+      email: text(),
+      emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+      legalName: text("legal_name"),
+      phone: text(),
+      displayName: text("display_name"),
+      photoMediaId: uuid("photo_media_id"),
+      profileLinks: jsonb("profile_links").default([]).notNull(),
+      profilePublic: boolean("profile_public").default(false).notNull(),
+      preferredLanguage: text("preferred_language").default("en").notNull(),
+      reminderOptIn: boolean("reminder_opt_in").default(false).notNull(),
+      reminderOptInAt: timestamp("reminder_opt_in_at", { withTimezone: true }),
+      claimedAt: timestamp("claimed_at", { withTimezone: true }),
+      erasedAt: timestamp("erased_at", { withTimezone: true }),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
         .notNull(),
     },
     (table) => [
+      index("donors_photo_media").on(table.instituteId, table.photoMediaId),
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.email),
+      unique().on(table.instituteId, table.userId),
+      foreignKey({
+        columns: [table.instituteId, table.userId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.photoMediaId],
+        foreignColumns: [mediaAssets.instituteId, mediaAssets.id],
+      }),
       check(
         "donors_email_check",
         sql`length(email) <= 254 and email = lower(btrim(email)) and email ~ '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$'`,
       ),
       check("donors_language_check", sql`preferred_language in ('en', 'ur')`),
+      check(
+        "donors_kind_check",
+        sql`kind in ('person', 'organisation', 'institute')`,
+      ),
+      check(
+        "donors_text_check",
+        sql`
+        (legal_name is null or (length(legal_name) between 1 and 200 and legal_name = btrim(legal_name) and legal_name !~ '[[:cntrl:]]'))
+        and (display_name is null or (length(display_name) between 1 and 80 and display_name = btrim(display_name) and display_name !~ '[[:cntrl:]]'))
+        and (phone is null or phone ~ '^[+0-9][0-9 ()-]{4,31}$')
+      `,
+      ),
+      check(
+        "donors_profile_links_check",
+        sql`app.valid_profile_links(profile_links)`,
+      ),
+      check(
+        "donors_reminder_check",
+        sql`not reminder_opt_in or reminder_opt_in_at is not null`,
+      ),
+      check(
+        "donors_claim_check",
+        sql`claimed_at is null or user_id is not null`,
+      ),
+      check(
+        "donors_erasure_check",
+        sql`
+        erased_at is null or (email is null and legal_name is null and phone is null
+          and display_name is null and photo_media_id is null and profile_links = '[]'::jsonb
+          and not profile_public and not reminder_opt_in)
+      `,
+      ),
       manualDonationIsolation(),
     ],
   )

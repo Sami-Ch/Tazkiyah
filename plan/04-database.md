@@ -603,7 +603,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `id`, `institute_id` | | |
 | `kind` | `text not null default 'person'` | `person`, `organisation`, `institute`. `institute` is reserved for the future platform fund acting as a donor (§9.5). |
 | `user_id` | `uuid null` | Set when the donor has or claims an account. `unique (institute_id, user_id)`. |
-| `email` | `citext null` | `unique (institute_id, email)`. Required for donors who give online as guests (REQ-DPR-001). May be null for a bank transfer the admin records without an email. |
+| `email` | `text null` | Stored lower-case and trimmed (a check keeps it case-blind, so no `citext` extension is needed). `unique (institute_id, email)`. Required for donors who give online as guests (REQ-DPR-001). May be null for a bank transfer the admin records without an email. |
 | `email_verified_at` | `timestamptz null` | Claiming needs a verified email. |
 | `legal_name` | `text null` | Payer name from the bank or the donor. **Private**: A, F and the donor only. Used on receipts. |
 | `phone` | `text null` | Private, optional, for reconciliation only. |
@@ -1316,7 +1316,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | --- | --- | --- | --- | --- |
 | P1-E1-T40 | Create `public_api.cause_summary` (target, raised, spent, unspent, Zakat flag; no donor fields) | todo | P1-E2-T40, P1-E3-T43 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
 | P1-E2-T40 | Create `causes` with type, campaign dates, target, `accepts_zakat`, scholar name, status, project flag, bilingual fields, RLS and audit | done | P0-E2-T07, P0-E2-T09, P0-E2-T11 | REQ-DON-005, REQ-DON-006, REQ-DON-007, REQ-DON-009, REQ-DON-013, REQ-DON-014, REQ-ROL-005 |
-| P1-E3-T40 | Create `donors` with guest fields, private and public profile fields, RLS and audit redaction | todo | P0-E2-T08, P0-E2-T11 | REQ-DPR-001, REQ-DPR-009 |
+| P1-E3-T40 | Create `donors` with guest fields, private and public profile fields, RLS and audit redaction | done | P0-E2-T08, P0-E2-T11 | REQ-DPR-001, REQ-DPR-009 |
 | P1-E3-T41 | Create `donations` and `receipt_counters`, `app.next_receipt_number()`, the column-lock trigger, campaign end-date check and bank-reference guard | todo | P1-E3-T40, P1-E2-T40 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-006, REQ-DON-008, REQ-DON-010, REQ-PAY-001 |
 | P1-E3-T42 | Create `allocations` and `trail_events` with shape checks, deferred sum checks, reversal uniqueness and append-only guards; run the test kit on both | todo | P1-E3-T41, P0-E2-T16 | REQ-TRL-001, REQ-TRL-002, REQ-TRL-003, REQ-TRL-014 |
 | P1-E3-T43 | Write `app.record_donation()`: donation, received event, cause allocation and allocated event in one transaction | todo | P1-E3-T42 | REQ-DON-008, REQ-TRL-001, REQ-PAY-001 |
@@ -1348,6 +1348,8 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P4-E1-T40 | Create `sponsorships` and `sponsorship_updates` and `app.sponsor_child_view` (persona, age, updates) | todo | P3-E1-T41, P1-E3-T41 | REQ-ORP-001, REQ-ORP-002, REQ-ORP-008, REQ-ORP-009 |
 | P4-E2-T40 | Add the `orphan_full_profile` sign-off, assignment and withdrawal functions and full-profile gating in the sponsor view | todo | P4-E1-T40, P3-E2-T40 | REQ-ORP-003, REQ-ORP-004, REQ-ORP-005, REQ-ORP-006 |
 | P4-E3-T40 | Create `sponsor_messages` with RLS and no child-facing path | todo | P4-E1-T40 | REQ-ORP-007 |
+
+2026-11-09 · P1-E3-T40: `app.donors` started with only an email and a language (P1-E3 manual recording). [`0022_donor_profile.sql`](../db/drizzle/0022_donor_profile.sql) adds the rest of §8.2: `kind`, `user_id` (unique per institute), `email_verified_at`, the private `legal_name` and `phone`, the public `display_name`, `photo_media_id`, `profile_links` and `profile_public`, reminder opt-in with its time, `claimed_at` and `erased_at`. `email` may now be null. Checks: at most five https profile links shaped `{"label","url"}` (`app.valid_profile_links`), an opt-in needs its time, a claim needs an account, and an erased row holds no personal field. `audit_row_change` is now attached, and it redacts every personal field. RLS stays restrictive-only, so neither runtime role can read donors directly (§8.4). The donor's own read and update policy belongs to P2-E5-T40. Tests: [`db/test/donors.sql`](../db/test/donors.sql), and the isolation harness now sets every donor field with its institute marker.
 
 2026-11-09 · P1-E2-T40: reviewed `app.causes` ([`0007_causes.sql`](../db/drizzle/0007_causes.sql)) against §8.1. Every column and rule is there: type, campaign target and end date, `ends_on >= starts_on`, `accepts_zakat` with the scholar name allowed only when it is set, the four states, `listed_as_project`, `category` and the bilingual fields. RLS has the restrictive `iso` policy, and there is no permissive policy, so the runtime roles read causes only through `public_api.causes` and change them only through the admin definer functions. `audit_row_change` is attached. §8.1 now also lists `target_period`, `stock_year_start_month` (from 06 §5.1), `revision` and `created_at`, which the table already had. Tests: [`db/test/causes.sql`](../db/test/causes.sql) and the isolation harness. The receipt-photo default on a cause belongs to P1-E2-T03.
 

@@ -111,6 +111,16 @@ set local role tazkiyah_schema_owner;
 update app.receipt_email_jobs j set trail_link_id = l.id
 from app.trail_links l
 where l.institute_id = j.institute_id and l.donor_id = j.donor_id and l.revoked_at is null;
+-- Private and public donor profile fields (04 §8.2), each carrying its marker.
+update app.donors d set
+  user_id = ('14000000-0000-4000-8000-00000000030' || n.i)::uuid,
+  photo_media_id = ('14000000-0000-4000-8000-00000000010' || n.i)::uuid,
+  legal_name = n.mark || '-Legal', phone = '+92 300 000000' || n.i,
+  display_name = n.mark || '-Display', profile_public = true,
+  profile_links = jsonb_build_array(jsonb_build_object('label', n.mark || '-Link', 'url', 'https://example.test/' || n.mark)),
+  email_verified_at = now(), claimed_at = now()
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+where d.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
 
 create temp table harness_relations on commit drop as
 select c.oid::regclass as rel, c.relkind = 'v' as is_view,
