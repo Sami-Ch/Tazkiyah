@@ -1,0 +1,1912 @@
+{
+  "id": "a8f06a31-eb19-44d5-85de-769f5f208132",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "app.audit_log": {
+      "name": "audit_log",
+      "schema": "app",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "audit_log_id_seq",
+            "schema": "app",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "9223372036854775807",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actor_kind": {
+          "name": "actor_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_roles": {
+          "name": "actor_roles",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_table": {
+          "name": "entity_table",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changes": {
+          "name": "changes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "audit_log_actor": {
+          "name": "audit_log_actor",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "actor_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_log_institute_time": {
+          "name": "audit_log_institute_time",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "first"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "audit_log_institute_id_fkey": {
+          "name": "audit_log_institute_id_fkey",
+          "tableFrom": "audit_log",
+          "tableTo": "institutes",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audit_log_institute_id_actor_user_id_fkey": {
+          "name": "audit_log_institute_id_actor_user_id_fkey",
+          "tableFrom": "audit_log",
+          "tableTo": "users",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id",
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "institute_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "audit_log_institute_id_id_key": {
+          "name": "audit_log_institute_id_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "institute_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "iso": {
+          "name": "iso",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))",
+          "withCheck": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))"
+        },
+        "audit_admin_read": {
+          "name": "audit_admin_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(select app.has_role('admin'))"
+        }
+      },
+      "checkConstraints": {
+        "audit_log_actor_kind_check": {
+          "name": "audit_log_actor_kind_check",
+          "value": "actor_kind = ANY (ARRAY['user'::text, 'job'::text, 'guest_token'::text, 'system'::text])"
+        },
+        "audit_log_changes_check": {
+          "name": "audit_log_changes_check",
+          "value": "jsonb_typeof(changes) = 'object'::text"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "app.institute_bank_accounts": {
+      "name": "institute_bank_accounts",
+      "schema": "app",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bank_name": {
+          "name": "bank_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_title": {
+          "name": "account_title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_number": {
+          "name": "account_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "iban": {
+          "name": "iban",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "branch": {
+          "name": "branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "for_donation_types": {
+          "name": "for_donation_types",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY['zakat', 'sadaqah', 'general']::text[]"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "display_order": {
+          "name": "display_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "institute_bank_accounts_institute_id_fkey": {
+          "name": "institute_bank_accounts_institute_id_fkey",
+          "tableFrom": "institute_bank_accounts",
+          "tableTo": "institutes",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "institute_bank_accounts_institute_id_id_key": {
+          "name": "institute_bank_accounts_institute_id_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "institute_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "iso": {
+          "name": "iso",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(institute_id = app.current_institute_id())",
+          "withCheck": "(institute_id = app.current_institute_id())"
+        },
+        "bank_accounts_admin_read": {
+          "name": "bank_accounts_admin_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(select app.has_role('admin'))"
+        }
+      },
+      "checkConstraints": {
+        "institute_bank_accounts_for_donation_types_check": {
+          "name": "institute_bank_accounts_for_donation_types_check",
+          "value": "(cardinality(for_donation_types) > 0) AND (array_position(for_donation_types, NULL::text) IS NULL) AND (for_donation_types <@ ARRAY['zakat'::text, 'sadaqah'::text, 'general'::text])"
+        },
+        "institute_bank_accounts_check": {
+          "name": "institute_bank_accounts_check",
+          "value": "(NULLIF(btrim(account_number), ''::text) IS NOT NULL) OR (NULLIF(btrim(iban), ''::text) IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "app.institute_domains": {
+      "name": "institute_domains",
+      "schema": "app",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domain": {
+          "name": "domain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {
+        "institute_domains_one_primary": {
+          "name": "institute_domains_one_primary",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "is_primary",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "institute_domains_institute_id_fkey": {
+          "name": "institute_domains_institute_id_fkey",
+          "tableFrom": "institute_domains",
+          "tableTo": "institutes",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "institute_domains_domain_key": {
+          "name": "institute_domains_domain_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "domain"
+          ]
+        },
+        "institute_domains_institute_id_id_key": {
+          "name": "institute_domains_institute_id_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "institute_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "iso": {
+          "name": "iso",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(institute_id = app.current_institute_id())",
+          "withCheck": "(institute_id = app.current_institute_id())"
+        }
+      },
+      "checkConstraints": {
+        "institute_domains_domain_check": {
+          "name": "institute_domains_domain_check",
+          "value": "(length(domain) <= 253) AND (domain !~~ 'www.%'::text) AND (domain ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?([.][a-z0-9]([a-z0-9-]*[a-z0-9])?)*$'::text)"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "app.institute_settings": {
+      "name": "institute_settings",
+      "schema": "app",
+      "columns": {
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "short_name": {
+          "name": "short_name",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_body": {
+          "name": "parent_body",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "theme": {
+          "name": "theme",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "languages": {
+          "name": "languages",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY['ur', 'en']::text[]"
+        },
+        "default_language": {
+          "name": "default_language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en'"
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Asia/Karachi'"
+        },
+        "base_currency": {
+          "name": "base_currency",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PKR'"
+        },
+        "address": {
+          "name": "address",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact": {
+          "name": "contact",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "founded_year": {
+          "name": "founded_year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled_modules": {
+          "name": "enabled_modules",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "receipt_prefix": {
+          "name": "receipt_prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "community_enabled": {
+          "name": "community_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "principal_user_id": {
+          "name": "principal_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logo_media_id": {
+          "name": "logo_media_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "institute_settings_institute_id_fkey": {
+          "name": "institute_settings_institute_id_fkey",
+          "tableFrom": "institute_settings",
+          "tableTo": "institutes",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "institute_settings_institute_id_principal_user_id_fkey": {
+          "name": "institute_settings_institute_id_principal_user_id_fkey",
+          "tableFrom": "institute_settings",
+          "tableTo": "users",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id",
+            "principal_user_id"
+          ],
+          "columnsTo": [
+            "institute_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "institute_settings_institute_id_updated_by_fkey": {
+          "name": "institute_settings_institute_id_updated_by_fkey",
+          "tableFrom": "institute_settings",
+          "tableTo": "users",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id",
+            "updated_by"
+          ],
+          "columnsTo": [
+            "institute_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "institute_settings_institute_id_logo_media_id_fkey": {
+          "name": "institute_settings_institute_id_logo_media_id_fkey",
+          "tableFrom": "institute_settings",
+          "tableTo": "media_assets",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id",
+            "logo_media_id"
+          ],
+          "columnsTo": [
+            "institute_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "iso": {
+          "name": "iso",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(institute_id = app.current_institute_id())",
+          "withCheck": "(institute_id = app.current_institute_id())"
+        },
+        "settings_admin_read": {
+          "name": "settings_admin_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(select app.has_role('admin'))"
+        },
+        "settings_admin_update": {
+          "name": "settings_admin_update",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(select app.has_role('admin'))",
+          "withCheck": "(select app.has_role('admin'))"
+        }
+      },
+      "checkConstraints": {
+        "institute_settings_theme_check": {
+          "name": "institute_settings_theme_check",
+          "value": "jsonb_typeof(theme) = 'object'::text"
+        },
+        "institute_settings_languages_check": {
+          "name": "institute_settings_languages_check",
+          "value": "array_position(languages, NULL::text) IS NULL"
+        },
+        "institute_settings_check": {
+          "name": "institute_settings_check",
+          "value": "default_language = ANY (languages)"
+        },
+        "institute_settings_base_currency_check": {
+          "name": "institute_settings_base_currency_check",
+          "value": "base_currency ~ '^[A-Z]{3}$'::text"
+        },
+        "institute_settings_contact_check": {
+          "name": "institute_settings_contact_check",
+          "value": "jsonb_typeof(contact) = 'object'::text"
+        },
+        "institute_settings_enabled_modules_check": {
+          "name": "institute_settings_enabled_modules_check",
+          "value": "(array_position(enabled_modules, NULL::text) IS NULL) AND (enabled_modules <@ ARRAY['student_hub'::text, 'teacher_hub'::text, 'new_projects'::text])"
+        },
+        "institute_settings_receipt_prefix_check": {
+          "name": "institute_settings_receipt_prefix_check",
+          "value": "receipt_prefix ~ '^[A-Z0-9]+$'::text"
+        },
+        "institute_settings_community_enabled_check": {
+          "name": "institute_settings_community_enabled_check",
+          "value": "NOT community_enabled"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "app.institutes": {
+      "name": "institutes",
+      "schema": "app",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'institute'"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "institutes_slug_key": {
+          "name": "institutes_slug_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {
+        "iso": {
+          "name": "iso",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(id = app.current_institute_id())",
+          "withCheck": "(id = app.current_institute_id())"
+        }
+      },
+      "checkConstraints": {
+        "institutes_slug_check": {
+          "name": "institutes_slug_check",
+          "value": "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text"
+        },
+        "institutes_kind_check": {
+          "name": "institutes_kind_check",
+          "value": "kind = ANY (ARRAY['institute'::text, 'platform_fund'::text])"
+        },
+        "institutes_status_check": {
+          "name": "institutes_status_check",
+          "value": "status = ANY (ARRAY['active'::text, 'suspended'::text])"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "app.media_assets": {
+      "name": "media_assets",
+      "schema": "app",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'private'"
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "youtube_id": {
+          "name": "youtube_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bytes": {
+          "name": "bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "width": {
+          "name": "width",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height": {
+          "name": "height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_s": {
+          "name": "duration_s",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "page_count": {
+          "name": "page_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "variants": {
+          "name": "variants",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "alt_text": {
+          "name": "alt_text",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shows_face": {
+          "name": "shows_face",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "uploaded_by": {
+          "name": "uploaded_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "media_assets_uploaded_by": {
+          "name": "media_assets_uploaded_by",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "uploaded_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "media_assets_institute_id_fkey": {
+          "name": "media_assets_institute_id_fkey",
+          "tableFrom": "media_assets",
+          "tableTo": "institutes",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "media_assets_institute_id_uploaded_by_fkey": {
+          "name": "media_assets_institute_id_uploaded_by_fkey",
+          "tableFrom": "media_assets",
+          "tableTo": "users",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id",
+            "uploaded_by"
+          ],
+          "columnsTo": [
+            "institute_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "media_assets_storage_key_key": {
+          "name": "media_assets_storage_key_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "storage_key"
+          ]
+        },
+        "media_assets_institute_id_id_key": {
+          "name": "media_assets_institute_id_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "institute_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "iso": {
+          "name": "iso",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))",
+          "withCheck": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))"
+        },
+        "media_read": {
+          "name": "media_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(select app.has_role('admin')) or (\n  uploaded_by = (select app.current_user_id())\n  and (select app.is_member() or app.has_role('donor'))\n)"
+        }
+      },
+      "checkConstraints": {
+        "media_assets_kind_check": {
+          "name": "media_assets_kind_check",
+          "value": "kind = ANY (ARRAY['image'::text, 'audio'::text, 'video'::text, 'slides'::text, 'document'::text, 'youtube'::text])"
+        },
+        "media_assets_purpose_check": {
+          "name": "media_assets_purpose_check",
+          "value": "purpose = ANY (ARRAY['logo'::text, 'cover'::text, 'post'::text, 'avatar'::text, 'donor_photo'::text, 'staff_photo'::text, 'receipt'::text, 'consent_form'::text, 'sponsorship_update'::text])"
+        },
+        "media_assets_visibility_check": {
+          "name": "media_assets_visibility_check",
+          "value": "visibility = ANY (ARRAY['public'::text, 'private'::text])"
+        },
+        "media_assets_check": {
+          "name": "media_assets_check",
+          "value": "starts_with(storage_key, institute_id::text || '/')"
+        },
+        "media_assets_youtube_id_check": {
+          "name": "media_assets_youtube_id_check",
+          "value": "youtube_id ~ '^[A-Za-z0-9_-]{11}$'::text"
+        },
+        "media_assets_check1": {
+          "name": "media_assets_check1",
+          "value": "(bytes > 0) AND (bytes <=\nCASE\n    WHEN (purpose = 'avatar'::text) THEN 60000\n    WHEN (kind = 'image'::text) THEN 600000\n    WHEN (kind = ANY (ARRAY['audio'::text, 'slides'::text])) THEN 10000000\n    WHEN (kind = 'document'::text) THEN 5000000\n    WHEN (kind = 'video'::text) THEN 25000000\n    ELSE 0\nEND)"
+        },
+        "media_assets_width_check": {
+          "name": "media_assets_width_check",
+          "value": "width > 0"
+        },
+        "media_assets_height_check": {
+          "name": "media_assets_height_check",
+          "value": "height > 0"
+        },
+        "media_assets_check2": {
+          "name": "media_assets_check2",
+          "value": "(duration_s > 0) AND ((kind <> 'video'::text) OR (duration_s <= 90))"
+        },
+        "media_assets_check3": {
+          "name": "media_assets_check3",
+          "value": "(page_count > 0) AND ((kind <> 'slides'::text) OR (page_count <= 60))"
+        },
+        "media_assets_check4": {
+          "name": "media_assets_check4",
+          "value": "app.valid_media_variants(institute_id, variants)"
+        },
+        "media_assets_status_check": {
+          "name": "media_assets_status_check",
+          "value": "status = ANY (ARRAY['pending'::text, 'ready'::text, 'rejected'::text, 'deleted'::text])"
+        },
+        "media_assets_check5": {
+          "name": "media_assets_check5",
+          "value": "((kind = 'youtube'::text) AND (youtube_id IS NOT NULL) AND (storage_key IS NULL) AND (mime_type IS NULL) AND (bytes IS NULL)) OR ((kind <> 'youtube'::text) AND (storage_key IS NOT NULL) AND (mime_type IS NOT NULL) AND (bytes IS NOT NULL) AND (youtube_id IS NULL))"
+        },
+        "media_assets_check6": {
+          "name": "media_assets_check6",
+          "value": "(kind <> 'video'::text) OR (status <> 'ready'::text) OR (duration_s IS NOT NULL)"
+        },
+        "media_assets_check7": {
+          "name": "media_assets_check7",
+          "value": "(kind <> 'slides'::text) OR (status <> 'ready'::text) OR (page_count IS NOT NULL)"
+        },
+        "media_assets_check8": {
+          "name": "media_assets_check8",
+          "value": "(status = 'deleted'::text) = (deleted_at IS NOT NULL)"
+        },
+        "media_assets_check9": {
+          "name": "media_assets_check9",
+          "value": "(purpose <> 'consent_form'::text) OR (visibility = 'private'::text)"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "app.site_pages": {
+      "name": "site_pages",
+      "schema": "app",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cover_media_id": {
+          "name": "cover_media_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "site_pages_cover_media": {
+          "name": "site_pages_cover_media",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cover_media_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "site_pages_institute_id_fkey": {
+          "name": "site_pages_institute_id_fkey",
+          "tableFrom": "site_pages",
+          "tableTo": "institutes",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "site_pages_institute_id_cover_media_id_fkey": {
+          "name": "site_pages_institute_id_cover_media_id_fkey",
+          "tableFrom": "site_pages",
+          "tableTo": "media_assets",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id",
+            "cover_media_id"
+          ],
+          "columnsTo": [
+            "institute_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "site_pages_institute_id_id_key": {
+          "name": "site_pages_institute_id_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "institute_id",
+            "id"
+          ]
+        },
+        "site_pages_institute_id_slug_key": {
+          "name": "site_pages_institute_id_slug_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "institute_id",
+            "slug"
+          ]
+        }
+      },
+      "policies": {
+        "iso": {
+          "name": "iso",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))",
+          "withCheck": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))"
+        },
+        "staff_page_read": {
+          "name": "staff_page_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(select app.has_role('admin') or app.has_role('editor'))"
+        },
+        "staff_page_insert": {
+          "name": "staff_page_insert",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "withCheck": "(select app.has_role('admin') or app.has_role('editor'))"
+        },
+        "staff_page_update": {
+          "name": "staff_page_update",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(select app.has_role('admin') or app.has_role('editor'))",
+          "withCheck": "(select app.has_role('admin') or app.has_role('editor'))"
+        }
+      },
+      "checkConstraints": {
+        "site_pages_slug_check": {
+          "name": "site_pages_slug_check",
+          "value": "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text"
+        },
+        "site_pages_status_check": {
+          "name": "site_pages_status_check",
+          "value": "status = ANY (ARRAY['draft'::text, 'published'::text, 'archived'::text])"
+        },
+        "site_pages_check": {
+          "name": "site_pages_check",
+          "value": "(status <> 'published'::text) OR (published_at IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "app.user_roles": {
+      "name": "user_roles",
+      "schema": "app",
+      "columns": {
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "can_widen_scope": {
+          "name": "can_widen_scope",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "granted_by": {
+          "name": "granted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "user_roles_granted_by": {
+          "name": "user_roles_granted_by",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "granted_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "user_roles_institute_id_user_id_fkey": {
+          "name": "user_roles_institute_id_user_id_fkey",
+          "tableFrom": "user_roles",
+          "tableTo": "users",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id",
+            "user_id"
+          ],
+          "columnsTo": [
+            "institute_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "user_roles_institute_id_granted_by_fkey": {
+          "name": "user_roles_institute_id_granted_by_fkey",
+          "tableFrom": "user_roles",
+          "tableTo": "users",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id",
+            "granted_by"
+          ],
+          "columnsTo": [
+            "institute_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_roles_pkey": {
+          "name": "user_roles_pkey",
+          "columns": [
+            "institute_id",
+            "user_id",
+            "role"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "iso": {
+          "name": "iso",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))",
+          "withCheck": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))"
+        },
+        "role_read": {
+          "name": "role_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(user_id = (select app.current_user_id()) and app.has_role(role))\n  or (select app.has_role('admin'))"
+        }
+      },
+      "checkConstraints": {
+        "user_roles_role_check": {
+          "name": "user_roles_role_check",
+          "value": "role = ANY (ARRAY['donor'::text, 'student'::text, 'teacher'::text, 'editor'::text, 'finance_officer'::text, 'admin'::text])"
+        },
+        "user_roles_check": {
+          "name": "user_roles_check",
+          "value": "(NOT can_widen_scope) OR (role = 'teacher'::text)"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "app.users": {
+      "name": "users",
+      "schema": "app",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "public_name": {
+          "name": "public_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "public_bio": {
+          "name": "public_bio",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_of_birth": {
+          "name": "date_of_birth",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_orphan": {
+          "name": "is_orphan",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "preferred_language": {
+          "name": "preferred_language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en'"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'invited'"
+        },
+        "left_at": {
+          "name": "left_at",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "must_change_password": {
+          "name": "must_change_password",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "onboarded_at": {
+          "name": "onboarded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_login_at": {
+          "name": "last_login_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "photo_media_id": {
+          "name": "photo_media_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "users_institute_email": {
+          "name": "users_institute_email",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lower(email)",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "users_institute_username": {
+          "name": "users_institute_username",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lower(username)",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "users_photo_media": {
+          "name": "users_photo_media",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "photo_media_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "users_institute_id_fkey": {
+          "name": "users_institute_id_fkey",
+          "tableFrom": "users",
+          "tableTo": "institutes",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "users_institute_id_photo_media_id_fkey": {
+          "name": "users_institute_id_photo_media_id_fkey",
+          "tableFrom": "users",
+          "tableTo": "media_assets",
+          "schemaTo": "app",
+          "columnsFrom": [
+            "institute_id",
+            "photo_media_id"
+          ],
+          "columnsTo": [
+            "institute_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_institute_id_id_key": {
+          "name": "users_institute_id_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "institute_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "iso": {
+          "name": "iso",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))",
+          "withCheck": "(institute_id = ( SELECT app.current_institute_id() AS current_institute_id))"
+        },
+        "user_read": {
+          "name": "user_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "(id = (select app.current_user_id()) and status in ('active', 'left'))\n  or (select app.has_role('admin'))"
+        },
+        "own_language": {
+          "name": "own_language",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "tazkiyah_app"
+          ],
+          "using": "id = (select app.current_user_id()) and status in ('active', 'left')",
+          "withCheck": "id = (select app.current_user_id()) and status in ('active', 'left')"
+        }
+      },
+      "checkConstraints": {
+        "users_email_check": {
+          "name": "users_email_check",
+          "value": "(email = btrim(email)) AND (email <> ''::text)"
+        },
+        "users_username_check": {
+          "name": "users_username_check",
+          "value": "(username = btrim(username)) AND (username <> ''::text)"
+        },
+        "users_full_name_check": {
+          "name": "users_full_name_check",
+          "value": "full_name ~ '[^[:space:]]'::text"
+        },
+        "users_preferred_language_check": {
+          "name": "users_preferred_language_check",
+          "value": "preferred_language = ANY (ARRAY['en'::text, 'ur'::text])"
+        },
+        "users_status_check": {
+          "name": "users_status_check",
+          "value": "status = ANY (ARRAY['invited'::text, 'active'::text, 'left'::text, 'suspended'::text])"
+        },
+        "users_check": {
+          "name": "users_check",
+          "value": "(email IS NOT NULL) OR (username IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {},
+  "schemas": {
+    "app": "app",
+    "public_api": "public_api"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {
+    "public_api.institute_logo": {
+      "columns": {
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "variants": {
+          "name": "variants",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alt_text": {
+          "name": "alt_text",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "name": "institute_logo",
+      "schema": "public_api",
+      "isExisting": true,
+      "materialized": false
+    },
+    "public_api.institute_public": {
+      "columns": {
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "short_name": {
+          "name": "short_name",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_body": {
+          "name": "parent_body",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "theme": {
+          "name": "theme",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact": {
+          "name": "contact",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "languages": {
+          "name": "languages",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "default_language": {
+          "name": "default_language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "base_currency": {
+          "name": "base_currency",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "founded_year": {
+          "name": "founded_year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled_modules": {
+          "name": "enabled_modules",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bank_accounts": {
+          "name": "bank_accounts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "name": "institute_public",
+      "schema": "public_api",
+      "isExisting": true,
+      "materialized": false
+    },
+    "public_api.site_pages": {
+      "columns": {
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "body": {
+          "name": "body",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_storage_key": {
+          "name": "cover_storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_variants": {
+          "name": "cover_variants",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_alt_text": {
+          "name": "cover_alt_text",
+          "type": "app.localized_text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "name": "site_pages",
+      "schema": "public_api",
+      "isExisting": true,
+      "materialized": false
+    }
+  },
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

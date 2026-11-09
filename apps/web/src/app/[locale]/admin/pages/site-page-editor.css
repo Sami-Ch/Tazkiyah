@@ -1,0 +1,72 @@
+.page-editor {
+  display: grid;
+  gap: 1.25rem;
+  max-inline-size: 62rem;
+  padding-block: 2.5rem 4rem;
+}
+
+.page-editor h1 {
+  color: var(--navy);
+}
+
+.page-editor-back {
+  justify-self: start;
+}
+
+.page-editor-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.page-editor-nav [aria-current="page"] {
+  background: var(--navy-soft);
+}
+
+.page-editor-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: clamp(1rem, 3vw, 1.75rem);
+}
+
+.page-editor-languages {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+}
+
+.page-editor-languages fieldset {
+  display: grid;
+  gap: 0.75rem;
+  min-inline-size: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.page-editor-languages textarea {
+  inline-size: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--navy);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.page-editor-preview summary {
+  color: var(--navy);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.page-editor-preview .page-editor-languages {
+  margin-block-start: 0.75rem;
+}
+
+.page-editor-facts {
+  display: grid;
+  gap: 0.75rem;
+}

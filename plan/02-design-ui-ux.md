@@ -47,7 +47,7 @@ Decisions already in the log that shape this document:
 
 | Decision | What it means for design |
 | --- | --- |
-| [D-022](08-decision-log.md#d-022) | Keep the existing logo, design a new colour scheme around it. |
+| [D-022](08-decision-log.md#d-022), [D-108](08-decision-log.md#d-108) | Use the selected [Markaz Al Azeem Emblem](<../assets/logo/Markaz Al Azeem Emblem.png>) as the institute logo. |
 | [D-007](08-decision-log.md#d-007) | Every screen exists in Urdu and English from Phase 1. |
 | [D-026](08-decision-log.md#d-026) | Public pages must be readable within 5 seconds on slow 3G (proposed target). Drives §6 and §9. |
 | [D-020](08-decision-log.md#d-020) | Videos are YouTube links or embeds by default. Drives §9 and §14. |
@@ -62,7 +62,7 @@ New design decisions made in this document. They need `D-` numbers in [08](08-de
 
 | ID | Decision | Options considered | Reason |
 | --- | --- | --- | --- |
-| PD-02-01 | Direction A, "Night and Paper", is the recommended visual direction (§4). | A: navy and paper; B: green and clay. | The header colour is exactly the logo's background (`#0D254D`), so the square logo image blends in with no visible edge. Navy reads as calm and trustworthy for money. Green is used by many organisations and political parties in Pakistan. |
+| PD-02-01 | Direction A, "Night and Paper", is the recommended visual direction (§4). | A: navy and paper; B: green and clay. | The navy palette complements the emblem's blue and silver. A circular frame keeps its darker background contained. |
 | PD-02-02 | Urdu text uses **Naskh** (Noto Naskh Arabic) everywhere. **Nastaliq** (Noto Nastaliq Urdu) is used only for h1 and h2 headings on public Urdu pages, and only when it is already cached (`font-display: optional`). | Nastaliq everywhere; Naskh everywhere; split. | Nastaliq is what Urdu readers love, but the font is several times heavier, needs about twice the line height, clips in buttons and inputs, and is hard to read at small sizes on low-resolution screens. Naskh is compact, clear at 16 px, and is already installed on most Android phones as the system Arabic font, so it often costs zero bytes. |
 | PD-02-03 | Latin body text uses the phone's system font. Latin headings use Source Serif 4 (one weight, 600). | Web font for everything; system font for everything. | System fonts cost nothing to download. One serif weight gives headings dignity for about 25 KB. |
 | PD-02-04 | Numbers use Western digits (0 to 9) in both languages. Urdu month names are used on Urdu pages. Amounts group in thousands (`25,000`). | Urdu digits (۰ to ۹); Western digits. | Bank statements, receipts and phone keypads in Pakistan use Western digits, so donors can match amounts to their bank app. Urdu `Intl` formatting for `ur-PK` uses Western digits by default. |
@@ -79,7 +79,7 @@ Both directions are dignified, calm and trustworthy. Both use plenty of white sp
 
 - **Idea:** the logo's night-sky navy for the header, footer and main buttons, on a warm paper-white page. Pale silver-blue from the logo's glass is used only on navy surfaces. A muted gold appears only for the *verified* mark.
 - **Feel:** an old, well-kept library or a trusted bank. Quiet and serious, warm rather than cold because the page is off-white, not pure white.
-- **Logo:** sits in a navy header. The PNG's background is `#0D254D`, identical to `primary`, so the square image needs no cut-out. On light surfaces the logo is shown cropped to a circle.
+- **Logo.** Display the emblem in a circular frame on both light and dark surfaces. Its source file keeps the original artwork and navy background.
 - **Headings:** Source Serif 4 (Latin), Noto Nastaliq Urdu when cached, else Noto Naskh Arabic (Urdu).
 - **Shapes:** 8 px radius on cards and inputs, thin `border` lines, one soft shadow level only on raised sheets.
 - **Ornament:** one thin 8-point star pattern band (SVG, under 2 KB) under the header on public pages. Nowhere else.
@@ -503,7 +503,7 @@ Public pages must show readable text and the donate button before JavaScript run
 
 ### Images
 
-The logo PNG in `assets/logo` is 1.3 MB and must never be served as is. It is exported once to 48, 96, 192 and 512 px versions (AVIF and WebP, PNG fallback), each under 15 KB except the 512 px one.
+The [source emblem](<../assets/logo/Markaz Al Azeem Emblem.png>) is about 3.1 MB. Serve resized variants. The local starter uses WebP exports at 96 px for the header and 192, 384 and 512 px for the hero. The smallest hero file is under 15 KB.
 
 | Use | Display width | Widths generated | Budget per image | Loading |
 | --- | --- | --- | --- | --- |
@@ -748,7 +748,9 @@ Donors get no walkthrough. Inline help on the donate and trail pages is enough.
 
 ## 14. Media placeholders
 
-There are no photos or videos yet (Q-05). The site must look finished without them, and must not pretend to have them (PD-02-07).
+The homepage gives approved campus photography and film a prominent place in both languages. A wide photograph leads the page, additional views form a gallery, and a captioned campus film plays on demand from a still poster. Use clear images with descriptive captions, responsive sizes and localized alt text. See [D-111](08-decision-log.md#d-111).
+
+The local design preview uses clearly labelled and credited sample media from Wazir Khan Mosque in Lahore while Markaz Al Azeem's own material is prepared (Q-05). For an empty media configuration, the homepage pairs the institute introduction with a framed emblem.
 
 ### Placeholder kit
 
@@ -756,12 +758,12 @@ There are no photos or videos yet (Q-05). The site must look finished without th
 | --- | --- | --- | --- |
 | **Pattern tile** | Cause card header, hero, empty states, walkthrough | An 8-point star or girih pattern drawn as SVG, coloured from `primary-soft` and `primary` (or `primary` and `accent` on dark), generated from theme tokens, so another institute gets its own colours | ≤ 2 KB |
 | **Cause icon** | On top of the pattern tile on cause cards and cause pages | Line icons at 2 px stroke: wheat, gas flame, cooking pot (lunch), clinic cross, book (education), building (construction), laptop (tech costs), heart-hand (all needs), star (orphan sponsorship). Admin picks the icon per cause | ≤ 1 KB each, in the sprite |
-| **Hero without photo** | Home page | Navy band with the logo at 160 px, the institute name, one sentence and the donate button; pattern band below | No image file |
+| **Hero without photo** | Home page | A navy frame with the selected emblem beside the institute introduction on paper | Responsive emblem WebP |
 | **Persona avatar** | Hub | One of 24 presets: 12 patterns by 2 colourways from theme tokens | ≤ 2 KB each |
 | **Initials avatar** | Teachers and donors without a photo | Initials (Latin) or first letter (Urdu) on `primary-soft`, text `primary` | 0 KB (CSS) |
 | **Receipt placeholder** | Spending entry without a photo | Document icon and "No receipt photo" in `text-muted` | 0 KB |
 | **Video** | Pages that will later have video | **No placeholder.** The video section is hidden until a video exists. Never an empty player | |
-| **Gallery** | Facilities, daily life | Text-led sections with icons and facts ("Lunch for 100 people every day", "Clinic sees about 25 patients a day"); a gallery section appears only once photos exist | |
+| **Gallery** | Home, facilities, daily life | Text-led sections with icons and facts. The gallery appears as soon as additional approved photos exist | |
 
 ### Replacing placeholders
 

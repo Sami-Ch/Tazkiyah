@@ -1,0 +1,22 @@
+.donor-link-form fieldset {
+  display: grid;
+  gap: 1rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.donor-link-form .donor-link-confirm {
+  display: flex;
+  align-items: start;
+  gap: 0.625rem;
+  min-block-size: 2.75rem;
+}
+
+.donor-link-form .donor-link-confirm input {
+  inline-size: 1.25rem;
+  min-block-size: 1.25rem;
+  flex: 0 0 auto;
+  margin-block-start: 0.25rem;
+}

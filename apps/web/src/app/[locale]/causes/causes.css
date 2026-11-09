@@ -1,0 +1,117 @@
+.giving-causes {
+  display: grid;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  padding-block: clamp(2rem, 6vw, 5rem);
+}
+
+.giving-back {
+  justify-self: start;
+}
+
+.giving-heading {
+  display: grid;
+  gap: 0.5rem;
+  max-inline-size: 46rem;
+}
+
+.giving-heading > p {
+  margin: 0;
+}
+
+.giving-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.giving-past {
+  display: grid;
+  gap: 1rem;
+  padding-block-start: 1.25rem;
+  border-block-start: 1px solid var(--border);
+}
+
+.giving-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: clamp(1.1rem, 3vw, 1.7rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.giving-card > * {
+  margin: 0;
+}
+
+.giving-kicker,
+.giving-status {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.giving-kicker {
+  font-size: 0.9rem;
+}
+
+.giving-status {
+  margin-block-start: auto;
+  border-radius: var(--radius);
+  padding: 0.25rem 0.65rem;
+  background: var(--navy-soft);
+}
+
+.giving-detail {
+  max-inline-size: 60rem;
+}
+
+.giving-facts dl,
+.giving-progress dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+}
+
+.giving-facts dl:empty {
+  display: none;
+}
+
+.giving-facts dt,
+.giving-progress dt {
+  color: var(--muted);
+}
+
+.giving-facts dd,
+.giving-progress dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.giving-progress {
+  align-self: stretch;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.giving-progress > * {
+  margin: 0;
+}
+
+.giving-progress progress {
+  inline-size: 100%;
+  accent-color: var(--navy);
+}
+
+.giving-card .visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

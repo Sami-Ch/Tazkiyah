@@ -271,3 +271,45 @@ Each specialist document records its own decisions in its §3, with the options 
 | D-105 | PD-07-11 | [07](07-content-hub-student-teacher.md) | Replies in a thread are flat (one level), with an optional "replying to" link. | proposed |
 | D-106 | PD-07-12 | [07](07-content-hub-student-teacher.md) | When a student leaves, an admin moves them into an "Alumni" class owned by an admin. | proposed |
 | D-107 | PD-07-13 | [07](07-content-hub-student-teacher.md) | Report thresholds: three reports from different users hide a class or madrasa post until a teacher reviews it. | proposed |
+
+## D-108
+
+2026-11-07 · Sami · Updates [D-022](#d-022)
+
+Use [Markaz Al Azeem Emblem.png](<../assets/logo/Markaz Al Azeem Emblem.png>) as the institute's logo source. The starter uses responsive WebP copies derived from that file.
+
+## D-109
+
+2026-11-07 · Implementation review · Aligns [03 §4](03-architecture.md#43-database-roles) with [04 §6](04-database.md#6-row-level-security)
+
+Use the schema plan's `tazkiyah_owner` and `tazkiyah_app` names. The transaction supplies institute, user and request IDs, and policies check permissions against `user_roles`. The host lookup exposes only an active institute's ID. The application role stays subject to RLS. Owner-backed views and functions need the explicit tenant checks in 04. The cross-institute test suite must exist before it can run in CI.
+
+## D-110
+
+2026-11-07 · Implementation review
+
+List the direct prerequisites for the cause admin, spending batch, donor wall, donor profile and moderation queue screens. Each task previously depended on its own epic, which made it wait on itself under the master plan's dependency rule. Tie public media copying to the approval and takedown actions so teacher review and media setup can be built in order. See [05 Tasks](05-public-pages-roles-admin.md#tasks) and [03 Tasks](03-architecture.md#tasks).
+
+## D-111
+
+Sami · Homepage direction
+
+Give authentic institutional photos and video a prominent role in the public design. The homepage uses a campus photograph as its lead visual, with a gallery and an on-demand film below. At Sami's request, the local design preview uses labelled web-sourced examples until Markaz Al Azeem's own material is ready. See [02 §14](02-design-ui-ux.md#14-media-placeholders).
+
+## D-112
+
+2026-11-08 · Database implementation · Updates [D-109](#d-109)
+
+Neon named the administrative login `tazkiyah_owner`. Use a separate `tazkiyah_schema_owner` role with no login to own schema objects, and grant the runtime role only the public view and selected functions. Add user and logo foreign keys with their target tables so tenant ownership is enforced from the moment each field exists.
+
+## D-113
+
+2026-11-08 · Phase 0 database implementation
+
+Use case-insensitive indexes for email and username within an institute. Accounts start invited. The audit log stores values for a small set of status and permission fields and redacts the rest. Media uses the `pending` state from the upload flow. Public pages expose published text and ready public cover images without flagged faces. Account and role mutations follow the sign-in and staff workflows.
+
+## D-114
+
+2026-11-08 · Sami · Updates [D-041](#d-041)
+
+Use Drizzle for application queries and one migration history. Keep PostgreSQL-specific role, grant, function, trigger and view SQL in custom migrations in that same history. Existing databases adopt the consolidated baseline after all six original migration hashes are verified. See [04 §13.2](04-database.md#132-migrations).

@@ -129,7 +129,7 @@ Keep it under about 3,000 words by linking out.
 
 ### B1. Design, UI and UX (02-design-ui-ux.md)
 
-- **Branding:** use the madrasa's existing logo (`assets/logo/markaz-al-azeem-logo.png`: a round silver and pale-blue emblem on deep navy) with a **new colour scheme designed for this madrasa**. Store colours as theme settings per institute, so each future institute can have its own.
+- **Branding:** use the madrasa's [Markaz Al Azeem Emblem](<../assets/logo/Markaz Al Azeem Emblem.png>) with a **new colour scheme designed for this madrasa**. Store colours as theme settings per institute, so each future institute can have its own. Sami confirmed the exact source image in [D-108](../plan/08-decision-log.md#d-108).
 - Propose two visual directions that are dignified, calm and trustworthy, and recommend one. Give palette contrast ratios that meet WCAG AA.
 - Typography for Latin and Urdu (Nastaliq or Naskh choice with reasons), plus RTL layout rules that follow the Localization rules in A4.
 - Mobile-first rules for low-end phones and slow connections, including image and video sizes.

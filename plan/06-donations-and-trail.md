@@ -596,12 +596,14 @@ A guest donor gives with only an email address (REQ-DPR-001, D-009). They are st
 | Property | Rule |
 | --- | --- |
 | Token | Random and unguessable, at least 128 bits. Only a hash is stored (REQ-SEC-004, [04 §8](04-database.md)). |
-| Address | `/{lang}/trail/{token}`. The token is not personal data, and no email or name is ever in the address (REQ-SEC-005). |
+| Address | `/{lang}/trail#{token}`. The browser sends the token in a same-origin POST and removes the fragment from the displayed address. No email or name appears in the address (REQ-SEC-005). |
 | Lifetime | No expiry (06-P10). |
 | Revoking | The admin can revoke it, which creates a new link and emails it to the donor. The old link then shows "This link is no longer valid". |
 | Lost link | "Send me my link again": the donor types their email, and the page always says "If we have donations for this address, we have emailed the link", whether or not the email is known. This stops anyone checking who has given. |
 | Page safety | No search engine indexing, no public caching, and no referrer sent to outside links. |
 | Sponsorship | Never shows sponsorship pages (06-P16). |
+
+During the first release, a two-factor verified administrator issues or revokes the guest link from a receipt number. Issuance also requires the matching verified email. The administrator shares the link privately. Automated delivery and resend still need an email service.
 
 ### 11.3 Claiming into an account
 
@@ -883,20 +885,20 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P1-E2-T01 | Cause rules: three types, four states, targets and periods (§5.1, §5.2) | todo | P0-E2 | REQ-DON-005, REQ-DON-007, REQ-DON-014 |
-| P1-E2-T02 | Bilingual admin form to create, edit, close and archive a cause, with type-specific fields | todo | P1-E2-T01, P1-E5, P0-E3 | REQ-DON-009, REQ-DON-013, REQ-LNG-009 |
+| P1-E2-T02 | Bilingual admin form to create, edit, close and archive a cause, with type-specific fields | in progress | P1-E2-T01, P1-E5, P0-E3 | REQ-DON-009, REQ-DON-013, REQ-LNG-009 |
 | P1-E2-T03 | Zakat flag, approving scholar's name and receipt-photo default on each cause | todo | P1-E2-T02 | REQ-ROL-005 |
-| P1-E2-T04 | Campaign auto-close at end date, late-recording rule, and archive guard (§5.3) | todo | P1-E2-T01 | REQ-DON-006 |
-| P1-E2-T05 | Cause progress figures (raised, spent, target, period) for public pages and the home page | todo | P1-E2-T01, P1-E3-T01 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
+| P1-E2-T04 | Campaign auto-close at end date, late-recording rule, and archive guard (§5.3) | in progress | P1-E2-T01 | REQ-DON-006 |
+| P1-E2-T05 | Cause progress figures (raised, spent, target, period) for public pages and the home page | in progress | P1-E2-T01, P1-E3-T01 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
 | P1-E2-T06 | Seed Markaz Al Azeem's starting causes as drafts (§5.4) | todo | P1-E2-T03 | REQ-DON-014 |
 
 ### P1-E3 Manual donation recording and guest donors
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E3-T01 | Recording rules: save donation, *received* and *allocated* events in one transaction (§4.4, §4.5), including unknown donor | todo | P1-E2-T03, P0-E2 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-008, REQ-TRL-001, REQ-TRL-002, REQ-DON-017 (proposed, needs approval for unknown donor only) |
-| P1-E3-T02 | Phone-friendly admin form to record a bank transfer, with duplicate warning and large-amount confirmation | todo | P1-E3-T01, P1-E5, P0-E5 | REQ-DON-008, REQ-PAY-001 |
-| P1-E3-T03 | Receipt numbering per institute per year (§14.1) | todo | P1-E3-T01 | REQ-DON-010 |
-| P1-E3-T04 | Guest donors and private trail-link tokens: create, hash, revoke (§11.2) | todo | P1-E3-T01 | REQ-DPR-001, REQ-DPR-002, REQ-SEC-004 |
+| P1-E3-T01 | Recording rules: save donation, *received* and *allocated* events in one transaction (§4.4, §4.5), including unknown donor | in progress | P1-E2-T03, P0-E2 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-008, REQ-TRL-001, REQ-TRL-002, REQ-DON-017 (proposed, needs approval for unknown donor only) |
+| P1-E3-T02 | Phone-friendly admin form to record a bank transfer, with duplicate warning and large-amount confirmation | done | P1-E3-T01, P1-E5, P0-E5 | REQ-DON-008, REQ-PAY-001 |
+| P1-E3-T03 | Receipt numbering per institute per year (§14.1) | in progress | P1-E3-T01 | REQ-DON-010 |
+| P1-E3-T04 | Guest donors and private trail-link tokens: create, hash, revoke (§11.2) | done | P1-E3-T01 | REQ-DPR-001, REQ-DPR-002, REQ-SEC-004 |
 | P1-E3-T05 | Email the private link to a new guest donor when their first donation is received | todo | P1-E3-T04, P1-E3-T30 | REQ-DPR-002, REQ-LNG-011 |
 | P1-E3-T06 | Anonymity read layer: name fields hidden for anonymous donations outside donor and finance roles (§10.4) | todo | P1-E3-T01 | REQ-DPR-006, REQ-DPR-009, REQ-SEC-008 |
 | P1-E3-T07 | Public transfer notice form creating *notified* donations (§4.2) | todo | P1-E3-T01, P1-E1-T08 | REQ-DON-001, REQ-DON-002, REQ-DON-003, REQ-DON-004, REQ-DPR-001, REQ-DPR-006 |
@@ -910,11 +912,11 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E4-T01 | Donor trail page by private link or account: donations with *received* and *allocated* events, in Urdu and English | todo | P1-E3-T04, P1-E3-T06, P0-E3 | REQ-TRL-001, REQ-TRL-007, REQ-DPR-002, REQ-LNG-012 |
-| P1-E4-T02 | Donation state worked out from events and shown in donor words (§4.4 table) | todo | P1-E4-T01 | REQ-TRL-001 |
-| P1-E4-T03 | Bilingual printable receipt page reached from the trail (§14.2) | todo | P1-E3-T03, P1-E4-T01 | REQ-DON-010, REQ-DPR-010, REQ-PAY-008 |
+| P1-E4-T01 | Donor trail page by private link or account: donations with *received* and *allocated* events, in Urdu and English | done | P1-E3-T04, P1-E3-T06, P0-E3 | REQ-TRL-001, REQ-TRL-007, REQ-DPR-002, REQ-LNG-012 |
+| P1-E4-T02 | Donation state worked out from events and shown in donor words (§4.4 table) | in progress | P1-E4-T01 | REQ-TRL-001 |
+| P1-E4-T03 | Bilingual printable receipt page reached from the trail (§14.2) | in progress | P1-E3-T03, P1-E4-T01 | REQ-DON-010, REQ-DPR-010, REQ-PAY-008 |
 | P1-E4-T04 | "Send me my link again" without revealing whether the email is known | todo | P1-E3-T05 | REQ-DPR-002, REQ-SEC-004 |
-| P1-E4-T05 | Private by default: no indexing, no public caching, no referrer on trail pages | todo | P1-E4-T01 | REQ-TRL-008, REQ-SEC-005 |
+| P1-E4-T05 | Private by default: no indexing, no public caching, no referrer on trail pages | done | P1-E4-T01 | REQ-TRL-008, REQ-SEC-005 |
 
 ### P2-E1 Spending entries with receipts
 

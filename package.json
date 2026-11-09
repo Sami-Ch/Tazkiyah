@@ -1,0 +1,41 @@
+{
+  "name": "tazkiyah",
+  "private": true,
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @tazkiyah/web",
+    "build": "npm run build -w @tazkiyah/web",
+    "start": "npm run start -w @tazkiyah/web",
+    "build:worker": "npm run build:worker -w @tazkiyah/web",
+    "preview:worker": "npm run preview:worker -w @tazkiyah/web",
+    "lint": "eslint apps packages db drizzle.config.ts",
+    "typecheck": "npm run typecheck -w @tazkiyah/web && tsc --noEmit --strict --skipLibCheck --module nodenext --target es2022 packages/core/src/db/schema.ts packages/core/src/db/identity.ts drizzle.config.ts",
+    "test": "vitest run",
+    "db:generate": "node db/generate.mjs",
+    "db:migrate": "node db/migrate.mjs",
+    "format": "prettier --write package.json eslint.config.mjs drizzle.config.ts apps packages 'db/*.mjs'",
+    "db:bootstrap-admin": "npm run db:bootstrap-admin -w @tazkiyah/web --"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "drizzle-kit": "0.31.10",
+    "drizzle-orm": "0.45.2",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.5",
+    "pg": "8.23.1",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  },
+  "overrides": {
+    "@node-minify/core": {
+      "glob": "10.5.0"
+    }
+  }
+}

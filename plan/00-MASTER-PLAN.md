@@ -1,6 +1,6 @@
 # Tazkiyah master plan
 
-**Status:** plan complete, awaiting review · **Last updated:** 2026-11-07 · **Owner:** Sami
+**Status:** Phase 0 in progress · **Last updated:** 2026-11-07 · **Owner:** Sami
 
 This is the source of truth for Tazkiyah. Every agent and developer reads it first. If two documents disagree, the master plan wins, and the specialist document is fixed.
 
@@ -189,7 +189,7 @@ Each phase ends in a test that a person can run by hand. Online payments come la
 
 ## 7. Task index
 
-Compiled in the consistency check on 2026-11-07: **327 tasks**, all `todo` (P0 76, P1 67, P2 51, P3 95, P4 26, P5 12). Every requirement in [01](01-requirements-checklist.md) is covered by at least one task, every task-level dependency points to a task that exists, and there are no dependency loops. A dependency on a whole epic means every task in that epic must be done.
+The 2026-11-07 consistency check counted **327 tasks** (P0 76, P1 67, P2 51, P3 95, P4 26, P5 12). Every approved requirement in [01](01-requirements-checklist.md) maps to at least one task. See each owner document for current statuses. A dependency on a whole epic means every task in that epic must be done.
 
 | Epic | Tasks by document | Count |
 | --- | --- | --- |

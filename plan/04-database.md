@@ -86,8 +86,8 @@ New decisions made in this document. They are **not yet in [08](08-decision-log.
 | --- | --- | --- |
 | `app` | schema | All tables, helper functions and triggers. |
 | `public_api` | schema | Read-only views for visitors (donor wall, cause totals, public trails, public posts). They expose only safe columns. |
-| `tazkiyah_owner` | login role | Owns every table and view. Used only by migrations and to own `SECURITY DEFINER` helper functions. The app never connects as it. |
-| `tazkiyah_app` | login role | The web app and background jobs. Not the owner, no `BYPASSRLS`. RLS applies to it on every table. |
+| `tazkiyah_schema_owner` | ownership role | Owns every app table, view and definer function. The administrator assumes it for migrations. |
+| `tazkiyah_app` | runtime role | The web app and background jobs. RLS applies to it on every table. Enable its login when provisioning the runtime connection. |
 
 Tables use `ENABLE ROW LEVEL SECURITY`. The owner skips RLS, which is why the app must never use the owner role. A test checks this (§6.6).
 
@@ -235,16 +235,9 @@ All institute details live in data, not code (REQ-MIR-001). Adding a second inst
 
 ### 5.1 `localized_text` domain
 
-```sql
-create domain app.localized_text as jsonb
-  check (jsonb_typeof(value) = 'object'
-     and value <> '{}'::jsonb
-     and not exists (select 1 from jsonb_each_text(value) e
-                     where e.key !~ '^[a-z]{2,3}$' or btrim(e.value) = ''));
--- example: {"ur": "گندم کا ذخیرہ", "en": "Wheat stock"}
-```
+The domain accepts a nonempty JSON object of language codes and nonblank strings, such as `{"ur":"گندم کا ذخیرہ","en":"Wheat stock"}`. Its check calls an immutable validator because Postgres check constraints cannot contain subqueries directly. [Drizzle baseline](../db/drizzle/0000_baseline.sql)
 
-Helper `app.localize(v localized_text, lang text) returns (text_value text, is_fallback bool)`: returns `v->>lang`; if missing, returns the other language and `is_fallback = true` so the page shows the small notice (REQ-LNG-009, [03 §7](03-architecture.md)). Fallback order comes from `institute_settings.languages`.
+`app.localize(document, requested_language, fallback_languages)` returns the first available translation and flags a fallback. Pass `institute_settings.languages` for the institute's fallback order. [03 §7](03-architecture.md#7-localization-plumbing)
 
 ### 5.2 `institutes`
 
@@ -264,10 +257,10 @@ Helper `app.localize(v localized_text, lang text) returns (text_value text, is_f
 | `name` | `localized_text not null` | `{"ur":"مرکز العظیم","en":"Markaz Al Azeem"}` (REQ-PUB-007). |
 | `short_name` | `localized_text null` | For small screens. |
 | `parent_body` | `localized_text null` | `Jama Masjid Al-Azeem`. |
-| `logo_media_id` | `uuid null` FK `media_assets` | The round emblem (D-022). |
+| `logo_media_id` | `uuid null` FK `media_assets` | The selected Markaz Al Azeem Emblem ([D-108](08-decision-log.md#d-108)). |
 | `theme` | `jsonb not null` | Colour tokens defined in [02 §5](02-design-ui-ux.md), for example `{"primary":"#…","surface":"#…"}`. A check allows only token names listed by 02 and values matching `^#[0-9a-fA-F]{6}$` (REQ-MIR-005). |
 | `languages` | `text[] not null default '{ur,en}'` | Supported content languages, in fallback order. |
-| `default_language` | `text not null default 'en'` | Used when the browser sends no preference (D-007). |
+| `default_language` | `text not null default 'en'` | Content default. Visitor language follows [03 §7](03-architecture.md#72-choosing-the-language). |
 | `timezone` | `text not null default 'Asia/Karachi'` | |
 | `base_currency` | `char(3) not null default 'PKR'` | Ledger currency. |
 | `address` | `localized_text not null` | `92/6-R Road, Sahiwal, Punjab, Pakistan` (REQ-PUB-006). |
@@ -275,7 +268,7 @@ Helper `app.localize(v localized_text, lang text) returns (text_value text, is_f
 | `founded_year` | `smallint null` | 2019. |
 | `enabled_modules` | `text[] not null default '{}'` | Values from the module list: `student_hub`, `teacher_hub`, `new_projects` (REQ-ROL-010). Unknown values are rejected by a trigger that reads the module list kept in the migration. |
 | `principal_user_id` | `uuid null` FK `users` | The principal, who gives the first sign-off on orphan consent (§10). |
-| `receipt_prefix` | `text not null` | `MAA`. Receipt numbers look like `MAA-2026-000001`. |
+| `receipt_prefix` | `text not null` | `MAA`. Receipt numbers look like `MAA-2026-00042`. |
 | `community_enabled` | `bool not null default false` | Reserved. While false, no post can take `scope = 'community'` (§11). |
 | `updated_at`, `updated_by` | | Audited. |
 
@@ -287,10 +280,10 @@ Helper: `app.module_enabled(name text) returns bool` reads the current institute
 | --- | --- | --- |
 | `id` | `uuid` PK | |
 | `institute_id` | `uuid not null` | |
-| `domain` | `text not null` | Lowercase host, no port. Unique across all institutes: `unique (lower(domain))`. Rows: `azeem-lateef.com`, `www.azeem-lateef.com`. |
+| `domain` | `text not null` | Unique lowercase host without a port or `www.` prefix. The lookup normalizes `www.azeem-lateef.com` to `azeem-lateef.com`. |
 | `is_primary` | `bool not null default false` | One primary per institute (partial unique index). Used in email links. |
 
-`app.resolve_institute(host text) returns uuid` is a `SECURITY DEFINER` function owned by `tazkiyah_owner`. It returns only the institute id, or null. It runs before any session context exists, so it cannot rely on RLS (REQ-MIR-002, [03 §4](03-architecture.md)).
+`app.resolve_institute(host text) returns uuid` is a `SECURITY DEFINER` function owned by `tazkiyah_schema_owner`. It returns the active institute's ID or null. It runs before the session context exists (REQ-MIR-002, [03 §4](03-architecture.md)).
 
 ### 5.5 `institute_bank_accounts`
 
@@ -314,11 +307,13 @@ Fixed admin content for about, facilities, daily life and contact text (REQ-PUB-
 | Column | Type | Rule |
 | --- | --- | --- |
 | `id`, `institute_id` | | |
-| `slug` | `text not null` | `about`, `facilities`, `daily-life`, `contact`. `unique (institute_id, slug)`. |
+| `slug` | `text not null` | `home`, `about`, `facilities`, `daily-life`, `contact`. `unique (institute_id, slug)`. |
 | `title`, `body` | `localized_text not null` | `body` holds the rich-text format chosen in [03 §7](03-architecture.md). |
 | `cover_media_id` | `uuid null` | |
 | `status` | `text not null default 'draft'` | `draft`, `published`, `archived`. |
 | `published_at` | `timestamptz null` | |
+
+The editor stages changes in `site_page_drafts`, with one draft per institute and page. It checks the revision on save and publish. Publication copies the saved title and body to `site_pages` in the same transaction. The home introduction can also carry the three homepage figures and their bilingual labels in `facts`. The public view reads the published version.
 
 ## 6. Row-level security
 
@@ -344,14 +339,14 @@ The database trusts the app server to set `app.user_id` only after login. It nev
 
 ### 6.2 Helper functions
 
-All are `stable`, live in schema `app`, and set `search_path = app, pg_temp`. The ones marked *definer* are `SECURITY DEFINER`, owned by `tazkiyah_owner`, and always filter by `app.current_institute_id()` themselves.
+All are `stable`, live in schema `app`, and set `search_path = app, pg_temp`. The ones marked *definer* are `SECURITY DEFINER`, owned by `tazkiyah_schema_owner`, and always filter by `app.current_institute_id()` themselves.
 
 | Function | Returns | Notes |
 | --- | --- | --- |
 | `app.current_institute_id()` | `uuid` or null | `nullif(current_setting('app.institute_id', true), '')::uuid`. Null makes every policy false. |
 | `app.current_user_id()` | `uuid` or null | Same pattern for `app.user_id`. |
 | `app.current_trail_donor_id()` | `uuid` or null | Set only by `app.use_trail_token()`. |
-| `app.has_role(r text)` | `bool` | *Definer.* True if `user_roles` has `(current institute, current user, r)` and the user's status is not `suspended`. |
+| `app.has_role(r text)` | `bool` | *Definer.* True for a role held by an active or departed user in the current active institute. |
 | `app.is_member()` | `bool` | Holds any of `student`, `teacher`, `editor`, `finance_officer`, `admin`. "Madrasa" scope means members. |
 | `app.is_staff()` | `bool` | Holds `teacher`, `editor`, `finance_officer` or `admin`. |
 | `app.is_class_member(class_id)` | `bool` | *Definer.* Current user has an active `class_members` row. |
@@ -430,7 +425,7 @@ Shorthand: **A** admin, **F** finance officer, **E** editor, **T** teacher (of t
 
 ### 6.5 Public views
 
-Visitors never read tables directly. They read views in `public_api`, owned by `tazkiyah_owner`, created `with (security_barrier = true)`. Because the owner skips RLS, **every view must filter `institute_id = app.current_institute_id()` itself**, and the isolation test (§6.6) runs against every view. `tazkiyah_app` gets `select` on these views only.
+Visitors never read tables directly. They read views in `public_api`, owned by `tazkiyah_schema_owner`, created `with (security_barrier = true)`. Because the owner skips RLS, **every view must filter `institute_id = app.current_institute_id()` itself**, and the isolation test (§6.6) runs against every view. `tazkiyah_app` gets `select` on these views only.
 
 | View | Shows | Never shows |
 | --- | --- | --- |
@@ -483,8 +478,8 @@ One row per login: staff, students and account donors. There are no guardian log
 | Column | Type | Rule |
 | --- | --- | --- |
 | `id`, `institute_id` | | |
-| `email` | `citext null` | `unique (institute_id, email)`. Students may have none. |
-| `username` | `citext null` | For student login. `unique (institute_id, username)`. Check: `email` or `username` is not null. |
+| `email` | `text null` | Unique on `(institute_id, lower(email))`. Students may have none. |
+| `username` | `text null` | For student login. Unique on `(institute_id, lower(username))`. At least one identifier is required. |
 | `full_name` | `text not null` | Real name. **Private**: readable only by self, admins and the student's teachers. Never shown publicly for students (REQ-CHS-001). |
 | `public_name` | `text null` | Staff real name shown on teacher work (REQ-TCH-001). Null for students. |
 | `public_bio` | `localized_text null` | Teacher's short profile. |
@@ -492,9 +487,9 @@ One row per login: staff, students and account donors. There are no guardian log
 | `date_of_birth` | `date null` | Students. Used to show an age in years to a sponsor (REQ-ORP-002). |
 | `is_orphan` | `bool not null default false` | Students. Read only by admins and the student's teachers. |
 | `preferred_language` | `text not null default 'en'` | REQ-LNG-004, REQ-LNG-011. |
-| `status` | `text not null default 'active'` | `invited`, `active`, `left`, `suspended`. `left` keeps the login and persona working (D-028, REQ-STU-009). |
+| `status` | `text not null default 'invited'` | `active` and `left` accounts can exercise their roles. `left` keeps the login and persona working (D-028, REQ-STU-009). |
 | `left_at` | `date null` | Set when a student leaves. Changes nothing about access. |
-| `must_change_password` | `bool not null default true` for students | First-login flow ([02 §13](02-design-ui-ux.md)). |
+| `must_change_password` | `bool not null default true` | First-login flow ([02 §13](02-design-ui-ux.md)). |
 | `onboarded_at` | `timestamptz null` | Walkthrough finished (REQ-STU-010). |
 | `last_login_at` | `timestamptz null` | |
 
@@ -917,7 +912,7 @@ create trigger trail_events_no_truncate
 revoke update, delete, truncate on app.trail_events from tazkiyah_app;
 ```
 
-The same guard is on `allocations` and `audit_log`. Append-only test kit: as `tazkiyah_app`, try `update`, `delete` and `truncate` on each and expect errors. As `tazkiyah_owner`, try the same and expect the trigger to fire, so a careless migration cannot quietly edit history.
+The same guard is on `allocations` and `audit_log`. Append-only test kit: as `tazkiyah_app`, try `update`, `delete` and `truncate` on each and expect errors. As `tazkiyah_schema_owner`, try the same and expect the trigger to fire, so a careless migration cannot quietly edit history.
 
 **Donor view.** `app.donor_trail` gives each donor (account or token) their donations with events, cause titles, spending descriptions and their share of each spend (REQ-TRL-007, REQ-DPR-010). It is a `security_invoker` view, so the donor's own RLS applies.
 
@@ -1144,7 +1139,7 @@ Storage, compression and caps are in [03 §8](03-architecture.md). This table ho
 | `alt_text` | `localized_text null` | REQ-ACC-003. |
 | `shows_face` | `bool not null default false` | Set by the uploader or a teacher. Student-related media with `shows_face = true` is never public without consent (REQ-CHS-001, 07 §11). |
 | `uploaded_by` | `uuid null` | Readable only by the uploader, admins and the uploader's teachers. It is never exposed in public views, because it would link a persona to a student. |
-| `status` | `text not null default 'processing'` | `processing`, `ready`, `rejected`, `deleted`. |
+| `status` | `text not null default 'pending'` | `pending`, `ready`, `rejected`, `deleted`. |
 | `deleted_at` | `timestamptz null` | Soft delete. The file is purged later (§13.4). |
 
 Private purposes (`receipt` when not public, `consent_form`) are served only through signed links checked against RLS, as in 03 §8.
@@ -1170,7 +1165,7 @@ REQ-ROL-008 and REQ-ROL-009. Screens are in [05 §9](05-public-pages-roles-admin
 
 **How rows are written.** A generic trigger `app.audit_row_change()` runs `after insert or update` on every table that staff change. It writes a row when the actor holds any staff role, or when the actor is a job. Student posting and voting are not audited as staff actions, but every moderation action on them is. Definer functions add semantic rows (for example one `spending.matched` row with the list of allocations).
 
-**Redaction list** (kept in one migration-managed function): `users.full_name`, `users.email`, `users.username`, `users.date_of_birth`, `donors.legal_name`, `donors.email`, `donors.phone`, `donors.display_name` when the donation is anonymous, `consent_records.guardian_name`, `trail_links.token_hash`, any password or two-factor field. Ids are kept, so an admin can still follow what happened (REQ-SEC-008, REQ-DPR-009).
+**Redaction.** The audit trigger keeps values only for approved fields such as status, role and language. Other changes keep the field name with a redaction marker. The event keeps IDs for tracing and excludes personal data, credentials and draft content (REQ-SEC-008, REQ-DPR-009). [Drizzle baseline](../db/drizzle/0000_baseline.sql)
 
 **Protection.** Same append-only guard and revoked grants as `trail_events` (§9.6). Only admins can read it.
 
@@ -1209,8 +1204,8 @@ Helper functions used in policies are `stable` and small, so Postgres can cache 
 
 ### 13.2 Migrations
 
-- **Plain SQL files, forward only.** Files live in `db/migrations/NNNN_short_name.sql` (four-digit number). The runner is the one chosen in [03 §4](03-architecture.md). An applied migration is never edited.
-- **Everything in migrations:** tables, constraints, RLS policies, grants, triggers, helper functions and views. App code never creates or changes database objects.
+- **One forward-only Drizzle history.** The TypeScript schema in `packages/core/src/db/schema.ts` defines tables, constraints and RLS policies. Generate changes with `npm run db:generate -- --name describe_change`. Use custom migrations in the same `db/drizzle` journal for roles, grants, domains, triggers, functions and security-barrier views.
+- **One apply command.** Run `npm run db:migrate` with a direct administrative connection. It holds an advisory lock, checks applied hashes and runs Drizzle migrations. Application DDL runs as `tazkiyah_schema_owner`.
 - **New-table checklist**, enforced by the catalog test (§6.6): `institute_id`, `unique (institute_id, id)`, composite foreign keys, `enable row level security`, the `iso` policy, role policies, grants to `tazkiyah_app`, audit trigger if staff change it, append-only guard if it is history.
 - **Branch first.** Each change is applied to a Neon branch, the full test suite runs (isolation, append-only, Zakat, anonymity, persona, consent), and only then is it applied to the main branch. Deployment order is in [03 §5](03-architecture.md).
 - **Breaking changes use expand and contract:** add the new column, backfill, switch the code, then drop the old column in a later migration.
@@ -1278,25 +1273,27 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E2-T01 | Create database roles `tazkiyah_owner` and `tazkiyah_app`, schemas `app` and `public_api`, and baseline grants on Neon | todo | P0-E1-T04 | REQ-SEC-001 |
-| P0-E2-T02 | Set up the migration folder, naming rule and the apply-on-Neon-branch-then-main flow | todo | P0-E2-T01, P0-E1-T04 | REQ-MIR-003 |
-| P0-E2-T03 | Add the `localized_text` domain, `app.localize()` with fallback flag, and the shared `updated_at` and `forbid_change` trigger functions | todo | P0-E2-T02 | REQ-LNG-009, REQ-TRL-002 |
-| P0-E2-T04 | Create `institutes`, `institute_settings`, `institute_domains` and `institute_bank_accounts` with composite keys and checks | todo | P0-E2-T03 | REQ-MIR-001, REQ-MIR-003 |
-| P0-E2-T05 | Write the session context functions (`current_institute_id`, `current_user_id`, `current_trail_donor_id`) and document the per-request transaction contract with 03 §6 | todo | P0-E2-T04 | REQ-SEC-001 |
-| P0-E2-T06 | Write `app.resolve_institute(host)` and its tests (known domain, `www`, unknown domain, uppercase host) | todo | P0-E2-T05 | REQ-MIR-002 |
-| P0-E2-T07 | Apply the restrictive isolation policy and role policies to the institute tables; create `public_api.institute_public` | todo | P0-E2-T05 | REQ-SEC-001, REQ-PUB-006, REQ-PUB-007, REQ-PUB-008, REQ-MIR-005 |
-| P0-E2-T08 | Create `users` and `user_roles`, the `has_role`, `is_member` and `is_staff` helpers, and their RLS | todo | P0-E2-T07 | REQ-ROL-001, REQ-ROL-003, REQ-SEC-001 |
-| P0-E2-T09 | Create `media_assets` with RLS and size-cap checks read from the 03 §8 limits | todo | P0-E2-T08 | REQ-PRF-003, REQ-PUB-007 |
-| P0-E2-T10 | Create `site_pages` with bilingual title and body, status and RLS | todo | P0-E2-T07 | REQ-PUB-001, REQ-LNG-009 |
-| P0-E2-T11 | Create `audit_log`, the generic `audit_row_change` trigger and the redaction list; attach it to the P0 tables | todo | P0-E2-T08 | REQ-ROL-008, REQ-SEC-008 |
-| P0-E2-T12 | Add module validation on `enabled_modules` and `app.module_enabled()` | todo | P0-E2-T04, P0-E2-T05 | REQ-ROL-010 |
-| P0-E2-T13 | Write the catalog meta-test (institute id, composite unique, RLS, `iso` policy, grants, owner and `BYPASSRLS` checks, view filters) | todo | P0-E2-T07 | REQ-SEC-001 |
-| P0-E2-T14 | Build the isolation test harness: seed test institute B and generate the eight behaviour tests per table and view | todo | P0-E2-T13, P0-E2-T09, P0-E2-T10, P0-E2-T11 | REQ-SEC-002 |
-| P0-E2-T15 | Write the production seed: Markaz Al Azeem settings in Urdu and English, domains, logo asset, theme tokens and the first admin account | todo | P0-E2-T04, P0-E2-T08, P0-E2-T09, P0-E4-T01, P0-E4-T09 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-007 |
-| P0-E2-T16 | Build the append-only test kit (update, delete, truncate as app and as owner) and apply it to `audit_log` | todo | P0-E2-T11 | REQ-TRL-002 |
+| P0-E2-T01 | Create database roles `tazkiyah_schema_owner` and `tazkiyah_app`, schemas `app` and `public_api`, and baseline grants on Neon | done | P0-E1-T04 | REQ-SEC-001 |
+| P0-E2-T02 | Set up the migration folder, naming rule and the apply-on-Neon-branch-then-main flow | done | P0-E2-T01, P0-E1-T04 | REQ-MIR-003 |
+| P0-E2-T03 | Add the `localized_text` domain, `app.localize()` with fallback flag, and the shared `updated_at` and `forbid_change` trigger functions | done | P0-E2-T02 | REQ-LNG-009, REQ-TRL-002 |
+| P0-E2-T04 | Create `institutes`, `institute_settings`, `institute_domains` and `institute_bank_accounts` with composite keys and checks | done | P0-E2-T03 | REQ-MIR-001, REQ-MIR-003 |
+| P0-E2-T05 | Write the session context functions (`current_institute_id`, `current_user_id`, `current_trail_donor_id`) and document the per-request transaction contract with 03 §6 | done | P0-E2-T04 | REQ-SEC-001 |
+| P0-E2-T06 | Write `app.resolve_institute(host)` and its tests (known domain, `www`, unknown domain, uppercase host) | done | P0-E2-T05 | REQ-MIR-002 |
+| P0-E2-T07 | Apply restrictive tenant isolation and expose safe institute fields through `public_api.institute_public` | done | P0-E2-T05 | REQ-SEC-001, REQ-PUB-006, REQ-PUB-007, REQ-PUB-008, REQ-MIR-005 |
+| P0-E2-T08 | Create `users` and `user_roles` with role helpers and RLS. Add institute settings user references and staff policies | done | P0-E2-T07 | REQ-ROL-001, REQ-ROL-003, REQ-SEC-001 |
+| P0-E2-T09 | Create `media_assets` with RLS and size caps from 03 §8. Add the institute logo reference and public logo view | done | P0-E2-T08 | REQ-PRF-003, REQ-PUB-007 |
+| P0-E2-T10 | Create `site_pages` with bilingual title and body, status and RLS | done | P0-E2-T07 | REQ-PUB-001, REQ-LNG-009 |
+| P0-E2-T11 | Create `audit_log`, the generic `audit_row_change` trigger and the redaction list; attach it to the P0 tables | done | P0-E2-T08 | REQ-ROL-008, REQ-SEC-008 |
+| P0-E2-T12 | Add module validation on `enabled_modules` and `app.module_enabled()` | done | P0-E2-T04, P0-E2-T05 | REQ-ROL-010 |
+| P0-E2-T13 | Write the catalog meta-test (institute id, composite unique, RLS, `iso` policy, grants, owner and `BYPASSRLS` checks, view filters) | done | P0-E2-T07 | REQ-SEC-001 |
+| P0-E2-T14 | Build the isolation test harness: seed test institute B and generate the eight behaviour tests per table and view | in progress | P0-E2-T13, P0-E2-T09, P0-E2-T10, P0-E2-T11 | REQ-SEC-002 |
+| P0-E2-T15 | Write the production seed: Markaz Al Azeem settings in Urdu and English, domains, logo asset, theme tokens and the first admin account | in progress | P0-E2-T04, P0-E2-T08, P0-E2-T09, P0-E4-T01, P0-E4-T09 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-007 |
+| P0-E2-T16 | Verify the runtime grants and owner guards for audit updates, deletes and truncation | done | P0-E2-T11 | REQ-TRL-002 |
 | P0-E2-T17 | Write `app.run_retention()` with a per-table rule list (empty rules until tables exist) and its audit row | todo | P0-E2-T11 | REQ-SEC-001 |
 | P0-E2-T18 | Restore drill: restore a Neon branch from point in time and rerun the catalog and isolation tests on it | todo | P0-E2-T14, P0-E1-T04 | REQ-SEC-002, REQ-SEC-006 |
 | P0-E2-T19 | Check query plans of policy helpers with seeded volume (5,000 donations, 20,000 posts) and add missing indexes | todo | P0-E2-T14 | REQ-SEC-001, REQ-PRF-005 |
+
+2026-11-08 · The user, role, media, page and audit migrations passed on `dev` and `preview`, then went to `main`. The bilingual settings seed is in `dev` and `preview`. The production seed awaits the logo storage and admin provisioning steps. [Database commands](../README.md#run-database-migrations)
 
 ### Schema tasks inside other epics
 
@@ -1343,7 +1340,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 2. The isolation suite passes for every table and `public_api` view: with institute A's context, no row of test institute B can be read, inserted, updated, deleted or linked to, and with no context every table returns zero rows (REQ-SEC-001, REQ-SEC-002).
 3. Adding test institute B needs only seed inserts, no migration (REQ-MIR-003).
 4. `public_api.institute_public` returns Markaz Al Azeem's name in Urdu and English, logo, theme colours, address, contact details, bank accounts and enabled modules from data (REQ-MIR-001).
-5. `update`, `delete` and `truncate` on `trail_events`, `allocations` and `audit_log` fail for `tazkiyah_app` and are caught by the trigger for `tazkiyah_owner` (REQ-TRL-002).
+5. `update`, `delete` and `truncate` on `trail_events`, `allocations` and `audit_log` fail for `tazkiyah_app` and are caught by the trigger for `tazkiyah_schema_owner` (REQ-TRL-002).
 6. A reversal inserts a new `reversal` event pointing at the original; reversing the same event twice fails (REQ-TRL-003).
 7. The §9.3 worked example, run as a test, produces exactly allocations A1 to A8 and leaves 200,000 paisa unspent in Wheat stock and 1,200,000 in Kitchen gas.
 8. Allocating Zakat money to a cause with `accepts_zakat = false`, and switching off `accepts_zakat` on a cause holding unspent Zakat, both fail.

@@ -1,0 +1,83 @@
+.contact-page {
+  display: grid;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  max-inline-size: 68rem;
+  padding-block: clamp(2rem, 6vw, 5rem);
+}
+
+.contact-back {
+  justify-self: start;
+}
+
+.contact-heading {
+  display: grid;
+  gap: 0.5rem;
+  max-inline-size: 42rem;
+}
+
+.contact-heading > p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.contact-card {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  min-inline-size: 0;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.contact-location {
+  background: var(--navy-soft);
+}
+
+.contact-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.contact-location address {
+  display: grid;
+  gap: 0.5rem;
+  font-style: normal;
+}
+
+.contact-location address p {
+  margin: 0;
+  text-align: match-parent;
+}
+
+.contact-methods {
+  inline-size: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-methods li {
+  border-block-start: 1px solid var(--border);
+}
+
+.contact-methods a {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-block: 0.8rem;
+  overflow-wrap: anywhere;
+}
