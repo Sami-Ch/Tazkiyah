@@ -5,7 +5,7 @@ import { base32 } from "@better-auth/utils/base32";
 import { createOTP } from "@better-auth/utils/otp";
 import { hashPassword } from "better-auth/crypto";
 import { readMigrationFiles } from "drizzle-orm/migrator";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 // Runs the real Better Auth handler against the migrated schema in PGlite,
 // connected as tazkiyah_auth through a local Postgres socket.
@@ -46,17 +46,15 @@ beforeAll(async () => {
   ]) {
     await db.query(
       `with tenant as (select institute_id from app.institute_domains where domain = 'azeem-lateef.com')
-       insert into app.users (id, institute_id, email, full_name, status, must_change_password)
-       select $1, institute_id, $2, 'Fixture ' || $3, 'active', false from tenant`,
+       insert into app.users (id, institute_id, email, full_name, status, must_change_password, email_verified)
+       select $1, institute_id, $2, 'Fixture ' || $3, 'active', false, true from tenant`,
       [id, `${role}@example.test`, role],
     );
-    // Donors hold no row in user_roles until donor accounts arrive (P0-E5-T02).
-    if (role !== "donor")
-      await db.query(
-        `insert into app.user_roles (institute_id, user_id, role)
-         select institute_id, id, $2 from app.users where id = $1`,
-        [id, role],
-      );
+    await db.query(
+      `insert into app.user_roles (institute_id, user_id, role)
+       select institute_id, id, $2 from app.users where id = $1`,
+      [id, role],
+    );
     await db.query(
       `insert into identity.accounts (institute_id, user_id, provider_id, account_id, password)
        select institute_id, id, 'credential', id::text, $2 from app.users where id = $1`,
@@ -351,5 +349,211 @@ describe("auth events in the audit log (P0-E5-T10)", () => {
     expect(rows.filter((r) => /@example\.test|password/.test(r.row))).toEqual(
       [],
     );
+  });
+});
+
+describe("donor sign-up, email verification and password reset (P0-E5-T02)", () => {
+  const donorEmail = "new.donor@example.test";
+  const outbox: string[] = [];
+  const info = vi
+    .spyOn(console, "info")
+    .mockImplementation((line: string) => void outbox.push(line));
+  afterAll(() => info.mockRestore());
+
+  async function post(browser: Browser, path: string, body: object) {
+    await spreadOverTime();
+    return browser.post(path, body);
+  }
+
+  function lastLink(kind: "verify-email" | "reset-password") {
+    const message = outbox.at(-1) ?? "";
+    const match = new RegExp(`${origin}/api/auth/${kind}[^\\s]*`).exec(message);
+    return match ? new URL(match[0]) : null;
+  }
+
+  async function open(url: URL) {
+    const response = await auth.handleAuth(
+      new Request(url, { headers: { host: "localhost:3000" } }),
+    );
+    return response;
+  }
+
+  it("creates an active donor with an unverified email and sends a bilingual link", async () => {
+    const browser = new Browser();
+    const signUp = await post(browser, "/sign-up/email", {
+      name: "New Donor",
+      email: donorEmail,
+      password,
+      preferredLanguage: "ur",
+    });
+    expect(signUp.status).toBe(200);
+    expect(signUp.json.token).toBeNull();
+    expect(browser.cookies.size).toBe(0);
+    const [user] = await asOwner<Record<string, unknown>>(
+      `select status, must_change_password, email_verified, username,
+         preferred_language, array(select role from app.user_roles r where r.user_id = u.id) as roles
+       from app.users u where email = $1`,
+      [donorEmail],
+    );
+    expect(user).toEqual({
+      status: "active",
+      must_change_password: false,
+      email_verified: false,
+      username: null,
+      preferred_language: "ur",
+      roles: ["donor"],
+    });
+    expect(outbox.at(-1)).toContain("اپنا ای میل پتہ تصدیق کریں");
+    expect(outbox.at(-1)).not.toContain(donorEmail);
+    expect(lastLink("verify-email")).not.toBeNull();
+  });
+
+  it("answers a sign-up for a known email exactly like a new one", async () => {
+    const before = outbox.length;
+    const again = await post(new Browser(), "/sign-up/email", {
+      name: "Someone Else",
+      email: "admin@example.test",
+      password: "another password 123",
+    });
+    expect(again.status).toBe(200);
+    expect(again.json.token).toBeNull();
+    expect(Object.keys(again.json.user).sort()).toEqual(
+      Object.keys(
+        (
+          await post(new Browser(), "/sign-up/email", {
+            name: "Fresh",
+            email: "fresh.donor@example.test",
+            password,
+          })
+        ).json.user,
+      ).sort(),
+    );
+    expect(outbox.length).toBe(before + 1);
+    const roles = await asOwner(
+      `select role from app.user_roles r join app.users u on u.id = r.user_id
+       where u.email = 'admin@example.test'`,
+    );
+    expect(roles).toEqual([{ role: "admin" }]);
+  });
+
+  it("does not let sign-up choose a username, institute or role", async () => {
+    for (const extra of [
+      { username: "azeem-s-0001" },
+      { instituteId: "00000000-0000-4000-8000-000000000000" },
+      { preferredLanguage: "fr" },
+    ]) {
+      const response = await post(new Browser(), "/sign-up/email", {
+        name: "Sneaky",
+        email: `sneaky.${Object.keys(extra)[0]}@example.test`,
+        password,
+        ...extra,
+      });
+      expect(response.status).toBe(400);
+    }
+    expect(
+      await asOwner(`select from app.users where email like 'sneaky.%'`),
+    ).toHaveLength(0);
+  });
+
+  it("refuses sign-in until the email is confirmed, and leaves no session behind", async () => {
+    const browser = new Browser();
+    const blocked = await post(browser, "/sign-in/email", {
+      email: donorEmail,
+      password,
+    });
+    expect(blocked.status).toBe(403);
+    expect(blocked.json.code).toBe("EMAIL_NOT_VERIFIED");
+    expect(browser.cookies.size).toBe(0);
+    expect(
+      await asOwner(
+        `select from identity.sessions s join app.users u on u.id = s.user_id where u.email = $1`,
+        [donorEmail],
+      ),
+    ).toHaveLength(0);
+    expect(
+      await asOwner(
+        `select from app.audit_log a join app.users u on u.id::text = a.entity_id
+         where u.email = $1 and a.action = 'auth.signed_in'`,
+        [donorEmail],
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("confirms the email through the link, then signs in", async () => {
+    await post(new Browser(), "/send-verification-email", {
+      email: donorEmail,
+    });
+    const link = lastLink("verify-email")!;
+    const confirmed = await open(link);
+    expect(confirmed.status).toBeLessThan(400);
+    const [user] = await asOwner<{ email_verified: boolean }>(
+      `select email_verified from app.users where email = $1`,
+      [donorEmail],
+    );
+    expect(user.email_verified).toBe(true);
+
+    const browser = new Browser();
+    const signIn = await post(browser, "/sign-in/email", {
+      email: donorEmail,
+      password,
+    });
+    expect(signIn.status).toBe(200);
+    expect((await browser.get("/get-session")).json).toMatchObject({
+      user: { email: donorEmail },
+    });
+  });
+
+  it("resets a password by email and signs out every device", async () => {
+    const phone = new Browser();
+    const laptop = new Browser();
+    for (const device of [phone, laptop])
+      await post(device, "/sign-in/email", { email: donorEmail, password });
+    expect((await laptop.get("/get-session")).json).not.toBeNull();
+
+    const requested = await post(new Browser(), "/request-password-reset", {
+      email: donorEmail,
+    });
+    expect(requested.status).toBe(200);
+    expect(outbox.at(-1)).toContain("اپنا پاس ورڈ دوبارہ ترتیب دیں");
+    const link = lastLink("reset-password")!;
+    const token = link.pathname.split("/").at(-1)!;
+
+    const newPassword = "a brand new passphrase";
+    const reset = await post(new Browser(), "/reset-password", {
+      token,
+      newPassword,
+    });
+    expect(reset.status).toBe(200);
+    expect((await phone.get("/get-session")).json).toBeNull();
+    expect((await laptop.get("/get-session")).json).toBeNull();
+
+    const old = await post(new Browser(), "/sign-in/email", {
+      email: donorEmail,
+      password,
+    });
+    expect(old.status).toBe(401);
+    const fresh = await post(new Browser(), "/sign-in/email", {
+      email: donorEmail,
+      password: newPassword,
+    });
+    expect(fresh.status).toBe(200);
+    // The token works once.
+    expect(
+      (
+        await post(new Browser(), "/reset-password", {
+          token,
+          newPassword: "yet another passphrase",
+        })
+      ).status,
+    ).toBe(400);
+  });
+
+  it("answers a reset for an unknown email the same way and sends nothing", async () => {
+    const before = outbox.length;
+    const response = await post(new Browser(), "/request-password-reset", {
+      email: "nobody@example.test",
+    });
+    expect(response.status).toBe(200);
+    expect(outbox.length).toBe(before);
   });
 });

@@ -14,8 +14,21 @@ begin
     'Application role can access the auth schema';
   assert not has_table_privilege('tazkiyah_auth', 'app.user_roles', 'SELECT, INSERT, UPDATE, DELETE'),
     'Auth role can read or modify app roles';
-  assert not has_table_privilege('tazkiyah_auth', 'identity.accounts', 'INSERT, UPDATE, DELETE'),
-    'Auth endpoints can modify credentials';
+  -- Since D-118 the auth role adds a donor's first password and changes a
+  -- password by email reset; the policies are tested below.
+  assert not has_table_privilege('tazkiyah_auth', 'identity.accounts', 'DELETE'),
+    'Auth endpoints can delete credentials';
+  assert not exists (
+    select from information_schema.column_privileges
+    where grantee = 'tazkiyah_auth' and table_schema = 'identity' and table_name = 'accounts'
+      and privilege_type = 'UPDATE' and column_name not in ('password', 'updated_at')
+  ), 'Auth endpoints can move a credential to another user or provider';
+  assert not exists (
+    select from information_schema.column_privileges
+    where grantee = 'tazkiyah_auth' and table_schema = 'app' and table_name = 'users'
+      and privilege_type = 'UPDATE'
+      and column_name not in ('email_verified', 'two_factor_enabled', 'updated_at')
+  ), 'Auth endpoints can change a user''s status, username or profile';
   execute format('grant tazkiyah_auth to %I', current_user);
 end
 $test$;
@@ -107,6 +120,83 @@ begin
   perform set_config('app.institute_id', '00000000-0000-4000-8000-0000000000b1', true);
   assert exists (select from identity.staff_invitations where token_hash = repeat('b', 64)),
     'The cross-institute redemption consumed the real invitation';
+end
+$test$;
+
+-- Self sign-up and credentials (P0-E5-T02, D-118).
+reset role;
+set local role tazkiyah_schema_owner;
+insert into app.users (id, institute_id, username, full_name, status) values
+  ('00000000-0000-4000-8000-0000000000a4', '00000000-0000-4000-8000-0000000000a1',
+    'auth-student', 'Institute A student', 'active');
+insert into app.user_roles (institute_id, user_id, role) values
+  ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a4', 'student');
+insert into identity.accounts (institute_id, user_id, provider_id, account_id, password)
+values ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a4',
+  'credential', '00000000-0000-4000-8000-0000000000a4', 'student-hash');
+
+reset role;
+set local role tazkiyah_auth;
+do $test$
+declare
+  donor app.users;
+  changed integer;
+begin
+  perform set_config('app.institute_id', '00000000-0000-4000-8000-0000000000a1', true);
+
+  insert into app.users (id, institute_id, email, full_name, status, must_change_password,
+    email_verified, two_factor_enabled, is_orphan, public_name)
+  values ('00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1',
+    'self-signup@example.test', 'Self sign-up',
+    'suspended', true, true, true, true, 'Chosen name')
+  returning * into donor;
+  assert donor.status = 'active' and not donor.must_change_password and not donor.email_verified
+    and not donor.two_factor_enabled and not donor.is_orphan and donor.public_name is null,
+    'Self sign-up chose its own status, verification or profile';
+  assert identity.is_donor_only(donor.id) and identity.needs_email_verification(donor.id),
+    'A self-signed-up user is not an unverified donor';
+
+  begin
+    insert into app.users (institute_id, email, username, full_name)
+    values ('00000000-0000-4000-8000-0000000000a1', 'self-username@example.test',
+      'chosen-username', 'Chosen username');
+    raise exception 'Self sign-up chose a username';
+  exception when insufficient_privilege then null;
+  end;
+
+  insert into identity.accounts (user_id, provider_id, account_id, password)
+  values (donor.id, 'credential', donor.id::text, 'donor-hash');
+  begin
+    insert into identity.accounts (user_id, provider_id, account_id, password)
+    values (donor.id, 'credential', gen_random_uuid()::text, 'second-hash');
+    raise exception 'Auth role added a second credential to a donor';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into identity.accounts (user_id, provider_id, account_id, password)
+    values ('00000000-0000-4000-8000-0000000000a2', 'credential',
+      '00000000-0000-4000-8000-0000000000a2', 'admin-hash');
+    raise exception 'Auth role added a credential to a staff account';
+  exception when insufficient_privilege then null;
+  end;
+
+  update identity.accounts set password = 'changed-hash'
+  where user_id = '00000000-0000-4000-8000-0000000000a4';
+  get diagnostics changed = row_count;
+  assert changed = 0, 'A student password changed outside a teacher reset';
+  assert identity.can_reset_by_email(donor.id)
+    and not identity.can_reset_by_email('00000000-0000-4000-8000-0000000000a4'),
+    'Email reset rules do not match 03 §6.2';
+end
+$test$;
+
+reset role;
+do $test$
+begin
+  assert (
+    select array_agg(role) = array['donor']
+    from app.user_roles where user_id = '00000000-0000-4000-8000-0000000000a5'
+  ) is true, 'Self sign-up did not create exactly the donor role';
 end
 $test$;
 

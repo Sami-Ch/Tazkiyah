@@ -9,7 +9,7 @@ import {
 } from "@tazkiyah/core/db/identity";
 import { users } from "@tazkiyah/core/db/schema";
 import { betterAuth } from "better-auth";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { twoFactor, username } from "better-auth/plugins";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -56,6 +56,7 @@ import {
   privateJson,
 } from "./staff-invitations";
 import { checkWorkspaceAccess, type AdminAccess } from "./workspace-access";
+import { authEmailSender, emailPaths, sendAuthEmail } from "./auth-email";
 
 const authSchema = {
   user: users,
@@ -68,6 +69,10 @@ const authSchema = {
 
 const postEndpoints = new Set([
   "/sign-in/email",
+  "/sign-up/email",
+  "/send-verification-email",
+  "/request-password-reset",
+  "/reset-password",
   "/sign-in/username",
   "/sign-out",
   "/revoke-sessions",
@@ -84,6 +89,24 @@ const postEndpoints = new Set([
   "/two-factor/verify-totp",
   "/two-factor/verify-backup-code",
 ]);
+
+const signInPaths = new Set(["/sign-in/email", "/sign-in/username"]);
+
+// Sign-up cannot choose a username, institute, image or anything else.
+const signUpFields = new Set([
+  "name",
+  "email",
+  "password",
+  "preferredLanguage",
+  "callbackURL",
+]);
+
+// Thrown inside the transaction to undo its writes and still answer.
+class RollbackWith extends Error {
+  constructor(readonly response: Response) {
+    super("rollback");
+  }
+}
 
 const twoFactorVerification = new Set([
   "/two-factor/verify-totp",
@@ -113,8 +136,12 @@ function workerBindings(): AuthBindings | undefined {
 export async function handleAuth(request: Request) {
   const url = new URL(request.url);
   const path = url.pathname.slice("/api/auth".length);
+  const getEndpoint =
+    path === "/get-session" ||
+    path === "/verify-email" ||
+    /^\/reset-password\/[A-Za-z0-9_-]{1,128}$/.test(path);
   if (
-    !(request.method === "GET" && path === "/get-session") &&
+    !(request.method === "GET" && getEndpoint) &&
     !(request.method === "POST" && postEndpoints.has(path))
   ) {
     return jsonError("Not found.", 404);
@@ -276,6 +303,9 @@ async function runAuth(request: Request, path: string) {
   if (!host || (!publicContent && (!ip || !secret || secret.length < 32))) {
     return jsonError("Authentication is unavailable.", 503);
   }
+  const emailSender = authEmailSender(local);
+  if (emailPaths.has(path) && !emailSender)
+    return jsonError("Email is unavailable.", 503);
 
   let client: pg.Client | undefined;
   let closing = false;
@@ -341,6 +371,7 @@ async function runAuth(request: Request, path: string) {
         const headers = new Headers(request.headers);
         if (local) headers.set("cf-connecting-ip", ip);
 
+        let unverifiedSignIn = false;
         const auth = betterAuth({
           baseURL: publicUrl.origin,
           secret,
@@ -351,8 +382,37 @@ async function runAuth(request: Request, path: string) {
           }),
           emailAndPassword: {
             enabled: true,
-            disableSignUp: true,
+            // The public form creates donor accounts only; the database makes
+            // every self-created user an active donor (0019_donor_sign_up).
+            disableSignUp: false,
+            // No session at sign-up, so a sign-up for a known email gets the
+            // same answer as a new one.
+            autoSignIn: false,
             revokeSessionsOnPasswordReset: true,
+            resetPasswordTokenExpiresIn: 60 * 60,
+            sendResetPassword: ({ user, url }) =>
+              sendAuthEmail(
+                tx,
+                emailSender,
+                "reset-password",
+                user,
+                url,
+                publicUrl.origin,
+              ),
+          },
+          emailVerification: {
+            sendOnSignUp: true,
+            autoSignInAfterVerification: false,
+            expiresIn: 60 * 60,
+            sendVerificationEmail: ({ user, url }) =>
+              sendAuthEmail(
+                tx,
+                emailSender,
+                "verify-email",
+                user,
+                url,
+                publicUrl.origin,
+              ),
           },
           user: {
             fields: { name: "fullName", image: "authImage" },
@@ -362,6 +422,11 @@ async function runAuth(request: Request, path: string) {
                 input: false,
                 returned: false,
                 defaultValue: institute.id,
+              },
+              preferredLanguage: {
+                type: "string",
+                required: false,
+                returned: false,
               },
             },
           },
@@ -401,8 +466,38 @@ async function runAuth(request: Request, path: string) {
             before: createAuthMiddleware(async (ctx) => {
               if (ctx.body && "trustDevice" in ctx.body)
                 ctx.body.trustDevice = false;
+              if (ctx.path === "/sign-up/email") {
+                const body: Record<string, unknown> = ctx.body ?? {};
+                const { preferredLanguage } = body;
+                if (
+                  Object.keys(body).some((key) => !signUpFields.has(key)) ||
+                  (preferredLanguage !== undefined &&
+                    preferredLanguage !== "en" &&
+                    preferredLanguage !== "ur")
+                )
+                  throw new APIError("BAD_REQUEST", {
+                    code: "INVALID_SIGN_UP",
+                    message: "Invalid sign-up.",
+                  });
+              }
             }),
             after: createAuthMiddleware(async (ctx) => {
+              const signedIn = ctx.context.newSession;
+              if (signedIn && ctx.path && signInPaths.has(ctx.path)) {
+                // Donor accounts must confirm their email first (03 §6.2).
+                const {
+                  rows: [check],
+                } = await tx.execute<{ needed: boolean }>(
+                  sql`select identity.needs_email_verification(${signedIn.user.id}) as needed`,
+                );
+                if (check?.needed) {
+                  unverifiedSignIn = true;
+                  throw new APIError("FORBIDDEN", {
+                    code: "EMAIL_NOT_VERIFIED",
+                    message: "Email not verified.",
+                  });
+                }
+              }
               const session = ctx.context.newSession?.session;
               if (session && ctx.path && twoFactorVerification.has(ctx.path)) {
                 await tx
@@ -542,6 +637,14 @@ async function runAuth(request: Request, path: string) {
         const result = await auth.handler(
           new Request(publicUrl, new Request(request, { headers })),
         );
+        // Undo the session and its audit row, and send no session cookie.
+        if (unverifiedSignIn)
+          throw new RollbackWith(
+            privateJson(
+              { code: "EMAIL_NOT_VERIFIED", message: "Email not verified." },
+              403,
+            ),
+          );
         if (result.status >= 500)
           throw new Error("Authentication handler failed");
         result.headers.set("Cache-Control", "private, no-store");
@@ -549,7 +652,8 @@ async function runAuth(request: Request, path: string) {
       },
     );
     return response;
-  } catch {
+  } catch (error) {
+    if (error instanceof RollbackWith) return error.response;
     return jsonError("Authentication is unavailable.", 503);
   } finally {
     closing = true;
