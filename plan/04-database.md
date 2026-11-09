@@ -578,6 +578,8 @@ Business rules are in [06](06-donations-and-trail.md). This section gives the fi
 | `body` | `localized_text null` | |
 | `cover_media_id` | `uuid null` | |
 | `target_paisa` | `bigint null` | `> 0` (REQ-DON-007). Required when `cause_type = 'campaign'`. |
+| `target_period` | `text null` | `monthly` or `yearly`, required for an `ongoing` cause and null otherwise ([06 §5.1](06-donations-and-trail.md#51-the-three-types)). |
+| `stock_year_start_month` | `smallint null` | 1 to 12, required for a `yearly_stock` cause and null otherwise (06 §5.1). |
 | `starts_on`, `ends_on` | `date null` | `ends_on` required for a campaign, and `ends_on >= starts_on` (REQ-DON-006). |
 | `accepts_zakat` | `bool not null default false` | Admin-set (D-011, REQ-ROL-005). |
 | `zakat_approved_by` | `localized_text null` | Optional scholar name (Q-04). Allowed only when `accepts_zakat`. |
@@ -585,6 +587,10 @@ Business rules are in [06](06-donations-and-trail.md). This section gives the fi
 | `listed_as_project` | `bool not null default false` | Shown on the new projects page when that module is on, for example future tech costs (REQ-DON-013, [05 §10](05-public-pages-roles-admin.md)). |
 | `category` | `text null` | Free label such as `kitchen`, `clinic`, `tech`. The clinic is only a cause and stores no patient data (REQ-DON-014). |
 | `display_order` | `smallint not null default 0` | |
+| `revision` | `uuid not null` | Changes on every save, so an edit based on an old copy is refused. |
+| `created_at` | `timestamptz not null` | |
+
+A campaign has no `target_period` or `stock_year_start_month`, and only a campaign has `ends_on` (`causes_type_rules_check`). The public view `public_api.causes` shows a campaign past its end date as `closed`.
 
 There is no "all needs" cause row. All needs is `donations.cause_id is null` (D-012).
 
@@ -1309,7 +1315,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P1-E1-T40 | Create `public_api.cause_summary` (target, raised, spent, unspent, Zakat flag; no donor fields) | todo | P1-E2-T40, P1-E3-T43 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
-| P1-E2-T40 | Create `causes` with type, campaign dates, target, `accepts_zakat`, scholar name, status, project flag, bilingual fields, RLS and audit | todo | P0-E2-T07, P0-E2-T09, P0-E2-T11 | REQ-DON-005, REQ-DON-006, REQ-DON-007, REQ-DON-009, REQ-DON-013, REQ-DON-014, REQ-ROL-005 |
+| P1-E2-T40 | Create `causes` with type, campaign dates, target, `accepts_zakat`, scholar name, status, project flag, bilingual fields, RLS and audit | done | P0-E2-T07, P0-E2-T09, P0-E2-T11 | REQ-DON-005, REQ-DON-006, REQ-DON-007, REQ-DON-009, REQ-DON-013, REQ-DON-014, REQ-ROL-005 |
 | P1-E3-T40 | Create `donors` with guest fields, private and public profile fields, RLS and audit redaction | todo | P0-E2-T08, P0-E2-T11 | REQ-DPR-001, REQ-DPR-009 |
 | P1-E3-T41 | Create `donations` and `receipt_counters`, `app.next_receipt_number()`, the column-lock trigger, campaign end-date check and bank-reference guard | todo | P1-E3-T40, P1-E2-T40 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-006, REQ-DON-008, REQ-DON-010, REQ-PAY-001 |
 | P1-E3-T42 | Create `allocations` and `trail_events` with shape checks, deferred sum checks, reversal uniqueness and append-only guards; run the test kit on both | todo | P1-E3-T41, P0-E2-T16 | REQ-TRL-001, REQ-TRL-002, REQ-TRL-003, REQ-TRL-014 |
@@ -1342,6 +1348,8 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P4-E1-T40 | Create `sponsorships` and `sponsorship_updates` and `app.sponsor_child_view` (persona, age, updates) | todo | P3-E1-T41, P1-E3-T41 | REQ-ORP-001, REQ-ORP-002, REQ-ORP-008, REQ-ORP-009 |
 | P4-E2-T40 | Add the `orphan_full_profile` sign-off, assignment and withdrawal functions and full-profile gating in the sponsor view | todo | P4-E1-T40, P3-E2-T40 | REQ-ORP-003, REQ-ORP-004, REQ-ORP-005, REQ-ORP-006 |
 | P4-E3-T40 | Create `sponsor_messages` with RLS and no child-facing path | todo | P4-E1-T40 | REQ-ORP-007 |
+
+2026-11-09 · P1-E2-T40: reviewed `app.causes` ([`0007_causes.sql`](../db/drizzle/0007_causes.sql)) against §8.1. Every column and rule is there: type, campaign target and end date, `ends_on >= starts_on`, `accepts_zakat` with the scholar name allowed only when it is set, the four states, `listed_as_project`, `category` and the bilingual fields. RLS has the restrictive `iso` policy, and there is no permissive policy, so the runtime roles read causes only through `public_api.causes` and change them only through the admin definer functions. `audit_row_change` is attached. §8.1 now also lists `target_period`, `stock_year_start_month` (from 06 §5.1), `revision` and `created_at`, which the table already had. Tests: [`db/test/causes.sql`](../db/test/causes.sql) and the isolation harness. The receipt-photo default on a cause belongs to P1-E2-T03.
 
 ## Acceptance criteria
 
