@@ -776,7 +776,7 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 | P0-E1-T03 | Move `azeem-lateef.com` DNS to Cloudflare after copying every record; confirm the existing mailbox still sends and receives | todo | – | – |
 | P0-E1-T04 | Set up the Neon project and `main`, `preview`, `dev` branches. Check `neon_superuser` privileges for P0-E2-T01 and confirm the backup credential options for P0-E1-T12 | done | – | REQ-SEC-001 |
 | P0-E1-T05 | Spike: Hyperdrive to Neon; prove transaction-local `set_config` is seen by an RLS policy and does not leak to the next request; check Neon still scales to zero; confirm AR-02 or switch to the fallback | todo | P0-E1-T02, P0-E1-T04 | REQ-SEC-001, REQ-PRF-005 |
-| P0-E1-T06 | Wrangler config for web and jobs Workers in preview and production: bindings (Hyperdrive, R2, Queues, KV), secrets, typed env check at start-up; protect preview | todo | P0-E1-T05 | REQ-PRF-005 |
+| P0-E1-T06 | Wrangler config for web and jobs Workers in preview and production: bindings (Hyperdrive, R2, Queues, KV), secrets, typed env check at start-up; protect preview; verify Better Auth sign-in on the hosted preview through `AUTH_HYPERDRIVE` | todo | P0-E1-T05 | REQ-PRF-005 |
 | P0-E1-T07 | CI in GitHub Actions: lint, typecheck, unit tests, missing-translation check, migrations and RLS tests on a short-lived Neon branch | todo | P0-E1-T04, P0-E1-T06, P0-E2-T14 | REQ-SEC-002 |
 | P0-E1-T08 | CD: deploy preview on merge to `main`, production on a version tag, migrations before deploy, rollback steps in README | todo | P0-E1-T07 | – |
 | P0-E1-T09 | Middleware: host to institute through `resolve_institute`, `www` stripping, alias hosts per environment, "no institute here" 404 | todo | P0-E1-T06, P0-E2-T31 | REQ-MIR-002 |
@@ -819,10 +819,10 @@ The giving and staff build passed the local Worker checks for bilingual pages, B
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E5-T01 | Host Better Auth in Next.js with Drizzle, a tenant-scoped auth transaction, the existing `users` table and host-only cookies | in progress | P0-E2-T08 | REQ-DPR-004 |
+| P0-E5-T01 | Host Better Auth in Next.js with Drizzle, a tenant-scoped auth transaction, the existing `users` table and host-only cookies | done | P0-E2-T08 | REQ-DPR-004 |
 | P0-E5-T02 | Email and password sign-in and sign-up for donors; email verification and password reset through the `EmailSender` interface (console adapter until P1-E3-T30) | todo | P0-E5-T01 | REQ-DPR-004 |
 | P0-E5-T03 | Username sign-in for students; block student and staff self-signup; server action for staff to create a student with a one-time password and forced change | todo | P0-E5-T01, P0-E5-T04 | REQ-STU-001 |
-| P0-E5-T04 | Roles from `user_roles`; `can(user, action, resource)` generated from the 05 §7 matrix, deny by default; tests per role | todo | P0-E5-T01 | REQ-ROL-001, REQ-ROL-002 |
+| P0-E5-T04 | Roles from `user_roles`; `can(user, action, resource)` generated from the 05 §7 matrix, deny by default; tests per role | done | P0-E5-T01 | REQ-ROL-001, REQ-ROL-002 |
 | P0-E5-T05 | Pass the authenticated user ID into each transaction. Guard `/[locale]/admin/**` and check that every server action calls `can()` | in progress | P0-E5-T04, P0-E2-T30 | REQ-SEC-001 |
 | P0-E5-T06 | TOTP two-factor for admin and finance officer: forced enrolment, 10 backup codes, no trusted devices, 5-try lockout | in progress | P0-E5-T04 | REQ-SEC-003 |
 | P0-E5-T07 | Rate limits on sign-in, reset and two-factor; Turnstile after 3 failures and on sign-up and reset; neutral error messages in both languages | todo | P0-E5-T02 | REQ-SEC-010 (proposed) |
@@ -831,6 +831,8 @@ The giving and staff build passed the local Worker checks for bilingual pages, B
 | P0-E5-T10 | Write sign-in, failed two-factor, role change and account creation events to `audit_log` with IDs only | todo | P0-E5-T04, P0-E2-T11 | REQ-ROL-008 |
 
 The local Worker serves bilingual sign-in and staff pages. The server checks the user's role in the current institute. Admins and finance officers also need proof of two-factor verification for that session and are signed out after 30 minutes of inactivity. The first-admin command assigns the principal and writes an audit event. Admins can issue single-use setup links for teachers, editors, and finance officers, which they share privately while email delivery is pending. Changes to a user's roles, status, or two-factor setting revoke their sessions. Hosted verification needs the auth migrations, the `AUTH_HYPERDRIVE` binding, and the Better Auth secret on the preview Worker.
+
+2026-11-09 · P0-E5-T01 is done locally. [`auth_isolation.sql`](../db/test/auth_isolation.sql) now runs in `npm test`. It shows that the same email and username in two institutes stay separate, that credentials and sessions are hidden without the host's institute context, that no session can be made for another institute's user, and that `tazkiyah_app` has no access to the `identity` schema. The hosted sign-in check needs Cloudflare, so it moved to P0-E1-T06 ([D-116](08-decision-log.md#d-116)). P0-E5-T04: [`packages/core/src/permissions.ts`](../packages/core/src/permissions.ts) holds the 05 §7 matrix and `can(actor, action, facts)`. Everyone holds the visitor role, a user gets the union of their roles, and anything not granted is denied. Its test parses the 05 §7 tables and fails if any row or cell differs from the code. The staff workspace gate now reads the user's roles from `user_roles` and asks `can()`.
 
 ### P1-E3 Manual donation recording and guest donors (owned by 06; architecture tasks)
 
