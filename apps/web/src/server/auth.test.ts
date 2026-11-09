@@ -20,7 +20,9 @@ const staff = {
   admin: "21000000-0000-4000-8000-000000000001",
   finance: "21000000-0000-4000-8000-000000000002",
   editor: "21000000-0000-4000-8000-000000000003",
+  donor: "21000000-0000-4000-8000-000000000004",
 } as const;
+let enrolledAdmin: Browser;
 
 beforeAll(async () => {
   for (const migration of readMigrationFiles({
@@ -40,6 +42,7 @@ beforeAll(async () => {
     ["admin", staff.admin],
     ["finance_officer", staff.finance],
     ["editor", staff.editor],
+    ["donor", staff.donor],
   ]) {
     await db.query(
       `with tenant as (select institute_id from app.institute_domains where domain = 'azeem-lateef.com')
@@ -47,11 +50,13 @@ beforeAll(async () => {
        select $1, institute_id, $2, 'Fixture ' || $3, 'active', false from tenant`,
       [id, `${role}@example.test`, role],
     );
-    await db.query(
-      `insert into app.user_roles (institute_id, user_id, role)
-       select institute_id, id, $2 from app.users where id = $1`,
-      [id, role],
-    );
+    // Donors hold no row in user_roles until donor accounts arrive (P0-E5-T02).
+    if (role !== "donor")
+      await db.query(
+        `insert into app.user_roles (institute_id, user_id, role)
+         select institute_id, id, $2 from app.users where id = $1`,
+        [id, role],
+      );
     await db.query(
       `insert into identity.accounts (institute_id, user_id, provider_id, account_id, password)
        select institute_id, id, 'credential', id::text, $2 from app.users where id = $1`,
@@ -109,6 +114,13 @@ class Browser {
       status: response.status,
       json: await response.json().catch(() => null),
     };
+  }
+
+  async get(path: string) {
+    const response = await auth.handleAuth(
+      new Request(`${origin}/api/auth${path}`, { headers: this.headers() }),
+    );
+    return { status: response.status, json: await response.json() };
   }
 
   access() {
@@ -179,6 +191,7 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
       canInvite: true,
       canRecordTransfers: true,
     });
+    enrolledAdmin = browser;
   });
 
   it("asks for a code at every later sign-in", async () => {
@@ -222,5 +235,92 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     ).rows;
     await db.exec("set role tazkiyah_auth");
     expect(Number(lock.minutes)).toBe(15);
+  });
+});
+
+async function asOwner<T>(query: string, params: unknown[] = []) {
+  await db.exec("reset role");
+  try {
+    return (await db.query<T>(query, params)).rows;
+  } finally {
+    await db.exec("set role tazkiyah_auth");
+  }
+}
+
+async function lifetimeDays(userId: string) {
+  const [row] = await asOwner<{ days: string }>(
+    `select round(extract(epoch from max(expires_at) - now()) / 3600) / 24 as days
+     from identity.sessions where user_id = $1`,
+    [userId],
+  );
+  return Number(row.days);
+}
+
+function idleFor(userId: string, interval: string) {
+  return asOwner(
+    `update identity.sessions set updated_at = now() - $2::interval where user_id = $1`,
+    [userId, interval],
+  );
+}
+
+describe("session rules per role (03 §6.5)", () => {
+  it("caps each session at its role group's lifetime", async () => {
+    for (const email of ["editor@example.test", "donor@example.test"])
+      await new Browser().post("/sign-in/email", { email, password });
+    expect(await lifetimeDays(staff.admin)).toBe(0.5);
+    expect(await lifetimeDays(staff.editor)).toBe(30);
+    expect(await lifetimeDays(staff.donor)).toBe(90);
+  });
+
+  it("ends an admin session after 30 idle minutes", async () => {
+    expect(await enrolledAdmin.access()).toMatchObject({ state: "allowed" });
+    await idleFor(staff.admin, "29 minutes");
+    expect(await enrolledAdmin.access()).toMatchObject({ state: "allowed" });
+    await idleFor(staff.admin, "31 minutes");
+    expect(await enrolledAdmin.access()).toEqual({ state: "signed-out" });
+  });
+
+  it("ends an editor session after 7 idle days and a donor's after 30", async () => {
+    const editor = new Browser();
+    await editor.post("/sign-in/email", {
+      email: "editor@example.test",
+      password,
+    });
+    await idleFor(staff.editor, "6 days");
+    expect(await editor.access()).toMatchObject({ state: "allowed" });
+    await idleFor(staff.editor, "7 days 1 minute");
+    expect(await editor.access()).toEqual({ state: "signed-out" });
+
+    const donor = new Browser();
+    await donor.post("/sign-in/email", {
+      email: "donor@example.test",
+      password,
+    });
+    await idleFor(staff.donor, "29 days");
+    expect((await donor.get("/get-session")).json).toMatchObject({
+      user: { email: "donor@example.test" },
+    });
+    await idleFor(staff.donor, "30 days 1 minute");
+    const sessions = () =>
+      asOwner(`select from identity.sessions where user_id = $1`, [
+        staff.donor,
+      ]);
+    const before = (await sessions()).length;
+    expect((await donor.get("/get-session")).json).toBeNull();
+    expect(await sessions()).toHaveLength(before - 1);
+  });
+
+  it("signs a user out of all devices", async () => {
+    const phone = new Browser();
+    const laptop = new Browser();
+    for (const device of [phone, laptop])
+      await device.post("/sign-in/email", {
+        email: "editor@example.test",
+        password,
+      });
+    expect(await laptop.access()).toMatchObject({ state: "allowed" });
+    expect((await phone.post("/revoke-sessions", {})).status).toBe(200);
+    expect(await laptop.access()).toEqual({ state: "signed-out" });
+    expect(await phone.access()).toEqual({ state: "signed-out" });
   });
 });

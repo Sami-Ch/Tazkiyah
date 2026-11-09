@@ -70,6 +70,7 @@ const postEndpoints = new Set([
   "/sign-in/email",
   "/sign-in/username",
   "/sign-out",
+  "/revoke-sessions",
   "/two-factor/enable",
   "/staff-invite",
   "/staff-access",
@@ -348,7 +349,11 @@ async function runAuth(request: Request, path: string) {
             schema: authSchema,
             transaction: true,
           }),
-          emailAndPassword: { enabled: true, disableSignUp: true },
+          emailAndPassword: {
+            enabled: true,
+            disableSignUp: true,
+            revokeSessionsOnPasswordReset: true,
+          },
           user: {
             fields: { name: "fullName", image: "authImage" },
             additionalFields: {
@@ -361,7 +366,9 @@ async function runAuth(request: Request, path: string) {
             },
           },
           session: {
-            expiresIn: 12 * 60 * 60,
+            // The longest role lifetime. The database caps each session by role
+            // and ends idle sessions (03 §6.5, identity.touch_session).
+            expiresIn: 90 * 24 * 60 * 60,
             disableSessionRefresh: true,
             cookieCache: { enabled: false },
           },
@@ -406,11 +413,22 @@ async function runAuth(request: Request, path: string) {
             }),
           },
         });
+        const currentSession = async () => {
+          const session = await auth.api.getSession({ headers });
+          if (!session) return null;
+          const {
+            rows: [touched],
+          } = await tx.execute<{ valid: boolean }>(
+            sql`select identity.touch_session(${session.session.id}) as valid`,
+          );
+          return touched?.valid ? session : null;
+        };
+        if (path === "/get-session") return privateJson(await currentSession());
         if (path === "/staff-invite/accept") {
           return acceptStaffInvitation(tx, request);
         }
         if (path === "/staff-access") {
-          const session = await auth.api.getSession({ headers });
+          const session = await currentSession();
           return session
             ? updateStaffAccess(tx, request, session)
             : privateJson({ code: "denied" }, 403);
@@ -430,7 +448,7 @@ async function runAuth(request: Request, path: string) {
           path === "/cause-workspace" ||
           path === "/cause"
         ) {
-          const session = await auth.api.getSession({ headers });
+          const session = await currentSession();
           const access = await checkWorkspaceAccess(tx, session);
           if (path === "/admin-access") return privateJson(access);
           if (path === "/donor-link") {

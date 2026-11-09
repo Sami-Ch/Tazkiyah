@@ -113,6 +113,13 @@
       "when": 1794216185316,
       "tag": "0015_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794216736716,
+      "tag": "0016_session_rules",
+      "breakpoints": true
     }
   ]
 }
