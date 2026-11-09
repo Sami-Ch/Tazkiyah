@@ -313,3 +313,9 @@ Use case-insensitive indexes for email and username within an institute. Account
 2026-11-08 · Sami · Updates [D-041](#d-041)
 
 Use Drizzle for application queries and one migration history. Keep PostgreSQL-specific role, grant, function, trigger and view SQL in custom migrations in that same history. Existing databases adopt the consolidated baseline after all six original migration hashes are verified. See [04 §13.2](04-database.md#132-migrations).
+
+## D-115
+
+2026-11-09 · Build agent (P0-E2-T14) · Supports [03 §5.3](03-architecture.md#53-deployment-pipeline) and [04 §6.6](04-database.md#66-testing-cross-institute-isolation)
+
+Run the full migration history and every `db/test/*.sql` suite inside `npm test` with PGlite, an in-process build of Postgres. Every local run and pull request then gets the isolation, append-only and policy checks without a database server or Neon credentials. PGlite is PostgreSQL 17 and Neon is PostgreSQL 18, so CI still repeats the suites on a short-lived Neon branch (P0-E1-T07), and that run is the one that counts for REQ-SEC-002. Options: PGlite in Vitest; Postgres in Docker; Neon branches only. Reason: no database or Docker daemon is available on the development machine, and Neon branches need credentials and use free-tier branch slots.

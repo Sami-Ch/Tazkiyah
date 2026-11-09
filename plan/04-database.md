@@ -1286,12 +1286,14 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P0-E2-T11 | Create `audit_log`, the generic `audit_row_change` trigger and the redaction list; attach it to the P0 tables | done | P0-E2-T08 | REQ-ROL-008, REQ-SEC-008 |
 | P0-E2-T12 | Add module validation on `enabled_modules` and `app.module_enabled()` | done | P0-E2-T04, P0-E2-T05 | REQ-ROL-010 |
 | P0-E2-T13 | Write the catalog meta-test (institute id, composite unique, RLS, `iso` policy, grants, owner and `BYPASSRLS` checks, view filters) | done | P0-E2-T07 | REQ-SEC-001 |
-| P0-E2-T14 | Build the isolation test harness: seed test institute B and generate the eight behaviour tests per table and view | in progress | P0-E2-T13, P0-E2-T09, P0-E2-T10, P0-E2-T11 | REQ-SEC-002 |
+| P0-E2-T14 | Build the isolation test harness: seed test institute B and generate the eight behaviour tests per table and view | done | P0-E2-T13, P0-E2-T09, P0-E2-T10, P0-E2-T11 | REQ-SEC-002 |
 | P0-E2-T15 | Write the production seed: Markaz Al Azeem settings in Urdu and English, domains, logo asset, theme tokens and the first admin account | in progress | P0-E2-T04, P0-E2-T08, P0-E2-T09, P0-E4-T01, P0-E4-T09 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-007 |
 | P0-E2-T16 | Verify the runtime grants and owner guards for audit updates, deletes and truncation | done | P0-E2-T11 | REQ-TRL-002 |
 | P0-E2-T17 | Write `app.run_retention()` with a per-table rule list (empty rules until tables exist) and its audit row | todo | P0-E2-T11 | REQ-SEC-001 |
 | P0-E2-T18 | Restore drill: restore a Neon branch from point in time and rerun the catalog and isolation tests on it | todo | P0-E2-T14, P0-E1-T04 | REQ-SEC-002, REQ-SEC-006 |
 | P0-E2-T19 | Check query plans of policy helpers with seeded volume (5,000 donations, 20,000 posts) and add missing indexes | todo | P0-E2-T14 | REQ-SEC-001, REQ-PRF-005 |
+
+2026-11-09 · P0-E2-T14: [`db/test/isolation_harness.sql`](../db/test/isolation_harness.sql) seeds fixture institutes A and B through the real definer functions, with `ZZA-` and `ZZB-` markers in their text. It fails if any `app` or `identity` table lacks rows for both institutes, or if a composite foreign key has no fixture row that sets it. Then it reads the catalog and runs behaviour tests 1 to 7 on every table and `public_api` view, for both runtime roles, `tazkiyah_app` and `tazkiyah_auth`. Test 8 uses `identity.read_guest_trail`, which is the token lookup that is built today, in place of the planned `app.use_trail_token`. `npm test` runs the migrations and every SQL suite in PGlite ([D-115](08-decision-log.md#d-115)). Dropping one `iso` policy makes the harness fail. The Neon branch run belongs to P0-E1-T07.
 
 2026-11-08 · The user, role, media, page and audit migrations passed on `dev` and `preview`, then went to `main`. The bilingual settings seed is in `dev` and `preview`. The production seed awaits the logo storage and admin provisioning steps. [Database commands](../README.md#run-database-migrations)
 

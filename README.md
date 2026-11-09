@@ -33,6 +33,8 @@ The last two commands build and serve the Cloudflare Worker locally. For a prote
 
 ## Run database migrations
 
+`npm test` applies every migration and runs every `db/test/*.sql` suite, including the generated cross-institute [isolation harness](db/test/isolation_harness.sql), in PGlite, an in-process Postgres. It needs no database server or credentials. A new table must get fixture rows in both harness institutes, or the harness fails.
+
 The [Tazkiyah Neon project](https://console.neon.tech/app/projects/calm-paper-68484751) uses PostgreSQL 18. Rehearse migrations on a disposable database before applying them to a shared branch. Point both `psql` and `MIGRATION_DATABASE_URL` at the test database's direct connection as its administrator. Keep the connection credentials in your local environment.
 
 ```sh
@@ -40,7 +42,7 @@ npm run db:migrate
 psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/test/schema_policy_catalog.sql \
   -f db/test/institute_isolation.sql -f db/test/staff_and_public_content.sql \
   -f db/test/auth_isolation.sql -f db/test/causes.sql -f db/test/manual_donations.sql \
-  -f db/test/guest_trail.sql
+  -f db/test/guest_trail.sql -f db/test/isolation_harness.sql
 ```
 
 Drizzle uses one migration history in [db/drizzle](db/drizzle). On a fresh database the baseline provisions roles and creates the schema. For an existing database, the command verifies the six original migration checksums before replacing their journal with the equivalent Drizzle baseline entry. The integration tests roll back their fixture rows and temporary grants.
