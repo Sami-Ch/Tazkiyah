@@ -772,10 +772,10 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P0-E1-T01 | Create the monorepo (`apps/web`, `apps/jobs`, `packages/core`, `packages/i18n`, `packages/email`) with strict TypeScript, ESLint, Prettier, Vitest and a bilingual local smoke page for the deployment spike | done | – | – |
-| P0-E1-T02 | Spike: deploy a Next.js page through OpenNext to `workers.dev`; record bundle size (compressed and not), start-up time and CPU ms for one dynamic and one cached page; decide on trigger T-1 | in progress | P0-E1-T01 | REQ-PRF-005 |
-| P0-E1-T03 | Move `azeem-lateef.com` DNS to Cloudflare after copying every record; confirm the existing mailbox still sends and receives | todo | – | – |
+| P0-E1-T02 | Spike: deploy a Next.js page through OpenNext to `workers.dev`; record bundle size (compressed and not), start-up time and CPU ms for one dynamic and one cached page; decide on trigger T-1 | blocked | P0-E1-T01 | REQ-PRF-005 |
+| P0-E1-T03 | Move `azeem-lateef.com` DNS to Cloudflare after copying every record; confirm the existing mailbox still sends and receives | blocked | – | – |
 | P0-E1-T04 | Set up the Neon project and `main`, `preview`, `dev` branches. Check `neon_superuser` privileges for P0-E2-T01 and confirm the backup credential options for P0-E1-T12 | done | – | REQ-SEC-001 |
-| P0-E1-T05 | Spike: Hyperdrive to Neon; prove transaction-local `set_config` is seen by an RLS policy and does not leak to the next request; check Neon still scales to zero; confirm AR-02 or switch to the fallback | todo | P0-E1-T02, P0-E1-T04 | REQ-SEC-001, REQ-PRF-005 |
+| P0-E1-T05 | Spike: Hyperdrive to Neon; prove transaction-local `set_config` is seen by an RLS policy and does not leak to the next request; check Neon still scales to zero; confirm AR-02 or switch to the fallback | blocked | P0-E1-T02, P0-E1-T04 | REQ-SEC-001, REQ-PRF-005 |
 | P0-E1-T06 | Wrangler config for web and jobs Workers in preview and production: bindings (Hyperdrive, R2, Queues, KV), secrets, typed env check at start-up; protect preview; verify Better Auth sign-in on the hosted preview through `AUTH_HYPERDRIVE` | todo | P0-E1-T05 | REQ-PRF-005 |
 | P0-E1-T07 | CI in GitHub Actions: lint, typecheck, unit tests, missing-translation check, migrations and RLS tests on a short-lived Neon branch | todo | P0-E1-T04, P0-E1-T06, P0-E2-T14 | REQ-SEC-002 |
 | P0-E1-T08 | CD: deploy preview on merge to `main`, production on a version tag, migrations before deploy, rollback steps in README | todo | P0-E1-T07 | – |
@@ -792,6 +792,8 @@ The first checkpoint uses npm workspaces, Next.js 16, next-intl and a local inst
 The giving and staff build passed the local Worker checks for bilingual pages, Better Auth two-factor verification, cause editing and archival, opt-in bank publication, redacted audit activity, and manual transfer receipts and public totals. All six SQL suites passed locally and on the disposable Neon validation branch, where all 13 Drizzle entries matched the repository. The final Wrangler dry run measured 15,706.86 KiB uncompressed. The local startup profile sampled 25.1 ms of active CPU time. The protected hosted preview still needs its own startup and request CPU measurements. See the [hosted launch runbook](../docs/hosted-launch.md).
 
 2026-11-08 · The [Tazkiyah project](https://console.neon.tech/app/projects/calm-paper-68484751) is on Neon Free in Singapore with PostgreSQL 18. The isolation suite passed on `dev` and `preview`. The baseline on `main` has zero institute rows. `neon_superuser` has `BYPASSRLS` and `tazkiyah_app` does not. A rollback-only probe confirmed that the administrator can create a dedicated backup role with `BYPASSRLS`. Its dump and restore test is tracked in P0-E1-T12. The hosted Workers spike needs a Wrangler login.
+
+2026-11-09 · Blocked: P0-E1-T02 needs a Wrangler login to deploy to `workers.dev` and measure start-up and request CPU. P0-E1-T03 needs access to the Cloudflare account and the domain registrar. P0-E1-T05 needs Cloudflare Hyperdrive and a Neon branch.
 
 ### P0-E2 Database foundation (owned by 04; architecture tasks)
 
@@ -825,7 +827,7 @@ The giving and staff build passed the local Worker checks for bilingual pages, B
 | P0-E5-T04 | Roles from `user_roles`; `can(user, action, resource)` generated from the 05 §7 matrix, deny by default; tests per role | done | P0-E5-T01 | REQ-ROL-001, REQ-ROL-002 |
 | P0-E5-T05 | Pass the authenticated user ID into each transaction. Guard `/[locale]/admin/**` and check that every server action calls `can()` | in progress | P0-E5-T04, P0-E2-T30 | REQ-SEC-001 |
 | P0-E5-T06 | TOTP two-factor for admin and finance officer: forced enrolment, 10 backup codes, no trusted devices, 5-try lockout | done | P0-E5-T04 | REQ-SEC-003 |
-| P0-E5-T07 | Rate limits on sign-in, reset and two-factor; Turnstile after 3 failures and on sign-up and reset; neutral error messages in both languages | todo | P0-E5-T02 | REQ-SEC-010 (proposed) |
+| P0-E5-T07 | Rate limits on sign-in, reset and two-factor; Turnstile after 3 failures and on sign-up and reset; neutral error messages in both languages | blocked | P0-E5-T02 | REQ-SEC-010 (proposed) |
 | P0-E5-T08 | Bootstrap script for Moazam's first admin account; admin creates teacher, editor and finance officer accounts | done | P0-E5-T04, P0-E5-T06 | REQ-ROL-004 |
 | P0-E5-T09 | Session rules per role (§6.5); sign out of all devices; end sessions on role change and password reset | done | P0-E5-T04 | REQ-SEC-003 |
 | P0-E5-T10 | Write sign-in, failed two-factor, role change and account creation events to `audit_log` with IDs only | done | P0-E5-T04, P0-E2-T11 | REQ-ROL-008 |
@@ -838,15 +840,19 @@ The local Worker serves bilingual sign-in and staff pages. The server checks the
 
 2026-11-09 · P0-E5-T09: [`0016_session_rules.sql`](../db/drizzle/0016_session_rules.sql) adds `identity.session_limits()` for the §6.5 role groups, where the strictest group a user holds wins. A trigger caps each new session's lifetime by role. `identity.touch_session()` ends a session that is past its lifetime or idle too long, and otherwise records the activity. The auth handler runs it on every session lookup, including `/get-session`. `/revoke-sessions` signs a user out of all devices. Role changes already ended sessions through `revoke_sessions_on_role_change`. Better Auth's `revokeSessionsOnPasswordReset` is on, and it gets its end-to-end test with the reset flow in P0-E5-T02. The tests are in `auth.test.ts`.
 
+2026-11-09 · Blocked: P0-E5-T07 builds on proposed REQ-SEC-010, which waits for Sami's approval (Q-08), and it also needs Turnstile site keys.
+
 2026-11-09 · P0-E5-T10: [`0017_auth_audit.sql`](../db/drizzle/0017_auth_audit.sql) writes `auth.signed_in` when a session is created, `auth.two_factor_failed` when Better Auth counts a failed code, and `auth.account_created` when a credential is created. Each row holds the user ID, actor roles and request ID only. Staff role grants and removals and new accounts were already written by `app.audit_row_change`. [`auth_audit.sql`](../db/test/auth_audit.sql) checks all four, and also checks that no row holds an email, a token or a password hash. `auth.test.ts` checks the same events from real sign-ins.
 
 ### P1-E3 Manual donation recording and guest donors (owned by 06; architecture tasks)
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E3-T30 | `EmailSender` adapter for the service chosen in Q-06; sending subdomain with SPF, DKIM, DMARC; bilingual layout; guest trail-link email through the queue | todo | P0-E1-T06, P0-E3-T03 | REQ-DPR-002, REQ-LNG-011 |
+| P1-E3-T30 | `EmailSender` adapter for the service chosen in Q-06; sending subdomain with SPF, DKIM, DMARC; bilingual layout; guest trail-link email through the queue | blocked | P0-E1-T06, P0-E3-T03 | REQ-DPR-002, REQ-LNG-011 |
 | P1-E3-T31 | `PaymentProvider` interface and `applyPaymentEvent`; `bank_transfer` provider used by the admin recording form; idempotency key on provider reference | todo | P0-E2-T30, P1-E3-T41, P1-E3-T42 | REQ-PAY-001, REQ-PAY-006 |
 | P1-E3-T32 | Guest trail tokens: 32 random bytes, hash stored, token-for-cookie exchange with clean redirect, `no-referrer`, log redaction | todo | P0-E1-T11, P1-E3-T40 | REQ-SEC-004, REQ-SEC-005 |
+
+2026-11-09 · Blocked: P1-E3-T30 waits for the email service choice (Q-06) and a sending account with DNS records on `notify.azeem-lateef.com`.
 
 ### P2-E1 Spending entries with receipts (owned by 06; architecture tasks)
 

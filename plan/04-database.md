@@ -1290,8 +1290,10 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P0-E2-T15 | Write the production seed: Markaz Al Azeem settings in Urdu and English, domains, logo asset, theme tokens and the first admin account | in progress | P0-E2-T04, P0-E2-T08, P0-E2-T09, P0-E4-T01, P0-E4-T09 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-007 |
 | P0-E2-T16 | Verify the runtime grants and owner guards for audit updates, deletes and truncation | done | P0-E2-T11 | REQ-TRL-002 |
 | P0-E2-T17 | Write `app.run_retention()` with a per-table rule list (empty rules until tables exist) and its audit row | done | P0-E2-T11 | REQ-SEC-001 |
-| P0-E2-T18 | Restore drill: restore a Neon branch from point in time and rerun the catalog and isolation tests on it | todo | P0-E2-T14, P0-E1-T04 | REQ-SEC-002, REQ-SEC-006 |
+| P0-E2-T18 | Restore drill: restore a Neon branch from point in time and rerun the catalog and isolation tests on it | blocked | P0-E2-T14, P0-E1-T04 | REQ-SEC-002, REQ-SEC-006 |
 | P0-E2-T19 | Check query plans of policy helpers with seeded volume (5,000 donations, 20,000 posts) and add missing indexes | todo | P0-E2-T14 | REQ-SEC-001, REQ-PRF-005 |
+
+2026-11-09 · Blocked: P0-E2-T18 needs a live Neon branch for the point-in-time restore. The suites it reruns now run locally with `npm test`.
 
 2026-11-09 · P0-E2-T17: [`0015_retention.sql`](../db/drizzle/0015_retention.sql) adds `app.retention_rules()`, which is empty because the §13.4 periods wait on REQ-SEC-011, and `app.run_retention()`. The runner works only when `app.actor_kind` is `job` and an institute is set. It refuses rules on financial tables and the audit log, and writes one `retention.run` audit row with counts. Tested in [`db/test/retention.sql`](../db/test/retention.sql).
 
