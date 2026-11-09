@@ -802,7 +802,7 @@ The local design preview uses clearly labelled and credited sample media from Wa
 | --- | --- | --- | --- | --- |
 | P0-E4-T01 | Define the `theme` settings shape (colour, font, radius tokens) and seed Markaz Al Azeem's Direction A values in `institute_settings` | done | P0-E2-T04 | REQ-MIR-005, REQ-MIR-001 |
 | P0-E4-T02 | Load the theme by request domain and write tokens as inline CSS custom properties on `<html>` | todo | P0-E4-T01, P0-E1 | REQ-MIR-005, REQ-MIR-002 |
-| P0-E4-T03 | Theme contrast check: refuse saving a theme that fails a §5 pair; automated test over Direction A and B values | todo | P0-E4-T01 | REQ-ACC-001, REQ-MIR-005 |
+| P0-E4-T03 | Theme contrast check: refuse saving a theme that fails a §5 pair; automated test over Direction A and B values | done | P0-E4-T01 | REQ-ACC-001, REQ-MIR-005 |
 | P0-E4-T04 | Font pipeline: subset and self-host Noto Naskh Arabic, Source Serif 4 and Noto Nastaliq Urdu; `local()`, preload and `font-display` rules; measure sizes; run shaping test strings | todo | P0-E1 | REQ-PRF-001, REQ-LNG-006 |
 | P0-E4-T05 | Type scale and base text styles for `/ur` and `/en`, in `rem`, with size-adjusted fallback faces | todo | P0-E4-T02, P0-E4-T04 | REQ-LNG-006, REQ-ACC-005 |
 | P0-E4-T06 | Spacing tokens, breakpoints, grid, logical-property base CSS, icon mirroring, and a lint rule against physical left/right properties | todo | P0-E4-T02, P0-E3-T04 | REQ-LNG-006 |
