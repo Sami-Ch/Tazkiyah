@@ -38,7 +38,8 @@ export async function checkWorkspaceAccess(
     select
       app.is_staff() and u.status = 'active' and not u.must_change_password as eligible,
       array(
-        select r from unnest(${roles}::text[]) as r where app.has_role(r)
+        select r from unnest(string_to_array(${roles.join(",")}, ',')) as r
+        where app.has_role(r)
       ) as roles,
       u.two_factor_enabled and exists (
         select from identity.two_factor f
