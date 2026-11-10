@@ -204,6 +204,13 @@
       "when": 1794290384352,
       "tag": "0028_recurring_pledges",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794290724293,
+      "tag": "0029_donor_trail",
+      "breakpoints": true
     }
   ]
 }

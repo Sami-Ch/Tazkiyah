@@ -1243,6 +1243,14 @@ export const donations = app
       check("donations_status_check", sql`status in ('recorded', 'reversed')`),
       check("donations_anonymity_check", sql`is_anonymous`),
       manualDonationIsolation(),
+      // 04 §6.4: the donor (account or trail token) reads their own
+      // donations, through granted columns only (app.donor_trail).
+      pgPolicy("donations_own_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`donor_id in (select app.my_donor_ids())`,
+      }),
     ],
   )
   .enableRLS();
@@ -1397,6 +1405,12 @@ export const trailEvents = app
       ),
       check("trail_events_details_check", sql`jsonb_typeof(details) = 'object'`),
       manualDonationIsolation(),
+      pgPolicy("trail_events_own_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`exists (select 1 from app.donations d where d.institute_id = trail_events.institute_id and d.id = trail_events.donation_id and d.donor_id in (select app.my_donor_ids()))`,
+      }),
     ],
   )
   .enableRLS();
