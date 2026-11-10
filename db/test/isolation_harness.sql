@@ -24,6 +24,13 @@ begin
     insert into app.user_roles (institute_id, user_id, role, granted_by)
     values (tenant, ('14000000-0000-4000-8000-00000000030' || n)::uuid, 'admin',
       ('14000000-0000-4000-8000-00000000030' || n)::uuid);
+    -- A class created by its teacher, who joins it as a member.
+    insert into app.user_roles (institute_id, user_id, role, granted_by)
+    values (tenant, ('14000000-0000-4000-8000-00000000030' || n)::uuid, 'teacher',
+      ('14000000-0000-4000-8000-00000000030' || n)::uuid);
+    insert into app.classes (institute_id, name, year_label, created_by)
+    values (tenant, jsonb_build_object('en', mark || '-Class'), mark || '-Year',
+      ('14000000-0000-4000-8000-00000000030' || n)::uuid);
     insert into app.media_assets
       (id, institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, width, height, status, uploaded_by)
     values (('14000000-0000-4000-8000-00000000010' || n)::uuid, tenant, 'image', 'logo', 'public',

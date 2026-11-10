@@ -295,6 +295,13 @@
       "when": 1794307440160,
       "tag": "0041_donor_wall",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1794307677104,
+      "tag": "0042_classes",
+      "breakpoints": true
     }
   ]
 }

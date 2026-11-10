@@ -1764,3 +1764,141 @@ export const receiptEmailJobs = app
     ],
   )
   .enableRLS();
+
+// Classes (04 §7.3, REQ-TCH-005). Members and admins read a class; teachers
+// and admins create one, and the creator joins it as its teacher.
+export const classes = app
+  .table(
+    "classes",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      name: localizedText().notNull(),
+      yearLabel: text("year_label"),
+      createdBy: uuid("created_by").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+      archivedAt: timestamp("archived_at", { withTimezone: true }),
+    },
+    (table) => [
+      unique().on(table.instituteId, table.id),
+      index("classes_created_by").on(table.instituteId, table.createdBy),
+      foreignKey({
+        columns: [table.instituteId, table.createdBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "classes_year_label_check",
+        sql`year_label is null or (length(year_label) between 1 and 40 and year_label = btrim(year_label))`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("classes_member_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or created_by = (select app.current_user_id()) or app.is_class_member(id)`,
+      }),
+      pgPolicy("classes_staff_create", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`created_by = (select app.current_user_id()) and ((select app.has_role('teacher')) or (select app.has_role('admin')))`,
+      }),
+      pgPolicy("classes_teacher_update", {
+        as: "permissive",
+        for: "update",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or app.is_class_teacher(id)`,
+        withCheck: sql`(select app.has_role('admin')) or app.is_class_teacher(id)`,
+      }),
+    ],
+  )
+  .enableRLS();
+
+// Who is in a class, as student or teacher (04 §7.3). An ended membership
+// stays, so past teachers can still trace a student (§6.2).
+export const classMembers = app
+  .table(
+    "class_members",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      classId: uuid("class_id").notNull(),
+      userId: uuid("user_id").notNull(),
+      memberRole: text("member_role").notNull(),
+      joinedAt: date("joined_at").default(sql`current_date`).notNull(),
+      endedAt: date("ended_at"),
+      addedBy: uuid("added_by"),
+    },
+    (table) => [
+      unique().on(table.instituteId, table.id),
+      uniqueIndex("class_members_one_open")
+        .on(table.instituteId, table.classId, table.userId, table.memberRole)
+        .where(sql`ended_at is null`),
+      index("class_members_user").on(table.instituteId, table.userId),
+      index("class_members_class_role").on(
+        table.instituteId,
+        table.classId,
+        table.memberRole,
+      ),
+      index("class_members_added_by").on(table.instituteId, table.addedBy),
+      foreignKey({
+        columns: [table.instituteId, table.classId],
+        foreignColumns: [classes.instituteId, classes.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.userId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.addedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "class_members_role_check",
+        sql`member_role in ('student', 'teacher')`,
+      ),
+      check(
+        "class_members_dates_check",
+        sql`ended_at is null or ended_at >= joined_at`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("class_members_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`user_id = (select app.current_user_id()) or (select app.has_role('admin')) or app.is_class_teacher(class_id)`,
+      }),
+      pgPolicy("class_members_add", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`added_by = (select app.current_user_id()) and ((select app.has_role('admin')) or (member_role = 'student' and app.is_class_teacher(class_id)))`,
+      }),
+      pgPolicy("class_members_end", {
+        as: "permissive",
+        for: "update",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or (member_role = 'student' and app.is_class_teacher(class_id))`,
+        withCheck: sql`(select app.has_role('admin')) or (member_role = 'student' and app.is_class_teacher(class_id))`,
+      }),
+    ],
+  )
+  .enableRLS();

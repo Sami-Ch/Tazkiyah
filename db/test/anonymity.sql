@@ -24,7 +24,7 @@ values
 -- The donor has every personal field set and a public profile.
 insert into app.donors (id, institute_id, email, legal_name, phone, display_name, profile_public, preferred_language)
 values ('a3000000-0000-4000-8000-000000000051', 'a3000000-0000-4000-8000-000000000001',
-  'qx-email@example.test', 'Qx Legal Name', '+92 300 0000000', 'Qx Display', true, 'en');
+  'zq9-email@example.test', 'Zq9 Legal Name', '+92 300 0000000', 'Zq9 Display', true, 'en');
 
 do $fixture$
 declare
@@ -38,11 +38,11 @@ begin
   perform set_config('app.institute_id', tenant::text, true);
   perform set_config('app.user_id', admin::text, true);
   select donation_id into to_cause from app.record_donation(gen_random_uuid(), donor, wheat, 'zakat', 500000,
-    date '2026-11-01', bank, 'Qx Bank Ref 1', 'en');
+    date '2026-11-01', bank, 'Zq9 Bank Ref 1', 'en');
   select donation_id into pooled from app.record_donation(gen_random_uuid(), donor, null, 'sadaqah', 300000,
-    date '2026-11-02', bank, 'Qx Bank Ref 2', 'en');
+    date '2026-11-02', bank, 'Zq9 Bank Ref 2', 'en');
   select donation_id into returned from app.record_donation(gen_random_uuid(), donor, wheat, 'general', 100000,
-    date '2026-11-02', bank, 'Qx Bank Ref 3', 'en');
+    date '2026-11-02', bank, 'Zq9 Bank Ref 3', 'en');
   perform app.reverse_donation(returned, 'transfer_returned');
   update app.donations set trail_public = true where id in (to_cause, pooled);
   insert into app.spending_reports (institute_id, period_kind, period_start, period_end, title, created_by)
@@ -53,7 +53,7 @@ begin
   perform app.match_spending(entry);
   perform app.publish_spending_report(report);
   -- A donor profile change is audited too.
-  update app.donors set display_name = 'Qx Display Two', legal_name = 'Qx Legal Two' where id = donor;
+  update app.donors set display_name = 'Zq9 Display Two', legal_name = 'Zq9 Legal Two' where id = donor;
 end
 $fixture$;
 
@@ -65,7 +65,7 @@ begin
   select string_agg(to_jsonb(a)::text, ' ') into logged from app.audit_log a
   where a.institute_id = 'a3000000-0000-4000-8000-000000000001';
   assert logged ~ 'donations.recorded' and logged ~ 'donors', 'expected donation and donor audit rows';
-  assert logged !~* 'qx', 'the audit log holds a personal value: ' || substring(logged from '(?i)(qx[^"]*)');
+  assert logged !~* 'zq9', 'the audit log holds a personal value: ' || substring(logged from '(?i)(zq9[^"]*)');
 end
 $test$;
 
@@ -98,7 +98,7 @@ begin
     execute format('select count(distinct v::text), coalesce(string_agg(f.value, %L), %L)
       from %s v cross join lateral jsonb_each_text(to_jsonb(v)) f', ' ', '', view_name)
       into shown, seen;
-    assert seen !~* 'qx|zakat|sadaqah|\+92', view_name || ' shows ' || substring(seen from '(?i)(qx[^"]*|zakat|sadaqah|\+92[^"]*)');
+    assert seen !~* 'zq9|zakat|sadaqah|\+92', view_name || ' shows ' || substring(seen from '(?i)(zq9[^"]*|zakat|sadaqah|\+92[^"]*)');
   end loop;
   -- The check ran over real rows in the money views.
   assert (select count(*) from public_api.public_trails) > 0 and (select count(*) from public_api.cause_spending) > 0;
