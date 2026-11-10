@@ -47,8 +47,10 @@ insert into app.posts (id, institute_id, thread_id, post_type, language, body, a
     'message', 'en', 'Yesterday', 'a9000000-0000-4000-8000-000000000061', 'published'),
   ('a9000000-0000-4000-8000-000000000082', 'a9000000-0000-4000-8000-000000000001', 'a9000000-0000-4000-8000-000000000071',
     'message', 'en', 'Draft', 'a9000000-0000-4000-8000-000000000061', 'draft');
+alter table app.posts disable trigger posts_moderation;
 update app.posts set created_at = now() - interval '1 day'
 where id in ('a9000000-0000-4000-8000-000000000081', 'a9000000-0000-4000-8000-000000000082');
+alter table app.posts enable trigger posts_moderation;
 -- Uploads: photos of students one and two, a YouTube link of student one, a
 -- deleted and an avatar upload of student one, and a teacher's photo.
 insert into app.media_assets

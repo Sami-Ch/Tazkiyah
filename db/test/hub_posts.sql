@@ -258,7 +258,8 @@ $test$;
 select set_config('app.user_id', 'a7000000-0000-4000-8000-000000000011', true);
 update app.threads set locked_at = now(), locked_by = 'a7000000-0000-4000-8000-000000000021'
 where id = 'a7000000-0000-4000-8000-000000000071';
-update app.posts set moderation_state = 'taken_down' where id = 'a7000000-0000-4000-8000-000000000081';
+update app.posts set moderation_state = 'taken_down', takedown_reason = 'Fixture takedown'
+where id = 'a7000000-0000-4000-8000-000000000081';
 update app.institute_settings set enabled_modules = array['teacher_hub']
 where institute_id = 'a7000000-0000-4000-8000-000000000001';
 update app.personas set is_active = false where id = 'a7000000-0000-4000-8000-000000000063';

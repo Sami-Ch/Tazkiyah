@@ -2346,6 +2346,16 @@ export const posts = app
       pollMultiple: boolean("poll_multiple").default(false).notNull(),
       pollMaxChoices: smallint("poll_max_choices"),
       pollResults: text("poll_results"),
+      targetScope: text("target_scope"),
+      submittedAt: timestamp("submitted_at", { withTimezone: true }),
+      approvedBy: uuid("approved_by"),
+      approvedAt: timestamp("approved_at", { withTimezone: true }),
+      hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+      hiddenBy: uuid("hidden_by"),
+      hiddenReason: text("hidden_reason"),
+      takenDownAt: timestamp("taken_down_at", { withTimezone: true }),
+      takenDownBy: uuid("taken_down_by"),
+      takedownReason: text("takedown_reason"),
       editedAt: timestamp("edited_at", { withTimezone: true }),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
@@ -2371,6 +2381,27 @@ export const posts = app
       index("posts_approval_queue")
         .on(table.instituteId, table.moderationState)
         .where(sql`moderation_state in ('submitted', 'approved')`),
+      index("posts_approved_by")
+        .on(table.instituteId, table.approvedBy)
+        .where(sql`approved_by is not null`),
+      index("posts_hidden_by")
+        .on(table.instituteId, table.hiddenBy)
+        .where(sql`hidden_by is not null`),
+      index("posts_taken_down_by")
+        .on(table.instituteId, table.takenDownBy)
+        .where(sql`taken_down_by is not null`),
+      foreignKey({
+        columns: [table.instituteId, table.approvedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.hiddenBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.takenDownBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
       foreignKey({
         columns: [table.instituteId, table.threadId],
         foreignColumns: [threads.instituteId, threads.id],
@@ -2429,6 +2460,19 @@ export const posts = app
         using: sql`institute_id = (select app.current_institute_id())`,
         withCheck: sql`institute_id = (select app.current_institute_id())`,
       }),
+      check(
+        "posts_moderation_check",
+        sql`(target_scope is null or target_scope in ('madrasa', 'public', 'community'))
+          and (target_scope is not null) = (moderation_state in ('submitted', 'approved'))
+          and (submitted_at is not null) = (moderation_state in ('submitted', 'approved'))
+          and (approved_at is null) = (approved_by is null)
+          and (moderation_state <> 'approved' or approved_at is not null)
+          and (hidden_at is not null or (hidden_by is null and hidden_reason is null))
+          and (hidden_reason is null or hidden_reason ~ '[^[:space:]]')
+          and (moderation_state = 'taken_down') = (taken_down_at is not null)
+          and (taken_down_at is not null or (taken_down_by is null and takedown_reason is null))
+          and (taken_down_at is null or (takedown_reason is not null and takedown_reason ~ '[^[:space:]]'))`,
+      ),
       pgPolicy("posts_read", {
         as: "permissive",
         for: "select",
@@ -2437,10 +2481,26 @@ export const posts = app
           or (moderation_state <> 'taken_down' and (author_persona_id = (select app.current_persona_id())
             or author_user_id = (select app.current_user_id())))
           or (class_id is not null and app.is_class_teacher(class_id))
-          or (class_id is null and scope <> 'community' and (select app.has_role('teacher')))
-          or (moderation_state in ('published', 'submitted', 'approved')
+          or ((class_id is null or scope = 'madrasa') and scope <> 'community' and (select app.has_role('teacher')))
+          or (hidden_at is null and moderation_state in ('published', 'submitted', 'approved')
             and ((scope = 'class' and app.is_class_member(class_id))
-              or (scope in ('madrasa', 'public') and (select app.is_member()))))`,
+              or (scope in ('madrasa', 'public') and (select app.is_member()))))
+          or (moderation_state in ('submitted', 'approved')
+            and ((target_scope = 'public' and author_user_id is not null and (select app.has_role('editor')))
+              or (target_scope = 'madrasa' and (select app.can_widen_scope()))))`,
+      }),
+      pgPolicy("posts_moderate", {
+        as: "permissive",
+        for: "update",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin'))
+          or author_persona_id = (select app.current_persona_id())
+          or author_user_id = (select app.current_user_id())
+          or (class_id is not null and app.is_class_teacher(class_id))
+          or ((class_id is null or scope = 'madrasa') and scope <> 'community' and (select app.has_role('teacher')))
+          or (author_user_id is not null and (select app.has_role('editor')))
+          or (target_scope = 'madrasa' and (select app.can_widen_scope()))`,
+        withCheck: sql`true`,
       }),
       pgPolicy("posts_write", {
         as: "permissive",

@@ -278,6 +278,15 @@ select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, 'madrasa', n.mark |
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
 update app.threads set locked_at = now(), locked_by = author_user_id
 where author_user_id in ('14000000-0000-4000-8000-000000000301', '14000000-0000-4000-8000-000000000302');
+-- A teacher's post that was approved, then hidden and taken down, so every
+-- moderation key has a row.
+insert into app.posts (institute_id, thread_id, post_type, language, body, author_user_id, moderation_state,
+  approved_by, approved_at, hidden_at, hidden_by, taken_down_at, taken_down_by, takedown_reason)
+select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, ('14000000-0000-4000-8000-00000000091' || n.i)::uuid,
+  'message', 'en', n.mark || '-Removed', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid, 'taken_down',
+  ('14000000-0000-4000-8000-00000000030' || n.i)::uuid, now(), now(), ('14000000-0000-4000-8000-00000000030' || n.i)::uuid,
+  now(), ('14000000-0000-4000-8000-00000000030' || n.i)::uuid, n.mark || '-Takedown'
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
 -- The student's question carries a photo the student uploaded.
 insert into app.media_assets
   (id, institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, width, height, status, uploaded_by)
