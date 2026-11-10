@@ -140,8 +140,10 @@ begin
   exception when check_violation then null;
   end;
   -- Every post type of REQ-STU-005 can be saved.
-  insert into app.posts (institute_id, thread_id, post_type, language, title, body, author_persona_id, poll_closes_at)
-  select tenant, thread_a, kind, 'en', 'Title', 'Body', p2, case when kind = 'poll' then now() + interval '1 day' end
+  insert into app.posts (institute_id, thread_id, post_type, language, title, body, author_persona_id, poll_closes_at,
+    poll_results)
+  select tenant, thread_a, kind, 'en', 'Title', 'Body', p2, case when kind = 'poll' then now() + interval '1 day' end,
+    case when kind = 'poll' then 'after_voting' end
   from unnest(array['message', 'poll', 'article', 'video', 'vlog', 'audio', 'slides']) kind;
 
   -- A draft is seen by its author and the class teacher only.

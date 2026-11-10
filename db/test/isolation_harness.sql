@@ -278,6 +278,22 @@ select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, 'madrasa', n.mark |
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
 update app.threads set locked_at = now(), locked_by = author_user_id
 where author_user_id in ('14000000-0000-4000-8000-000000000301', '14000000-0000-4000-8000-000000000302');
+-- A poll in the class thread with two options and the student's vote.
+insert into app.posts (id, institute_id, thread_id, post_type, language, body, author_persona_id, poll_results)
+select ('14000000-0000-4000-8000-00000000093' || n.i)::uuid, t.institute_id, t.id, 'poll', 'en',
+  n.mark || '-Poll', t.author_persona_id, 'after_voting'
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.threads t on t.id = ('14000000-0000-4000-8000-00000000091' || n.i)::uuid;
+insert into app.poll_options (id, institute_id, post_id, label, position)
+select ('14000000-0000-4000-8000-0000000009' || n.i || o.position)::uuid,
+  ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, ('14000000-0000-4000-8000-00000000093' || n.i)::uuid,
+  n.mark || '-Option-' || o.position, o.position
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark) cross join (values (1), (2)) as o(position);
+insert into app.poll_votes (institute_id, post_id, option_id, voter_user_id)
+select l.institute_id, ('14000000-0000-4000-8000-00000000093' || n.i)::uuid,
+  ('14000000-0000-4000-8000-0000000009' || n.i || '1')::uuid, l.user_id
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.persona_links l on l.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
 
 -- Public trails, so public_api.public_trails has rows of both institutes.
 update app.donations set trail_public = true

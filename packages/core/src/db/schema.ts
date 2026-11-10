@@ -2344,6 +2344,8 @@ export const posts = app
       publishedAt: timestamp("published_at", { withTimezone: true }),
       pollClosesAt: timestamp("poll_closes_at", { withTimezone: true }),
       pollMultiple: boolean("poll_multiple").default(false).notNull(),
+      pollMaxChoices: smallint("poll_max_choices"),
+      pollResults: text("poll_results"),
       editedAt: timestamp("edited_at", { withTimezone: true }),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
@@ -2414,7 +2416,11 @@ export const posts = app
       ),
       check(
         "posts_poll_check",
-        sql`post_type = 'poll' or (poll_closes_at is null and not poll_multiple)`,
+        sql`case when post_type = 'poll' then poll_closes_at is not null
+            and poll_results is not null and poll_results in ('after_voting', 'after_closing')
+            and case when poll_multiple then coalesce(poll_max_choices between 2 and 6, false)
+              else poll_max_choices is null end
+          else poll_closes_at is null and not poll_multiple and poll_max_choices is null and poll_results is null end`,
       ),
       pgPolicy("iso", {
         as: "restrictive",
@@ -2441,6 +2447,148 @@ export const posts = app
         for: "insert",
         to: ["tazkiyah_app"],
         withCheck: sql`moderation_state in ('draft', 'published') and scope in ('class', 'madrasa') and ${hubAuthorCheck}`,
+      }),
+    ],
+  )
+  .enableRLS();
+
+// Poll options and votes (04 §11.5, 07 §6.4). Options are read with their
+// poll and added by its author until the first vote. A voter reads their own
+// votes; admins and the voter's teachers read who voted. Counts for everyone
+// else come from public_api.poll_counts.
+export const pollOptions = app
+  .table(
+    "poll_options",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      postId: uuid("post_id").notNull(),
+      label: text().notNull(),
+      position: smallint().notNull(),
+    },
+    (table): PgTableExtraConfigValue[] => [
+      unique().on(table.instituteId, table.id),
+      unique("poll_options_post_option").on(
+        table.instituteId,
+        table.postId,
+        table.id,
+      ),
+      unique("poll_options_position").on(
+        table.instituteId,
+        table.postId,
+        table.position,
+      ),
+      foreignKey({
+        columns: [table.instituteId, table.postId],
+        foreignColumns: [posts.instituteId, posts.id],
+      }),
+      check(
+        "poll_options_label_check",
+        sql`length(label) between 1 and 80 and label = btrim(label) and label ~ '[^[:space:]]'`,
+      ),
+      check("poll_options_position_check", sql`position between 1 and 6`),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("poll_options_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`exists (select from app.posts p where p.id = post_id)`,
+      }),
+      pgPolicy("poll_options_add", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`exists (select from app.posts p where p.id = post_id and p.post_type = 'poll'
+          and (p.author_persona_id = (select app.current_persona_id())
+            or p.author_user_id = (select app.current_user_id())))`,
+      }),
+    ],
+  )
+  .enableRLS();
+
+export const pollVotes = app
+  .table(
+    "poll_votes",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      postId: uuid("post_id").notNull(),
+      optionId: uuid("option_id").notNull(),
+      voterUserId: uuid("voter_user_id").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table): PgTableExtraConfigValue[] => [
+      unique().on(table.instituteId, table.id),
+      unique("poll_votes_one_per_option").on(
+        table.instituteId,
+        table.optionId,
+        table.voterUserId,
+      ),
+      index("poll_votes_post_option").on(
+        table.instituteId,
+        table.postId,
+        table.optionId,
+      ),
+      index("poll_votes_voter").on(
+        table.instituteId,
+        table.voterUserId,
+        table.postId,
+      ),
+      foreignKey({
+        columns: [table.instituteId, table.postId, table.optionId],
+        foreignColumns: [
+          pollOptions.instituteId,
+          pollOptions.postId,
+          pollOptions.id,
+        ],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.voterUserId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("poll_votes_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`voter_user_id = (select app.current_user_id())
+          or (select app.has_role('admin')) or app.is_teacher_of(voter_user_id)`,
+      }),
+      pgPolicy("poll_votes_cast", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`voter_user_id = (select app.current_user_id())
+          and (((select app.has_role('student')) and (select app.module_enabled('student_hub')))
+            or (select app.has_role('teacher')) or (select app.has_role('admin')))
+          and exists (select from app.posts p where p.id = post_id and p.post_type = 'poll'
+            and p.moderation_state = 'published' and p.poll_closes_at > now())`,
+      }),
+      pgPolicy("poll_votes_withdraw", {
+        as: "permissive",
+        for: "delete",
+        to: ["tazkiyah_app"],
+        using: sql`voter_user_id = (select app.current_user_id())
+          and exists (select from app.posts p where p.id = post_id and p.post_type = 'poll'
+            and p.moderation_state = 'published' and p.poll_closes_at > now())`,
       }),
     ],
   )
