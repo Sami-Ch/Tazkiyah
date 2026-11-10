@@ -16,7 +16,7 @@ import { trailCopy } from "./trail-copy";
 type TrailCursor = { recorded_at: string; id: string };
 type TrailEvent = {
   event_type: "received" | "allocated";
-  credited_on: string;
+  occurred_on: string;
   amount_paisa: string;
   cause_title: LocalizedPageText | null;
 };
@@ -288,7 +288,7 @@ function DonationRecord({
                 <li key={index}>
                   <strong>{copy[event.event_type]}</strong>
                   <p>
-                    <TrailDate value={event.credited_on} locale={locale} />
+                    <TrailDate value={event.occurred_on} locale={locale} />
                     {" · "}
                     <bdi>{formatPkr(event.amount_paisa, locale)}</bdi>
                     {event.event_type === "allocated" && (

@@ -1193,10 +1193,21 @@ export const allocations = app
         .notNull()
         .references(() => institutes.id),
       donationId: uuid("donation_id").notNull(),
-      causeId: uuid("cause_id").notNull(),
+      causeId: uuid("cause_id"),
       kind: text().default("to_cause").notNull(),
       donationType: text("donation_type").notNull(),
+      fromAllocationId: uuid("from_allocation_id"),
+      // Foreign key added with spending_entries (P2-E1-T40).
+      spendingEntryId: uuid("spending_entry_id"),
+      // Single-column on purpose: the receiving institute is another tenant
+      // (04 §9.5).
+      targetInstituteId: uuid("target_institute_id").references(
+        () => institutes.id,
+      ),
       amountPaisa: bigint("amount_paisa", { mode: "bigint" }).notNull(),
+      isReversal: boolean("is_reversal").default(false).notNull(),
+      reversesAllocationId: uuid("reverses_allocation_id"),
+      reason: text(),
       createdBy: uuid("created_by").notNull(),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
@@ -1207,9 +1218,24 @@ export const allocations = app
       index("allocations_created_by").on(table.instituteId, table.createdBy),
       unique().on(table.instituteId, table.id),
       index().on(table.instituteId, table.causeId, table.donationId),
+      index("allocations_from_allocation")
+        .on(table.instituteId, table.fromAllocationId)
+        .where(sql`from_allocation_id is not null`),
+      index("allocations_spending_entry")
+        .on(table.instituteId, table.spendingEntryId)
+        .where(sql`spending_entry_id is not null`),
+      unique().on(table.instituteId, table.reversesAllocationId),
       foreignKey({
         columns: [table.instituteId, table.donationId],
         foreignColumns: [donations.instituteId, donations.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.fromAllocationId],
+        foreignColumns: [table.instituteId, table.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.reversesAllocationId],
+        foreignColumns: [table.instituteId, table.id],
       }),
       foreignKey({
         columns: [table.instituteId, table.causeId],
@@ -1219,7 +1245,14 @@ export const allocations = app
         columns: [table.instituteId, table.createdBy],
         foreignColumns: [users.instituteId, users.id],
       }),
-      check("allocations_manual_kind_check", sql`kind = 'to_cause'`),
+      check(
+        "allocations_shape_check",
+        sql`(kind = 'to_cause' and cause_id is not null and from_allocation_id is null and spending_entry_id is null and target_institute_id is null) or (kind = 'to_spending' and cause_id is not null and from_allocation_id is not null and spending_entry_id is not null and target_institute_id is null) or (kind = 'to_institute' and target_institute_id is not null and cause_id is null and from_allocation_id is null and spending_entry_id is null)`,
+      ),
+      check(
+        "allocations_reversal_check",
+        sql`is_reversal = (reverses_allocation_id is not null) and (reason is null) = (not is_reversal) and (reason is null or (length(reason) between 1 and 500 and reason = btrim(reason)))`,
+      ),
       check(
         "allocations_type_check",
         sql`donation_type in ('zakat', 'sadaqah', 'general')`,
@@ -1240,10 +1273,17 @@ export const trailEvents = app
         .references(() => institutes.id),
       donationId: uuid("donation_id").notNull(),
       eventType: text("event_type").notNull(),
-      creditedOn: date("credited_on").notNull(),
+      occurredOn: date("occurred_on").notNull(),
       amountPaisa: bigint("amount_paisa", { mode: "bigint" }).notNull(),
       causeId: uuid("cause_id"),
       allocationId: uuid("allocation_id"),
+      // Foreign keys added with spending_entries and spending_reports
+      // (P2-E1-T40).
+      spendingEntryId: uuid("spending_entry_id"),
+      spendingReportId: uuid("spending_report_id"),
+      reversesEventId: bigint("reverses_event_id", { mode: "bigint" }),
+      reason: text(),
+      details: jsonb().default({}).notNull(),
       recordedBy: uuid("recorded_by").notNull(),
       recordedAt: timestamp("recorded_at", { withTimezone: true })
         .defaultNow()
@@ -1257,6 +1297,11 @@ export const trailEvents = app
         .on(table.instituteId, table.donationId)
         .where(sql`event_type = 'received'`),
       unique().on(table.instituteId, table.allocationId),
+      unique().on(table.instituteId, table.reversesEventId),
+      foreignKey({
+        columns: [table.instituteId, table.reversesEventId],
+        foreignColumns: [table.instituteId, table.id],
+      }),
       index("trail_events_donation_index").on(
         table.instituteId,
         table.donationId,
@@ -1280,9 +1325,14 @@ export const trailEvents = app
       }),
       check("trail_events_amount_check", sql`amount_paisa > 0`),
       check(
-        "trail_events_manual_shape_check",
-        sql`(event_type = 'received' and cause_id is null and allocation_id is null) or (event_type = 'allocated' and cause_id is not null and allocation_id is not null)`,
+        "trail_events_shape_check",
+        sql`(event_type = 'received' and cause_id is null and allocation_id is null and spending_entry_id is null and spending_report_id is null and reverses_event_id is null) or (event_type = 'allocated' and allocation_id is not null and spending_entry_id is null and spending_report_id is null and reverses_event_id is null) or (event_type = 'spent' and cause_id is not null and allocation_id is not null and spending_entry_id is not null and spending_report_id is null and reverses_event_id is null) or (event_type = 'reported' and cause_id is null and allocation_id is null and spending_entry_id is null and spending_report_id is not null and reverses_event_id is null) or (event_type = 'reversal' and reverses_event_id is not null and spending_report_id is null)`,
       ),
+      check(
+        "trail_events_reason_check",
+        sql`(reason is null) = (event_type <> 'reversal') and (reason is null or (length(reason) between 1 and 500 and reason = btrim(reason)))`,
+      ),
+      check("trail_events_details_check", sql`jsonb_typeof(details) = 'object'`),
       manualDonationIsolation(),
     ],
   )

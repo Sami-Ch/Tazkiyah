@@ -36,7 +36,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-TRL-011 A spending entry records amount, date, description and an optional receipt or photo. MUST → 06 §9
 - [ ] REQ-TRL-012 Admin can publish a daily or weekly report that groups spending entries. SHOULD → 06 §9
 - [ ] REQ-TRL-013 Admin can see the unspent balance of each cause. MUST → 06 §9
-- [ ] REQ-TRL-014 The allocation model can record a future transfer from a platform fund to an institute without a schema change. MUST → 04 §9
+- [x] REQ-TRL-014 The allocation model can record a future transfer from a platform fund to an institute without a schema change. MUST → 04 §9
 
 ## Donor profiles
 

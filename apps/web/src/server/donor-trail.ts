@@ -13,7 +13,7 @@ type TrailRow = Cursor & {
   status: "recorded" | "reversed";
   events: {
     event_type: "received" | "allocated";
-    credited_on: string;
+    occurred_on: string;
     amount_paisa: string;
     cause_title: LocalizedText | null;
   }[];

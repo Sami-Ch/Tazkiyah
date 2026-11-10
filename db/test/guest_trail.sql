@@ -143,8 +143,8 @@ begin
     select * from identity.read_guest_trail(live_hash, cursor_at, cursor_id)
   ) trail where receipt_number = first_receipt;
   assert result.events = jsonb_build_array(
-    jsonb_build_object('event_type', 'received', 'credited_on', today::text, 'amount_paisa', '10000', 'cause_title', null),
-    jsonb_build_object('event_type', 'allocated', 'credited_on', today::text, 'amount_paisa', '10000',
+    jsonb_build_object('event_type', 'received', 'occurred_on', today::text, 'amount_paisa', '10000', 'cause_title', null),
+    jsonb_build_object('event_type', 'allocated', 'occurred_on', today::text, 'amount_paisa', '10000',
       'cause_title', '{"en":"Books","ur":"کتب"}'::jsonb)
   ), 'Trail events lost exact values or included unintended fields';
   assert row_to_json(result)::text !~ '(private-ref|private-bank|example.test|donor_id|recorded_by|token_hash)',

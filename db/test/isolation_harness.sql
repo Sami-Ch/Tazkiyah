@@ -108,6 +108,45 @@ end
 $fixture$;
 reset role;
 set local role tazkiyah_schema_owner;
+-- A spend from the cause allocation and its reversal, with their trail events,
+-- so the source, reversed-allocation and reversed-event keys have rows.
+-- spending_entries arrives in P2-E1-T40; until then the entry id is bare.
+do $fixture$
+declare
+  given record;
+  spend_id uuid;
+  spent_event bigint;
+  reversal_id uuid;
+begin
+  for given in
+    select a.institute_id, a.id, a.donation_id, a.cause_id, a.created_by, a.donation_type
+    from app.allocations a
+    where a.institute_id in ('14000000-0000-4000-8000-000000000001', '14000000-0000-4000-8000-000000000002')
+      and a.kind = 'to_cause'
+  loop
+    insert into app.allocations (institute_id, kind, donation_id, donation_type, from_allocation_id,
+      cause_id, spending_entry_id, amount_paisa, created_by)
+    values (given.institute_id, 'to_spending', given.donation_id, given.donation_type, given.id,
+      given.cause_id, '14000000-0000-4000-8000-000000000601', 1000, given.created_by)
+    returning id into spend_id;
+    insert into app.trail_events (institute_id, donation_id, event_type, occurred_on, amount_paisa,
+      cause_id, allocation_id, spending_entry_id, recorded_by)
+    values (given.institute_id, given.donation_id, 'spent', current_date, 1000, given.cause_id, spend_id,
+      '14000000-0000-4000-8000-000000000601', given.created_by)
+    returning id into spent_event;
+    insert into app.allocations (institute_id, kind, donation_id, donation_type, from_allocation_id,
+      cause_id, spending_entry_id, amount_paisa, is_reversal, reverses_allocation_id, reason, created_by)
+    values (given.institute_id, 'to_spending', given.donation_id, given.donation_type, given.id,
+      given.cause_id, '14000000-0000-4000-8000-000000000601', 1000, true, spend_id,
+      'Fixture correction', given.created_by)
+    returning id into reversal_id;
+    insert into app.trail_events (institute_id, donation_id, event_type, occurred_on, amount_paisa,
+      cause_id, allocation_id, spending_entry_id, reverses_event_id, reason, recorded_by)
+    values (given.institute_id, given.donation_id, 'reversal', current_date, 1000, given.cause_id,
+      reversal_id, '14000000-0000-4000-8000-000000000601', spent_event, 'Fixture correction', given.created_by);
+  end loop;
+end
+$fixture$;
 update app.receipt_email_jobs j set trail_link_id = l.id
 from app.trail_links l
 where l.institute_id = j.institute_id and l.donor_id = j.donor_id and l.revoked_at is null;
@@ -149,6 +188,9 @@ begin
   end loop;
 end
 $coverage$;
+
+-- Run the deferred ledger checks now, so the triggers can be switched off below.
+set constraints all immediate;
 
 -- 4: a row in A cannot point at a row in B through any composite foreign key.
 do $foreign_keys$

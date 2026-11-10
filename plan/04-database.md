@@ -793,6 +793,8 @@ Both are append-only. The definer functions that write allocations always write 
 - Effective `to_spending` total per source allocation ≤ that allocation's amount.
 - Effective `to_spending` total per spending entry ≤ `spending_entries.amount_paisa`.
 
+The per-spending-entry check and the `spending_entry_id` foreign key arrive with `spending_entries` (P2-E1-T40). A reversed `to_cause` row counts as zero, so it cannot be reversed while money spent from it remains.
+
 "Effective" means original rows minus rows that have a reversal. View `app.allocations_effective` gives these, and `app.allocation_balances` gives the unspent amount of each `to_cause` row. Partial reversal is not allowed: reverse the whole row and allocate again.
 
 ### 9.3 FIFO matching
@@ -889,13 +891,13 @@ From there, FIFO in the madrasa works as for any donation. Turning this on needs
 | `institute_id` | `uuid not null` | `unique (institute_id, id)`. |
 | `donation_id` | `uuid not null` | |
 | `event_type` | `text not null` | `received`, `allocated`, `spent`, `reported`, `reversal` (REQ-TRL-001). |
-| `occurred_at` | `timestamptz not null` | When it happened (bank date, spending date). |
+| `occurred_on` | `date not null` | When it happened: the bank credit date or the spending date ([D-120](08-decision-log.md#d-120)). |
 | `recorded_at`, `recorded_by` | | When it was entered. |
 | `amount_paisa` | `bigint not null` | `> 0`. |
 | `cause_id` | `uuid null` | For `allocated` and `spent`. |
 | `allocation_id` | `uuid null` | For `allocated` and `spent`. |
-| `spending_entry_id` | `uuid null` | For `spent`. |
-| `spending_report_id` | `uuid null` | For `reported`. |
+| `spending_entry_id` | `uuid null` | For `spent`. Its foreign key comes with `spending_entries` (P2-E1-T40). |
+| `spending_report_id` | `uuid null` | For `reported`. Its foreign key comes with `spending_reports` (P2-E1-T40). |
 | `reverses_event_id` | `bigint null` | Required when `event_type = 'reversal'`, null otherwise. `unique`: an event is reversed once. Must point at an event of the same donation that is not itself a reversal. |
 | `reason` | `text null` | Required for reversals. |
 | `details` | `jsonb not null default '{}'` | Extra display data, for example `{"report_period":"2026-W45"}`. Never names. |
@@ -1319,7 +1321,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P1-E2-T40 | Create `causes` with type, campaign dates, target, `accepts_zakat`, scholar name, status, project flag, bilingual fields, RLS and audit | done | P0-E2-T07, P0-E2-T09, P0-E2-T11 | REQ-DON-005, REQ-DON-006, REQ-DON-007, REQ-DON-009, REQ-DON-013, REQ-DON-014, REQ-ROL-005 |
 | P1-E3-T40 | Create `donors` with guest fields, private and public profile fields, RLS and audit redaction | done | P0-E2-T08, P0-E2-T11 | REQ-DPR-001, REQ-DPR-009 |
 | P1-E3-T41 | Create `donations` and `receipt_counters`, `app.next_receipt_number()`, the column-lock trigger, campaign end-date check and bank-reference guard | done | P1-E3-T40, P1-E2-T40 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-006, REQ-DON-008, REQ-DON-010, REQ-PAY-001 |
-| P1-E3-T42 | Create `allocations` and `trail_events` with shape checks, deferred sum checks, reversal uniqueness and append-only guards; run the test kit on both | todo | P1-E3-T41, P0-E2-T16 | REQ-TRL-001, REQ-TRL-002, REQ-TRL-003, REQ-TRL-014 |
+| P1-E3-T42 | Create `allocations` and `trail_events` with shape checks, deferred sum checks, reversal uniqueness and append-only guards; run the test kit on both | done | P1-E3-T41, P0-E2-T16 | REQ-TRL-001, REQ-TRL-002, REQ-TRL-003, REQ-TRL-014 |
 | P1-E3-T43 | Write `app.record_donation()`: donation, received event, cause allocation and allocated event in one transaction | todo | P1-E3-T42 | REQ-DON-008, REQ-TRL-001, REQ-PAY-001 |
 | P1-E3-T44 | Create `trail_links` and the issue, `use_trail_token` and revoke functions, with RLS through the trail donor | todo | P1-E3-T40, P0-E2-T05 | REQ-SEC-004, REQ-DPR-002, REQ-SEC-005 |
 | P1-E3-T45 | Write the donation reversal function (reversal events and allocation reversals; refuse while spent allocations remain) | todo | P1-E3-T43 | REQ-DON-012, REQ-TRL-003 |
@@ -1349,6 +1351,8 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P4-E1-T40 | Create `sponsorships` and `sponsorship_updates` and `app.sponsor_child_view` (persona, age, updates) | todo | P3-E1-T41, P1-E3-T41 | REQ-ORP-001, REQ-ORP-002, REQ-ORP-008, REQ-ORP-009 |
 | P4-E2-T40 | Add the `orphan_full_profile` sign-off, assignment and withdrawal functions and full-profile gating in the sponsor view | todo | P4-E1-T40, P3-E2-T40 | REQ-ORP-003, REQ-ORP-004, REQ-ORP-005, REQ-ORP-006 |
 | P4-E3-T40 | Create `sponsor_messages` with RLS and no child-facing path | todo | P4-E1-T40 | REQ-ORP-007 |
+
+2026-11-10 · P1-E3-T42: [`0024_ledger_shapes.sql`](../db/drizzle/0024_ledger_shapes.sql) gives `allocations` all three kinds with one shape check, `from_allocation_id`, `spending_entry_id`, `target_institute_id` (single-column), `is_reversal`, `reverses_allocation_id` (unique) and `reason`. A row trigger keeps the type equal to the donation's, makes a reversal mirror its original, ties a spend to a `to_cause` row of the same donation and cause, and allows `to_institute` only from a `platform_fund` institute to another institute (REQ-TRL-014). The deferred sum check locks the donation row and caps effective `to_cause` and `to_institute` money per donation and effective spends per source allocation. `trail_events` gets all five event types with one shape check, `spending_entry_id`, `spending_report_id`, `reverses_event_id` (unique), `reason` and `details`, and `credited_on` becomes `occurred_on`. A row trigger checks each event against its allocation (same donation, cause, amount and matching kind), a `received` event against the donation amount, and a reversal against an earlier non-reversal event of the same donation. The append-only triggers were already on both tables. The public cause totals and the guest trail now leave out reversed rows. Tests: [`db/test/ledger.sql`](../db/test/ledger.sql), which includes the append-only kit for both runtime roles and the owner; the isolation harness has a spend and its reversal per institute.
 
 2026-11-10 · P1-E3-T41: `donations`, `receipt_counters` and the bank-reference index came from the manual recording work ([`0009_manual_donations.sql`](../db/drizzle/0009_manual_donations.sql)). [`0023_donations_spec.sql`](../db/drizzle/0023_donations_spec.sql) closes the gaps against §8.3: `public_ref` (10 random base32 characters from `app.new_public_ref()`), `amount_minor`, `currency char(3)`, `fx_rate`, `gateway_payment_id` (unique), `source_allocation_id` (single-column foreign key, exempt in the catalog test), `trail_public` and `private_note`. `donor_id` is now required: a transfer with no known donor gets its own donor row with no email, and the migration backfills one per existing unknown donation. `bank_account_id` and `bank_reference` may be null for future methods, but a check requires both for a bank transfer. Triggers: the column lock (only `is_anonymous`, `trail_public` and `status` from `recorded` to `reversed` may change; no delete or truncate), and the cause rules on every insert (active cause, campaign `credited_on <= ends_on`, Zakat only to `accepts_zakat`). `app.next_receipt_number(year)` draws gap-free numbers per institute and year, and only definer functions can call it; `identity.record_manual_donation` now uses it. The built column names `credited_on` and `receipt_locale` stay ([D-120](08-decision-log.md#d-120)). `sponsorship_id` comes with `sponsorships` in P4-E1-T40, and `pledge_id` with P1-E3-T47. Tests: [`db/test/donations.sql`](../db/test/donations.sql).
 
