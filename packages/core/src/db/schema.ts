@@ -2196,3 +2196,252 @@ export const consentRecords = app
     ],
   )
   .enableRLS();
+
+// Who may start or read a thread or post in a scope (04 §11.4). Students post
+// as their persona when the student hub is on; teachers and admins post under
+// their own name. Editors and finance officers do not post (07 §4.6).
+const hubAuthorCheck = sql`(
+  author_persona_id = (select app.current_persona_id()) and author_user_id is null
+  and (select app.module_enabled('student_hub'))
+  and ((scope = 'class' and app.is_class_member(class_id)) or scope = 'madrasa')
+) or (
+  author_user_id = (select app.current_user_id()) and author_persona_id is null
+  and ((scope = 'class' and (app.is_class_teacher(class_id) or (select app.has_role('admin'))))
+    or (scope = 'madrasa' and ((select app.has_role('teacher')) or (select app.has_role('admin')))
+      and (select app.module_enabled('teacher_hub'))))
+)`;
+
+// A conversation in the hub: a first post and its replies (04 §11.1).
+export const threads = app
+  .table(
+    "threads",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      classId: uuid("class_id"),
+      scope: text().notNull(),
+      title: text(),
+      language: text().notNull(),
+      authorPersonaId: uuid("author_persona_id"),
+      authorUserId: uuid("author_user_id"),
+      firstPostId: uuid("first_post_id"),
+      lastPostAt: timestamp("last_post_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+      replyCount: integer("reply_count").default(0).notNull(),
+      lockedAt: timestamp("locked_at", { withTimezone: true }),
+      lockedBy: uuid("locked_by"),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table): PgTableExtraConfigValue[] => [
+      unique().on(table.instituteId, table.id),
+      index("threads_class_recent").on(
+        table.instituteId,
+        table.classId,
+        table.lastPostAt.desc(),
+      ),
+      index("threads_scope_recent").on(
+        table.instituteId,
+        table.scope,
+        table.lastPostAt.desc(),
+      ),
+      index("threads_author_persona").on(
+        table.instituteId,
+        table.authorPersonaId,
+      ),
+      index("threads_author_user").on(table.instituteId, table.authorUserId),
+      index("threads_first_post").on(table.instituteId, table.firstPostId),
+      index("threads_locked_by").on(table.instituteId, table.lockedBy),
+      foreignKey({
+        columns: [table.instituteId, table.classId],
+        foreignColumns: [classes.instituteId, classes.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.authorPersonaId],
+        foreignColumns: [personas.instituteId, personas.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.authorUserId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.firstPostId],
+        foreignColumns: [posts.instituteId, posts.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.lockedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "threads_scope_check",
+        sql`scope in ('class', 'madrasa', 'public', 'community') and (scope <> 'class' or class_id is not null)`,
+      ),
+      check(
+        "threads_author_check",
+        sql`(author_persona_id is null) <> (author_user_id is null)`,
+      ),
+      check(
+        "threads_title_check",
+        sql`title is null or (length(title) between 1 and 200 and title ~ '[^[:space:]]')`,
+      ),
+      check("threads_language_check", sql`language ~ '^[a-z]{2,3}$'`),
+      check(
+        "threads_lock_check",
+        sql`(locked_at is null) = (locked_by is null) and reply_count >= 0`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("threads_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin'))
+          or author_persona_id = (select app.current_persona_id())
+          or author_user_id = (select app.current_user_id())
+          or (scope = 'class' and app.is_class_member(class_id))
+          or (scope in ('madrasa', 'public') and (select app.is_member()))`,
+      }),
+      pgPolicy("threads_start", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`scope in ('class', 'madrasa') and ${hubAuthorCheck}`,
+      }),
+    ],
+  )
+  .enableRLS();
+
+// One item in a thread (04 §11.2). Moderation transitions, hiding, taking
+// down and verification arrive with P3-E5-T40 and P3-E6-T40.
+export const posts = app
+  .table(
+    "posts",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      threadId: uuid("thread_id").notNull(),
+      parentPostId: uuid("parent_post_id"),
+      postType: text("post_type").notNull(),
+      language: text().notNull(),
+      title: text(),
+      body: text(),
+      scope: text().notNull(),
+      classId: uuid("class_id"),
+      moderationState: text("moderation_state").default("published").notNull(),
+      authorPersonaId: uuid("author_persona_id"),
+      authorUserId: uuid("author_user_id"),
+      publishedAt: timestamp("published_at", { withTimezone: true }),
+      pollClosesAt: timestamp("poll_closes_at", { withTimezone: true }),
+      pollMultiple: boolean("poll_multiple").default(false).notNull(),
+      editedAt: timestamp("edited_at", { withTimezone: true }),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table): PgTableExtraConfigValue[] => [
+      unique().on(table.instituteId, table.id),
+      index("posts_thread").on(
+        table.instituteId,
+        table.threadId,
+        table.createdAt,
+      ),
+      index("posts_public_recent")
+        .on(table.instituteId, table.publishedAt.desc())
+        .where(sql`scope = 'public' and moderation_state = 'published'`),
+      index("posts_author_persona").on(
+        table.instituteId,
+        table.authorPersonaId,
+      ),
+      index("posts_author_user").on(table.instituteId, table.authorUserId),
+      index("posts_parent").on(table.instituteId, table.parentPostId),
+      index("posts_class").on(table.instituteId, table.classId),
+      index("posts_approval_queue")
+        .on(table.instituteId, table.moderationState)
+        .where(sql`moderation_state in ('submitted', 'approved')`),
+      foreignKey({
+        columns: [table.instituteId, table.threadId],
+        foreignColumns: [threads.instituteId, threads.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.parentPostId],
+        foreignColumns: [table.instituteId, table.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.classId],
+        foreignColumns: [classes.instituteId, classes.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.authorPersonaId],
+        foreignColumns: [personas.instituteId, personas.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.authorUserId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "posts_type_check",
+        sql`post_type in ('message', 'question', 'answer', 'poll', 'article', 'video', 'vlog', 'audio', 'slides')`,
+      ),
+      check("posts_language_check", sql`language ~ '^[a-z]{2,3}$'`),
+      check(
+        "posts_text_check",
+        sql`(title is null or (length(title) between 1 and 200 and title ~ '[^[:space:]]'))
+          and (body is null or body ~ '[^[:space:]]')
+          and (post_type <> 'article' or title is not null)`,
+      ),
+      check(
+        "posts_scope_check",
+        sql`scope in ('class', 'madrasa', 'public', 'community') and (scope <> 'class' or class_id is not null)`,
+      ),
+      check(
+        "posts_state_check",
+        sql`moderation_state in ('draft', 'submitted', 'approved', 'published', 'taken_down')`,
+      ),
+      check(
+        "posts_author_check",
+        sql`(author_persona_id is null) <> (author_user_id is null)`,
+      ),
+      check(
+        "posts_poll_check",
+        sql`post_type = 'poll' or (poll_closes_at is null and not poll_multiple)`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("posts_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin'))
+          or (moderation_state <> 'taken_down' and (author_persona_id = (select app.current_persona_id())
+            or author_user_id = (select app.current_user_id())))
+          or (class_id is not null and app.is_class_teacher(class_id))
+          or (class_id is null and scope <> 'community' and (select app.has_role('teacher')))
+          or (moderation_state in ('published', 'submitted', 'approved')
+            and ((scope = 'class' and app.is_class_member(class_id))
+              or (scope in ('madrasa', 'public') and (select app.is_member()))))`,
+      }),
+      pgPolicy("posts_write", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`moderation_state in ('draft', 'published') and scope in ('class', 'madrasa') and ${hubAuthorCheck}`,
+      }),
+    ],
+  )
+  .enableRLS();

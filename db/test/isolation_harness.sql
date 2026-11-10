@@ -255,6 +255,30 @@ update app.consent_records c set principal_signed_by = c.recorded_by, principal_
   withdrawn_at = now(), withdrawn_by = c.recorded_by, withdrawal_reason = 'Fixture withdrawal'
 where c.id in ('14000000-0000-4000-8000-000000000901', '14000000-0000-4000-8000-000000000902');
 
+-- A class thread started by the student's persona with a teacher's reply, and
+-- a locked madrasa thread started by the teacher.
+insert into app.threads (id, institute_id, class_id, scope, title, language, author_persona_id)
+select ('14000000-0000-4000-8000-00000000091' || n.i)::uuid, l.institute_id,
+  ('14000000-0000-4000-8000-00000000080' || n.i)::uuid, 'class', n.mark || '-Thread', 'en', l.persona_id
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.persona_links l on l.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
+insert into app.posts (id, institute_id, thread_id, post_type, language, body, author_persona_id)
+select ('14000000-0000-4000-8000-00000000092' || n.i)::uuid, t.institute_id, t.id, 'question', 'en',
+  n.mark || '-Question', t.author_persona_id
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.threads t on t.id = ('14000000-0000-4000-8000-00000000091' || n.i)::uuid;
+insert into app.posts (institute_id, thread_id, parent_post_id, post_type, language, body, author_user_id)
+select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, ('14000000-0000-4000-8000-00000000091' || n.i)::uuid,
+  ('14000000-0000-4000-8000-00000000092' || n.i)::uuid, 'answer', 'en', n.mark || '-Answer',
+  ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+insert into app.threads (institute_id, scope, title, language, author_user_id)
+select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, 'madrasa', n.mark || '-Notice', 'en',
+  ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+update app.threads set locked_at = now(), locked_by = author_user_id
+where author_user_id in ('14000000-0000-4000-8000-000000000301', '14000000-0000-4000-8000-000000000302');
+
 -- Public trails, so public_api.public_trails has rows of both institutes.
 update app.donations set trail_public = true
 where institute_id in ('14000000-0000-4000-8000-000000000001', '14000000-0000-4000-8000-000000000002');
