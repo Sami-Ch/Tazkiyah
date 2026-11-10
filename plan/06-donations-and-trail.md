@@ -736,7 +736,7 @@ Automatic recurring payments are by card only and come in P5 (D-008, [§16](#16-
 
 - Every donation that reaches *received* gets one receipt number (REQ-DON-010). A *notified* donation never gets one.
 - Format: `{prefix}-{year}-{sequence}`, for example `MAA-2026-00042` (06-P12). The prefix is stored in institute settings (`MAA` for Markaz Al Azeem). The year is the year of recording. The sequence runs per institute per year and is 5 digits, extending past 99,999 if needed.
-- Numbers are given out in one transaction with the *received* event. Each number is used once. A number taken by a transaction that fails is skipped and logged, never reused.
+- Numbers are given out in one transaction with the *received* event. Each number is on one receipt only. A transaction that fails gives its number back, so the sequence has no gaps ([D-122](08-decision-log.md#d-122)).
 - A reversed donation keeps its number, marked **cancelled**. A re-recorded donation gets a new number, and its receipt says "Replaces receipt MAA-2026-00042".
 
 ### 14.2 Content

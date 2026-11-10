@@ -360,3 +360,9 @@ P1-E3-T42 applies the same reasoning to `trail_events`: its date column is `occu
 
 Who may issue (resend) and revoke a guest trail link? 05 §7.1, the permission matrix, says the finance officer and the admin. 06 §11.2 says a two-factor verified administrator during the first release. 04 §8.6 said admins, finance officers and the donor. The built functions keep the narrowest rule, a two-factor verified admin, and 04 now points here. Options: admin only (built); admin and finance officer (05); also the donor (old 04). Reason: widening who can hand out a link to someone's giving history is a privacy decision (00 §4 rule 8), and the matrix and the trail document disagree. **Sami to decide**; widening to finance officers needs only `identity.is_finance_session` in the two functions and the route gate in `auth.ts`.
 
+## D-122
+
+2026-11-10 · Build agent (P1-E3-T47) · Settles a difference between [06 §14.1](06-donations-and-trail.md#141-numbering) and [04 §8.3](04-database.md#83-donations)
+
+06 §14.1 says a receipt number taken by a transaction that fails is "skipped and logged, never reused". 04 §8.3 says the counter row is locked inside the recording transaction, so numbers are unique and gap-free per year. Since P1-E3-T41 and T43, the built rule is 04's: a failed recording rolls back its counter update, and the next donation takes the same number. No number is ever on two receipts, and a reversed donation keeps its number. 06 §14.1 now says the same. Options: gap-free under a lock (04); a sequence that skips numbers and logs the gap (06). Reason: a log written in the failing transaction rolls back with it, so "skipped and logged" cannot be done inside one transaction, and an unbroken sequence is easier to reconcile. Sami may reverse this.
+

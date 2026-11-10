@@ -147,6 +147,21 @@ begin
   end loop;
 end
 $fixture$;
+-- A pledge per institute and one payment linked to it (04 §8.8).
+insert into app.recurring_pledges (id, institute_id, donor_id, cause_id, donation_type, frequency,
+  amount_paisa, starts_on)
+select ('14000000-0000-4000-8000-00000000070' || n.i)::uuid, d.institute_id, d.donor_id, d.cause_id,
+  'general', 'monthly', 500000, current_date
+from (values (1), (2)) as n(i)
+cross join lateral (select * from app.donations
+  where institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid limit 1) d;
+insert into app.donations (institute_id, operation_id, bank_account_id, bank_reference, credited_on,
+  amount_minor, amount_paisa, donation_type, donor_id, pledge_id, receipt_number, receipt_locale, recorded_by)
+select p.institute_id, gen_random_uuid(), ('14000000-0000-4000-8000-00000000020' || n.i)::uuid,
+  n.mark || '-pledge-payment', current_date, 500000, 500000, 'general', p.donor_id, p.id,
+  n.mark || '-PLEDGE-1', 'en', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.recurring_pledges p on p.id = ('14000000-0000-4000-8000-00000000070' || n.i)::uuid;
 update app.receipt_email_jobs j set trail_link_id = l.id
 from app.trail_links l
 where l.institute_id = j.institute_id and l.donor_id = j.donor_id and l.revoked_at is null;

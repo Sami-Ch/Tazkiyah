@@ -1032,6 +1032,61 @@ export const donors = app
   )
   .enableRLS();
 
+// A promise to give each month or year until card payments arrive (04 §8.8,
+// 06 §13.1). Each payment is an ordinary donation linked by pledge_id.
+export const recurringPledges = app
+  .table(
+    "recurring_pledges",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      donorId: uuid("donor_id").notNull(),
+      causeId: uuid("cause_id"),
+      donationType: text("donation_type").notNull(),
+      frequency: text().notNull(),
+      amountPaisa: bigint("amount_paisa", { mode: "bigint" }).notNull(),
+      isAnonymous: boolean("is_anonymous").default(true).notNull(),
+      startsOn: date("starts_on").notNull(),
+      status: text().default("active").notNull(),
+      missedPeriods: smallint("missed_periods").default(0).notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+      cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    },
+    (table) => [
+      unique().on(table.instituteId, table.id),
+      index("recurring_pledges_donor").on(table.instituteId, table.donorId),
+      index("recurring_pledges_cause")
+        .on(table.instituteId, table.causeId)
+        .where(sql`cause_id is not null`),
+      foreignKey({
+        columns: [table.instituteId, table.donorId],
+        foreignColumns: [donors.instituteId, donors.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.causeId],
+        foreignColumns: [causes.instituteId, causes.id],
+      }),
+      check(
+        "recurring_pledges_type_check",
+        sql`donation_type in ('zakat', 'sadaqah', 'general') and frequency in ('monthly', 'yearly')`,
+      ),
+      check(
+        "recurring_pledges_amount_check",
+        sql`amount_paisa between 100 and 99999999999900 and amount_paisa % 100 = 0`,
+      ),
+      check(
+        "recurring_pledges_status_check",
+        sql`status in ('active', 'lapsed', 'cancelled') and (status = 'cancelled') = (cancelled_at is not null) and missed_periods >= 0`,
+      ),
+      manualDonationIsolation(),
+    ],
+  )
+  .enableRLS();
+
 export const receiptCounters = app
   .table(
     "receipt_counters",
@@ -1077,6 +1132,7 @@ export const donations = app
       donationType: text("donation_type").notNull(),
       donorId: uuid("donor_id").notNull(),
       causeId: uuid("cause_id"),
+      pledgeId: uuid("pledge_id"),
       gatewayPaymentId: text("gateway_payment_id"),
       // Single-column on purpose: a platform-fund allocation belongs to the
       // fund institute, not this one (04 §9.5).
@@ -1135,6 +1191,13 @@ export const donations = app
         columns: [table.instituteId, table.donorId],
         foreignColumns: [donors.instituteId, donors.id],
       }),
+      foreignKey({
+        columns: [table.instituteId, table.pledgeId],
+        foreignColumns: [recurringPledges.instituteId, recurringPledges.id],
+      }),
+      index("donations_pledge")
+        .on(table.instituteId, table.pledgeId)
+        .where(sql`pledge_id is not null`),
       foreignKey({
         columns: [table.instituteId, table.recordedBy],
         foreignColumns: [users.instituteId, users.id],

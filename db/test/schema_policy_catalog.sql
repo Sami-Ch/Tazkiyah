@@ -23,7 +23,7 @@ begin
     where n.nspname = 'app' and c.relkind in ('r', 'p')
   loop
     isolation_roles := array['tazkiyah_app'::regrole::oid];
-    if table_info.relname in ('allocations', 'donations', 'donors', 'receipt_counters', 'trail_events', 'trail_links', 'receipt_email_jobs') then
+    if table_info.relname in ('allocations', 'donations', 'donors', 'receipt_counters', 'recurring_pledges', 'trail_events', 'trail_links', 'receipt_email_jobs') then
       isolation_roles := array_append(isolation_roles, 'tazkiyah_auth'::regrole::oid);
     end if;
     assert table_info.tenant_column is not null, 'Missing tenant key on ' || table_info.relname;
