@@ -26,6 +26,15 @@ insert into app.donors (id, institute_id, email, legal_name, display_name, prefe
 values ('98000000-0000-4000-8000-000000000051', '98000000-0000-4000-8000-000000000001',
   'secret-donor@example.test', 'Secret Legal Name', 'Secret Display', 'en');
 
+insert into app.spending_entries (id, institute_id, cause_id, amount_paisa, spent_on, description, recorded_by, status)
+values
+  ('98000000-0000-4000-8000-000000000071', '98000000-0000-4000-8000-000000000001',
+    '98000000-0000-4000-8000-000000000041', 400000, current_date, '{"en":"Wheat"}',
+    '98000000-0000-4000-8000-000000000011', 'recorded'),
+  ('98000000-0000-4000-8000-000000000072', '98000000-0000-4000-8000-000000000001',
+    '98000000-0000-4000-8000-000000000041', 100000, current_date, '{"en":"Wheat"}',
+    '98000000-0000-4000-8000-000000000011', 'recorded');
+
 do $fixture$
 declare
   tenant constant uuid := '98000000-0000-4000-8000-000000000001';

@@ -35,6 +35,11 @@ values
     '92000000-0000-4000-8000-000000000031', 'd2', date '2026-11-02', 50000, 50000, 'zakat',
     '92000000-0000-4000-8000-000000000051', 'LEDA-2026-00002', 'en', '92000000-0000-4000-8000-000000000011');
 
+insert into app.spending_entries (id, institute_id, cause_id, amount_paisa, spent_on, description, recorded_by, status)
+values ('92000000-0000-4000-8000-000000000071', '92000000-0000-4000-8000-000000000001',
+  '92000000-0000-4000-8000-000000000041', 100000, date '2026-11-05', '{"en":"Wheat"}',
+  '92000000-0000-4000-8000-000000000011', 'recorded');
+
 -- Shorthand for allocation and event inserts in the checks below.
 create function pg_temp.place(p_donation uuid, p_kind text, p_type text, p_cause uuid, p_amount bigint,
   p_from uuid default null, p_spend uuid default null, p_reverses uuid default null)

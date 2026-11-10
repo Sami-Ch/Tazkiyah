@@ -1265,6 +1265,154 @@ export const donations = app
   )
   .enableRLS();
 
+// Daily or weekly spending reports (04 §9.7, D-013).
+export const spendingReports = app
+  .table(
+    "spending_reports",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      periodKind: text("period_kind").notNull(),
+      periodStart: date("period_start").notNull(),
+      periodEnd: date("period_end").notNull(),
+      title: localizedText().notNull(),
+      notes: localizedText(),
+      status: text().default("draft").notNull(),
+      publishedAt: timestamp("published_at", { withTimezone: true }),
+      publishedBy: uuid("published_by"),
+      createdBy: uuid("created_by").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table) => [
+      unique().on(table.instituteId, table.id),
+      index("spending_reports_period").on(
+        table.instituteId,
+        table.periodStart.desc(),
+      ),
+      index("spending_reports_published_by")
+        .on(table.instituteId, table.publishedBy)
+        .where(sql`published_by is not null`),
+      index("spending_reports_created_by").on(
+        table.instituteId,
+        table.createdBy,
+      ),
+      foreignKey({
+        columns: [table.instituteId, table.publishedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.createdBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "spending_reports_period_check",
+        sql`period_kind in ('daily', 'weekly', 'custom') and period_end >= period_start and (period_kind <> 'daily' or period_end = period_start)`,
+      ),
+      check(
+        "spending_reports_status_check",
+        sql`status in ('draft', 'published') and (status = 'published') = (published_at is not null) and (published_at is null) = (published_by is null)`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app", "tazkiyah_auth"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("spending_reports_staff_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or (select app.has_role('finance_officer'))`,
+      }),
+    ],
+  )
+  .enableRLS();
+
+// One recorded use of a cause's money (04 §9.7, REQ-TRL-011).
+export const spendingEntries = app
+  .table(
+    "spending_entries",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      causeId: uuid("cause_id").notNull(),
+      amountPaisa: bigint("amount_paisa", { mode: "bigint" }).notNull(),
+      spentOn: date("spent_on").notNull(),
+      description: localizedText().notNull(),
+      receiptMediaId: uuid("receipt_media_id"),
+      receiptPublic: boolean("receipt_public").default(true).notNull(),
+      reportId: uuid("report_id"),
+      status: text().default("draft").notNull(),
+      recordedBy: uuid("recorded_by").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table) => [
+      unique().on(table.instituteId, table.id),
+      index("spending_entries_cause").on(
+        table.instituteId,
+        table.causeId,
+        table.spentOn,
+      ),
+      index("spending_entries_report")
+        .on(table.instituteId, table.reportId)
+        .where(sql`report_id is not null`),
+      index("spending_entries_receipt")
+        .on(table.instituteId, table.receiptMediaId)
+        .where(sql`receipt_media_id is not null`),
+      index("spending_entries_recorded_by").on(
+        table.instituteId,
+        table.recordedBy,
+      ),
+      foreignKey({
+        columns: [table.instituteId, table.causeId],
+        foreignColumns: [causes.instituteId, causes.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.receiptMediaId],
+        foreignColumns: [mediaAssets.instituteId, mediaAssets.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.reportId],
+        foreignColumns: [spendingReports.instituteId, spendingReports.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.recordedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "spending_entries_amount_check",
+        sql`amount_paisa between 100 and 99999999999900 and amount_paisa % 100 = 0`,
+      ),
+      check(
+        "spending_entries_status_check",
+        sql`status in ('draft', 'recorded', 'reversed') and (status <> 'draft' or report_id is null)`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app", "tazkiyah_auth"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("spending_entries_staff_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or (select app.has_role('finance_officer'))`,
+      }),
+    ],
+  )
+  .enableRLS();
+
 export const allocations = app
   .table(
     "allocations",
@@ -1278,7 +1426,6 @@ export const allocations = app
       kind: text().default("to_cause").notNull(),
       donationType: text("donation_type").notNull(),
       fromAllocationId: uuid("from_allocation_id"),
-      // Foreign key added with spending_entries (P2-E1-T40).
       spendingEntryId: uuid("spending_entry_id"),
       // Single-column on purpose: the receiving institute is another tenant
       // (04 §9.5).
@@ -1317,6 +1464,10 @@ export const allocations = app
       foreignKey({
         columns: [table.instituteId, table.reversesAllocationId],
         foreignColumns: [table.instituteId, table.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.spendingEntryId],
+        foreignColumns: [spendingEntries.instituteId, spendingEntries.id],
       }),
       foreignKey({
         columns: [table.instituteId, table.causeId],
@@ -1358,8 +1509,6 @@ export const trailEvents = app
       amountPaisa: bigint("amount_paisa", { mode: "bigint" }).notNull(),
       causeId: uuid("cause_id"),
       allocationId: uuid("allocation_id"),
-      // Foreign keys added with spending_entries and spending_reports
-      // (P2-E1-T40).
       spendingEntryId: uuid("spending_entry_id"),
       spendingReportId: uuid("spending_report_id"),
       reversesEventId: bigint("reverses_event_id", { mode: "bigint" }),
@@ -1383,6 +1532,20 @@ export const trailEvents = app
         columns: [table.instituteId, table.reversesEventId],
         foreignColumns: [table.instituteId, table.id],
       }),
+      foreignKey({
+        columns: [table.instituteId, table.spendingEntryId],
+        foreignColumns: [spendingEntries.instituteId, spendingEntries.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.spendingReportId],
+        foreignColumns: [spendingReports.instituteId, spendingReports.id],
+      }),
+      index("trail_events_spending_entry")
+        .on(table.instituteId, table.spendingEntryId)
+        .where(sql`spending_entry_id is not null`),
+      index("trail_events_spending_report")
+        .on(table.instituteId, table.spendingReportId)
+        .where(sql`spending_report_id is not null`),
       index("trail_events_donation_index").on(
         table.instituteId,
         table.donationId,

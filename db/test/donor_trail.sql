@@ -25,6 +25,11 @@ insert into app.donors (id, institute_id, email, user_id, preferred_language) va
   ('97000000-0000-4000-8000-000000000052', '97000000-0000-4000-8000-000000000001', 'giver@example.test',
     '97000000-0000-4000-8000-000000000012', 'ur');
 
+insert into app.spending_entries (id, institute_id, cause_id, amount_paisa, spent_on, description, recorded_by, status)
+values ('97000000-0000-4000-8000-000000000071', '97000000-0000-4000-8000-000000000001',
+  '97000000-0000-4000-8000-000000000041', 200000, date '2026-11-07', '{"en":"Wheat, 30 maunds"}',
+  '97000000-0000-4000-8000-000000000011', 'recorded');
+
 do $fixture$
 declare
   tenant constant uuid := '97000000-0000-4000-8000-000000000001';

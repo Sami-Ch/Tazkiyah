@@ -110,40 +110,66 @@ reset role;
 set local role tazkiyah_schema_owner;
 -- A spend from the cause allocation and its reversal, with their trail events,
 -- so the source, reversed-allocation and reversed-event keys have rows.
--- spending_entries arrives in P2-E1-T40; until then the entry id is bare.
 do $fixture$
 declare
   given record;
   spend_id uuid;
   spent_event bigint;
   reversal_id uuid;
+  entry_id uuid;
+  report_id uuid;
+  n int := 0;
 begin
   for given in
     select a.institute_id, a.id, a.donation_id, a.cause_id, a.created_by, a.donation_type
     from app.allocations a
     where a.institute_id in ('14000000-0000-4000-8000-000000000001', '14000000-0000-4000-8000-000000000002')
       and a.kind = 'to_cause'
+    order by a.institute_id
   loop
+    -- A published report, a receipt upload and an entry in it.
+    n := n + 1;
+    insert into app.media_assets
+      (institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, width, height, status, uploaded_by)
+    values (given.institute_id, 'image', 'receipt', 'public',
+      given.institute_id || '/' || (array['ZZA', 'ZZB'])[n] || '-receipt.webp', 'image/webp', 1000, 96, 96,
+      'ready', given.created_by);
+    insert into app.spending_reports (institute_id, period_kind, period_start, period_end, title, created_by)
+    values (given.institute_id, 'daily', current_date, current_date,
+      jsonb_build_object('en', (array['ZZA', 'ZZB'])[n] || '-Report'), given.created_by)
+    returning id into report_id;
+    insert into app.spending_entries (institute_id, cause_id, amount_paisa, spent_on, description,
+      receipt_media_id, report_id, status, recorded_by)
+    select given.institute_id, given.cause_id, 100000, current_date,
+      jsonb_build_object('en', (array['ZZA', 'ZZB'])[n] || '-Wheat purchase'), m.id, report_id, 'recorded',
+      given.created_by
+    from app.media_assets m where m.institute_id = given.institute_id and m.purpose = 'receipt'
+    returning id into entry_id;
+    update app.spending_reports set status = 'published', published_at = now(), published_by = given.created_by
+    where id = report_id;
+    insert into app.trail_events (institute_id, donation_id, event_type, occurred_on, amount_paisa,
+      spending_report_id, recorded_by)
+    values (given.institute_id, given.donation_id, 'reported', current_date, 1000, report_id, given.created_by);
     insert into app.allocations (institute_id, kind, donation_id, donation_type, from_allocation_id,
       cause_id, spending_entry_id, amount_paisa, created_by)
     values (given.institute_id, 'to_spending', given.donation_id, given.donation_type, given.id,
-      given.cause_id, '14000000-0000-4000-8000-000000000601', 1000, given.created_by)
+      given.cause_id, entry_id, 1000, given.created_by)
     returning id into spend_id;
     insert into app.trail_events (institute_id, donation_id, event_type, occurred_on, amount_paisa,
       cause_id, allocation_id, spending_entry_id, recorded_by)
     values (given.institute_id, given.donation_id, 'spent', current_date, 1000, given.cause_id, spend_id,
-      '14000000-0000-4000-8000-000000000601', given.created_by)
+      entry_id, given.created_by)
     returning id into spent_event;
     insert into app.allocations (institute_id, kind, donation_id, donation_type, from_allocation_id,
       cause_id, spending_entry_id, amount_paisa, is_reversal, reverses_allocation_id, reason, created_by)
     values (given.institute_id, 'to_spending', given.donation_id, given.donation_type, given.id,
-      given.cause_id, '14000000-0000-4000-8000-000000000601', 1000, true, spend_id,
+      given.cause_id, entry_id, 1000, true, spend_id,
       'Fixture correction', given.created_by)
     returning id into reversal_id;
     insert into app.trail_events (institute_id, donation_id, event_type, occurred_on, amount_paisa,
       cause_id, allocation_id, spending_entry_id, reverses_event_id, reason, recorded_by)
     values (given.institute_id, given.donation_id, 'reversal', current_date, 1000, given.cause_id,
-      reversal_id, '14000000-0000-4000-8000-000000000601', spent_event, 'Fixture correction', given.created_by);
+      reversal_id, entry_id, spent_event, 'Fixture correction', given.created_by);
   end loop;
 end
 $fixture$;

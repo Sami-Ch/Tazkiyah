@@ -934,16 +934,16 @@ The same guard is on `allocations` and `audit_log`. Append-only test kit: as `ta
 | --- | --- | --- |
 | `id`, `institute_id` | | |
 | `cause_id` | `uuid not null` | |
-| `amount_paisa` | `bigint not null` | `> 0` (REQ-TRL-011). |
+| `amount_paisa` | `bigint not null` | `> 0`, whole rupees (REQ-TRL-011, 06 §9.1). |
 | `spent_on` | `date not null` | |
 | `description` | `localized_text not null` | One language is enough; the other falls back. |
-| `receipt_media_id` | `uuid null` | Receipt or photo (REQ-ROL-007). |
+| `receipt_media_id` | `uuid null` | Receipt or photo (REQ-ROL-007): a `media_assets` row with purpose `receipt`. One per entry for now ([D-124](08-decision-log.md#d-124)). |
 | `receipt_public` | `bool not null default true` | Admin can hide a receipt that shows a person. |
-| `report_id` | `uuid null` | |
-| `status` | `text not null default 'recorded'` | `recorded`, `reversed`. |
+| `report_id` | `uuid null` | Set only on a recorded or reversed entry. Fixed once the report is published. |
+| `status` | `text not null default 'draft'` | `draft`, `recorded`, `reversed` (06 §9.2). *Reported* is not a status: it is a recorded entry in a published report ([D-124](08-decision-log.md#d-124)). |
 | `recorded_by`, `created_at` | | |
 
-After the first allocation, only `description`, `receipt_media_id`, `receipt_public` and `report_id` may change. Amount, cause and date changes are reversals.
+A draft can change freely or be deleted, and is never matched. From `recorded` on ("Record batch"), only `description`, `receipt_media_id`, `receipt_public` and `report_id` may change, status moves only from `recorded` to `reversed`, and the row cannot be deleted. Amount, cause and date changes are reversals. Only a recorded entry of an active or closed cause can be matched, and its effective matches never exceed its amount.
 
 `spending_reports` groups entries into the daily or weekly report (D-013, REQ-TRL-012): `id`, `institute_id`, `period_kind` (`daily`, `weekly`, `custom`), `period_start date`, `period_end date`, `title localized_text`, `notes localized_text null`, `status` (`draft`, `published`), `published_at`, `published_by`. Publishing writes one `reported` trail event per donation touched by the report's entries.
 
@@ -1330,7 +1330,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P1-E3-T47 | Create `recurring_pledges` and add `donations.pledge_id` (§8.8) | done | P1-E3-T41 | REQ-DON-003 |
 | P1-E4-T40 | Create the `app.donor_trail` view for account and token donors, with share-per-spend columns | done | P1-E3-T43, P1-E3-T44 | REQ-TRL-007, REQ-DPR-010 |
 | P1-E5-T40 | Add the audit log filter indexes and an admin read view with actor names resolved and redaction kept | done | P0-E2-T11 | REQ-ROL-009, REQ-SEC-008 |
-| P2-E1-T40 | Create `spending_entries` and `spending_reports` with receipt link, column lock after matching, RLS and audit | todo | P1-E2-T40, P0-E2-T09 | REQ-TRL-011, REQ-TRL-012, REQ-ROL-007 |
+| P2-E1-T40 | Create `spending_entries` and `spending_reports` with receipt link, column lock after matching, RLS and audit | done | P1-E2-T40, P0-E2-T09 | REQ-TRL-011, REQ-TRL-012, REQ-ROL-007 |
 | P2-E2-T40 | Write `app.match_spending()` with the per-cause lock and FIFO walk; test it with the §9.3 worked example | todo | P2-E1-T40, P1-E3-T42 | REQ-TRL-004, REQ-TRL-005, REQ-TRL-007 |
 | P2-E2-T41 | Write spending reversal and re-match, and the `reported` events written when a report is published | todo | P2-E2-T40 | REQ-TRL-003, REQ-TRL-012 |
 | P2-E2-T42 | Create `allocations_effective`, `allocation_balances` and `cause_balances` views and the nightly allocation-to-event reconciliation query | todo | P2-E2-T40 | REQ-TRL-013 |
@@ -1352,6 +1352,8 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P4-E1-T40 | Create `sponsorships` and `sponsorship_updates` and `app.sponsor_child_view` (persona, age, updates) | todo | P3-E1-T41, P1-E3-T41 | REQ-ORP-001, REQ-ORP-002, REQ-ORP-008, REQ-ORP-009 |
 | P4-E2-T40 | Add the `orphan_full_profile` sign-off, assignment and withdrawal functions and full-profile gating in the sponsor view | todo | P4-E1-T40, P3-E2-T40 | REQ-ORP-003, REQ-ORP-004, REQ-ORP-005, REQ-ORP-006 |
 | P4-E3-T40 | Create `sponsor_messages` with RLS and no child-facing path | todo | P4-E1-T40 | REQ-ORP-007 |
+
+2026-11-10 · P2-E1-T40: [`0033_spending_entries.sql`](../db/drizzle/0033_spending_entries.sql) creates `spending_entries` and `spending_reports` with the §9.7 fields, composite keys to causes, receipts, reports and users, and an index on each. Entries are `draft`, `recorded` or `reversed`, following 06 §9.2 ([D-124](08-decision-log.md#d-124)): a draft can change or be deleted, while from `recorded` on only the text, receipt and report may change, and status only moves to `reversed`. An entry needs an active or closed cause, its photo must be a `receipt` upload, and a published report gains or loses no entries. Reports are `daily` (one date), `weekly` or `custom`. Publishing needs who and when, and after that the report cannot change or be deleted. `allocations_rules` now ties a spend to a recorded entry of the same cause, and the deferred sum check keeps an entry's effective matches within its amount. Both tables have the restrictive `iso` policy and a read policy for admins and finance officers on `tazkiyah_app`, with no write grants: writes go through the definer functions of P2-E1 and P2-E2. `audit_row_change` is attached to both. The donor trail's spending descriptions and the cause page's shortfalls need a donor-safe view of entries, which is `public_api.cause_spending` (P2-E6-T40), not this table. Tests: [`db/test/spending.sql`](../db/test/spending.sql); the isolation harness has a receipt, a published report and a recorded entry per institute, and the ledger fixtures now use real entries.
 
 2026-11-10 · P1-E5-T40: [`0031_audit_reader_view.sql`](../db/drizzle/0031_audit_reader_view.sql) adds the §13.1 indexes `audit_log_entity (institute_id, entity_table, entity_id)` and `audit_log_actor (institute_id, actor_user_id, occurred_at desc)`. `app.audit_entries` (security barrier, admin only, not granted to the runtime roles) resolves the actor's name only when the actor acted under a staff role, so a donor's name or a student's real name never appears (05 §9.2). It keeps the reader's redaction from [`0008_audit_reader.sql`](../db/drizzle/0008_audit_reader.sql): values only for approved fields, other changed fields counted as hidden. `identity.read_audit_log` reads from it, adds actor and record filters, and returns `actor_name` and `has_reason`. It never returns the reason text, because free text could hold a name ([D-123](08-decision-log.md#d-123)). Reversal categories (06 §15.2) are now an approved field, so the screen can say why a donation was reversed. Tests: [`db/test/audit_reader.sql`](../db/test/audit_reader.sql), including plan checks for both filters.
 

@@ -232,6 +232,13 @@
       "when": 1794291327193,
       "tag": "0032_guest_trail_reversal",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794291521236,
+      "tag": "0033_spending_entries",
+      "breakpoints": true
     }
   ]
 }

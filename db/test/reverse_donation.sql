@@ -25,6 +25,10 @@ values
     '{"en":"Gas"}', '{"en":"Gas"}', 'monthly', 'active');
 insert into app.donors (id, institute_id, preferred_language)
 values ('95000000-0000-4000-8000-000000000051', '95000000-0000-4000-8000-000000000001', 'en');
+insert into app.spending_entries (id, institute_id, cause_id, amount_paisa, spent_on, description, recorded_by, status)
+values ('95000000-0000-4000-8000-000000000071', '95000000-0000-4000-8000-000000000001',
+  '95000000-0000-4000-8000-000000000041', 100000, current_date, '{"en":"Wheat"}',
+  '95000000-0000-4000-8000-000000000011', 'recorded');
 
 do $test$
 declare

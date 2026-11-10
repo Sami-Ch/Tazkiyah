@@ -476,7 +476,7 @@ A spending entry records one use of money from one cause (REQ-TRL-011, REQ-ROL-0
 | Amount | yes | Whole rupees. |
 | Date | yes | The date of the purchase or payment, in Pakistan time. It can be in the past. |
 | Description | yes, in at least one language | Urdu or English, with the other language optional. A missing language falls back with a notice (REQ-LNG-009). Quantities go in the description, for example "Wheat, 25 maunds". |
-| Receipt or photo | no | One or more images, compressed on upload ([03 §8](03-architecture.md)). |
+| Receipt or photo | no | One image for now, compressed on upload ([03 §8](03-architecture.md)). More than one waits for Sami ([D-124](08-decision-log.md#d-124)). |
 | Receipt public | yes | Defaults to the cause's setting (06-P20). Can be changed per entry. |
 
 **Privacy check on the form.** The form shows a short reminder: "Do not write names of patients, children, or individual staff salaries." Descriptions are aggregated where they concern people, for example "March salaries, 8 staff".
@@ -505,7 +505,7 @@ A report groups recorded spending entries for one period, either a day or a week
 - A published report is never edited. Mistakes are fixed by reversal and appear in the next report.
 - Reports appear on each cause page and on a reports list. The pages are specified in [05 §5](05-public-pages-roles-admin.md).
 
-The table list has no home yet for a report as a group of entries. [04](04-database.md) needs to add one. This is noted in the final report to the main agent.
+Reports are stored in `spending_reports`, and an entry joins one through `spending_entries.report_id` ([04 §9.7](04-database.md#97-spending_entries-and-spending_reports)). *Reported* is not stored on the entry: a recorded entry is reported once its report is published ([D-124](08-decision-log.md#d-124)).
 
 ### 9.4 Figures for the admin and the public
 
