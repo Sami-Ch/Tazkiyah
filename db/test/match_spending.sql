@@ -167,5 +167,6 @@ begin
   perform app.match_spending(entry);
   assert (select donation_id from app.allocations where spending_entry_id = entry) = late,
     'the early gift split late was matched before the later direct gift';
+  assert not exists (select from app.allocation_event_gaps), 'an allocation lacks its one event';
 end
 $test$;
