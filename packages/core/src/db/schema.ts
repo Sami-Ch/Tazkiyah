@@ -2593,3 +2593,71 @@ export const pollVotes = app
     ],
   )
   .enableRLS();
+
+// Media attached to a post (04 §11.4, 07 §11). Read with the post; attached
+// by its author from their own uploads while the post is new or a draft;
+// removed by the post's teachers and admins (D-135).
+export const postMedia = app
+  .table(
+    "post_media",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      postId: uuid("post_id").notNull(),
+      mediaAssetId: uuid("media_asset_id").notNull(),
+      position: smallint().notNull(),
+    },
+    (table): PgTableExtraConfigValue[] => [
+      unique().on(table.instituteId, table.id),
+      unique("post_media_position").on(
+        table.instituteId,
+        table.postId,
+        table.position,
+      ),
+      index("post_media_asset").on(table.instituteId, table.mediaAssetId),
+      foreignKey({
+        columns: [table.instituteId, table.postId],
+        foreignColumns: [posts.instituteId, posts.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.mediaAssetId],
+        foreignColumns: [mediaAssets.instituteId, mediaAssets.id],
+      }),
+      check("post_media_position_check", sql`position between 1 and 20`),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("post_media_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`exists (select from app.posts p where p.id = post_id)`,
+      }),
+      pgPolicy("post_media_attach", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`exists (select from app.posts p where p.id = post_id
+            and (p.author_persona_id = (select app.current_persona_id())
+              or p.author_user_id = (select app.current_user_id()))
+            and (p.moderation_state = 'draft' or p.created_at = now()))
+          and exists (select from app.media_assets m where m.id = media_asset_id
+            and m.uploaded_by = (select app.current_user_id()))`,
+      }),
+      pgPolicy("post_media_remove", {
+        as: "permissive",
+        for: "delete",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or exists (select from app.posts p where p.id = post_id
+          and ((p.class_id is not null and app.is_class_teacher(p.class_id))
+            or (p.class_id is null and p.scope <> 'community' and (select app.has_role('teacher')))))`,
+      }),
+    ],
+  )
+  .enableRLS();
