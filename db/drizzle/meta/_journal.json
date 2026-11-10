@@ -288,6 +288,13 @@
       "when": 1794307245399,
       "tag": "0040_claim_donor_records",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794307440160,
+      "tag": "0041_donor_wall",
+      "breakpoints": true
     }
   ]
 }
