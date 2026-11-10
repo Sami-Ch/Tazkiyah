@@ -358,6 +358,13 @@
       "when": 1794325206517,
       "tag": "0050_verified_articles",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1794325503769,
+      "tag": "0051_sponsorships",
+      "breakpoints": true
     }
   ]
 }

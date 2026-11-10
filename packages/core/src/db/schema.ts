@@ -1166,6 +1166,7 @@ export const donations = app
       donorId: uuid("donor_id").notNull(),
       causeId: uuid("cause_id"),
       pledgeId: uuid("pledge_id"),
+      sponsorshipId: uuid("sponsorship_id"),
       gatewayPaymentId: text("gateway_payment_id"),
       // Single-column on purpose: a platform-fund allocation belongs to the
       // fund institute, not this one (04 §9.5).
@@ -1231,6 +1232,13 @@ export const donations = app
       index("donations_pledge")
         .on(table.instituteId, table.pledgeId)
         .where(sql`pledge_id is not null`),
+      index("donations_sponsorship")
+        .on(table.instituteId, table.sponsorshipId)
+        .where(sql`sponsorship_id is not null`),
+      foreignKey({
+        columns: [table.instituteId, table.sponsorshipId],
+        foreignColumns: [sponsorships.instituteId, sponsorships.id],
+      }),
       foreignKey({
         columns: [table.instituteId, table.recordedBy],
         foreignColumns: [users.instituteId, users.id],
@@ -2839,6 +2847,174 @@ export const postReports = app
         to: ["tazkiyah_app"],
         using: sql`app.moderates_post(post_id)`,
         withCheck: sql`app.moderates_post(post_id)`,
+      }),
+    ],
+  )
+  .enableRLS();
+
+// Orphan sponsorship (04 §10.3, 06 §12, D-017). An admin matches an account
+// donor to an orphan, known only by persona. The sponsor, the child's
+// teachers and admins read it; the child never does (REQ-ORP-007).
+export const sponsorships = app
+  .table(
+    "sponsorships",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      sponsorDonorId: uuid("sponsor_donor_id").notNull(),
+      childPersonaId: uuid("child_persona_id").notNull(),
+      causeId: uuid("cause_id").notNull(),
+      status: text().default("active").notNull(),
+      startedOn: date("started_on")
+        .default(sql`(now() at time zone 'Asia/Karachi')::date`)
+        .notNull(),
+      endedOn: date("ended_on"),
+      matchedBy: uuid("matched_by").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table): PgTableExtraConfigValue[] => [
+      unique().on(table.instituteId, table.id),
+      uniqueIndex("sponsorships_one_per_child")
+        .on(table.instituteId, table.childPersonaId)
+        .where(sql`status <> 'ended'`),
+      index("sponsorships_child").on(table.instituteId, table.childPersonaId),
+      index("sponsorships_sponsor").on(table.instituteId, table.sponsorDonorId),
+      index("sponsorships_cause").on(table.instituteId, table.causeId),
+      index("sponsorships_matched_by").on(table.instituteId, table.matchedBy),
+      foreignKey({
+        columns: [table.instituteId, table.sponsorDonorId],
+        foreignColumns: [donors.instituteId, donors.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.childPersonaId],
+        foreignColumns: [personas.instituteId, personas.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.causeId],
+        foreignColumns: [causes.instituteId, causes.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.matchedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "sponsorships_status_check",
+        sql`status in ('active', 'paused', 'ended') and (status = 'ended') = (ended_on is not null)
+          and (ended_on is null or ended_on >= started_on)`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("sponsorships_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or sponsor_donor_id = (select app.my_account_donor_id())
+          or app.teaches_persona(child_persona_id)`,
+      }),
+      pgPolicy("sponsorships_admin_insert", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`(select app.has_role('admin'))`,
+      }),
+      pgPolicy("sponsorships_admin_update", {
+        as: "permissive",
+        for: "update",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin'))`,
+        withCheck: sql`(select app.has_role('admin'))`,
+      }),
+    ],
+  )
+  .enableRLS();
+
+// Progress updates about a sponsored child (04 §10.3, 06 §12.3,
+// REQ-ORP-008). Written by an admin or a teacher of the child; a teacher's
+// update waits for an admin to publish it. Active sponsors of the child read
+// published updates that are not hidden.
+export const sponsorshipUpdates = app
+  .table(
+    "sponsorship_updates",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      childPersonaId: uuid("child_persona_id").notNull(),
+      body: localizedText("body").notNull(),
+      mediaId: uuid("media_id"),
+      authorUserId: uuid("author_user_id").notNull(),
+      publishedAt: timestamp("published_at", { withTimezone: true }),
+      hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table): PgTableExtraConfigValue[] => [
+      unique().on(table.instituteId, table.id),
+      index("sponsorship_updates_child").on(
+        table.instituteId,
+        table.childPersonaId,
+        table.publishedAt.desc(),
+      ),
+      index("sponsorship_updates_media")
+        .on(table.instituteId, table.mediaId)
+        .where(sql`media_id is not null`),
+      index("sponsorship_updates_author").on(
+        table.instituteId,
+        table.authorUserId,
+      ),
+      foreignKey({
+        columns: [table.instituteId, table.childPersonaId],
+        foreignColumns: [personas.instituteId, personas.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.mediaId],
+        foreignColumns: [mediaAssets.instituteId, mediaAssets.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.authorUserId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("sponsorship_updates_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or app.teaches_persona(child_persona_id)
+          or (published_at is not null and hidden_at is null and exists (select from app.sponsorships s
+            where s.child_persona_id = sponsorship_updates.child_persona_id and s.status = 'active'
+              and s.sponsor_donor_id = (select app.my_account_donor_id())))`,
+      }),
+      pgPolicy("sponsorship_updates_write", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`author_user_id = (select app.current_user_id())
+          and ((select app.has_role('admin')) or app.teaches_persona(child_persona_id))`,
+      }),
+      pgPolicy("sponsorship_updates_edit", {
+        as: "permissive",
+        for: "update",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin'))
+          or (author_user_id = (select app.current_user_id()) and published_at is null)`,
+        withCheck: sql`true`,
       }),
     ],
   )

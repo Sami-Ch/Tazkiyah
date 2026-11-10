@@ -255,6 +255,37 @@ update app.consent_records c set principal_signed_by = c.recorded_by, principal_
   withdrawn_at = now(), withdrawn_by = c.recorded_by, withdrawal_reason = 'Fixture withdrawal'
 where c.id in ('14000000-0000-4000-8000-000000000901', '14000000-0000-4000-8000-000000000902');
 
+-- The student is an orphan sponsored by the account donor, with a gift linked
+-- to the sponsorship and a progress update with a photo.
+update app.users u set is_orphan = true, date_of_birth = date '2014-03-01'
+from app.persona_links l where l.institute_id = u.institute_id and l.user_id = u.id
+  and l.institute_id in ('14000000-0000-4000-8000-000000000001', '14000000-0000-4000-8000-000000000002');
+insert into app.sponsorships (id, institute_id, sponsor_donor_id, child_persona_id, cause_id, matched_by)
+select ('14000000-0000-4000-8000-00000000095' || n.i)::uuid, d.institute_id, d.id, l.persona_id,
+  ('14000000-0000-4000-8000-00000000050' || n.i)::uuid, ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.donors d on d.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid
+join app.persona_links l on l.institute_id = d.institute_id;
+insert into app.donations (institute_id, operation_id, bank_account_id, bank_reference, credited_on,
+  amount_minor, amount_paisa, donation_type, donor_id, cause_id, sponsorship_id, receipt_number, receipt_locale,
+  recorded_by)
+select s.institute_id, gen_random_uuid(), ('14000000-0000-4000-8000-00000000020' || n.i)::uuid,
+  n.mark || '-sponsorship-gift', current_date, 300000, 300000, 'general', s.sponsor_donor_id, s.cause_id, s.id,
+  n.mark || '-SPONSOR-1', 'en', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.sponsorships s on s.id = ('14000000-0000-4000-8000-00000000095' || n.i)::uuid;
+insert into app.media_assets
+  (id, institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, status, uploaded_by)
+select ('14000000-0000-4000-8000-00000000096' || n.i)::uuid, ('14000000-0000-4000-8000-00000000000' || n.i)::uuid,
+  'image', 'sponsorship_update', 'private', '14000000-0000-4000-8000-00000000000' || n.i || '/' || n.mark || '-update.webp',
+  'image/webp', 1000, 'ready', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+insert into app.sponsorship_updates (institute_id, child_persona_id, body, media_id, author_user_id)
+select s.institute_id, s.child_persona_id, jsonb_build_object('en', n.mark || '-Update'),
+  ('14000000-0000-4000-8000-00000000096' || n.i)::uuid, ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.sponsorships s on s.id = ('14000000-0000-4000-8000-00000000095' || n.i)::uuid;
+
 -- A class thread started by the student's persona with a teacher's reply, and
 -- a locked madrasa thread started by the teacher.
 insert into app.threads (id, institute_id, class_id, scope, title, language, author_persona_id)
