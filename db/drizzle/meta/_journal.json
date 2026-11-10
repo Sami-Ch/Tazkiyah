@@ -176,6 +176,13 @@
       "when": 1794289416959,
       "tag": "0024_ledger_shapes",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794289754558,
+      "tag": "0025_record_donation",
+      "breakpoints": true
     }
   ]
 }
