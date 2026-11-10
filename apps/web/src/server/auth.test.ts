@@ -23,6 +23,7 @@ const staff = {
   donor: "21000000-0000-4000-8000-000000000004",
   teacher: "21000000-0000-4000-8000-000000000005",
 } as const;
+const hifzClass = "21000000-0000-4000-8000-000000000051";
 let enrolledAdmin: Browser;
 
 beforeAll(async () => {
@@ -63,6 +64,12 @@ beforeAll(async () => {
       [id, hash],
     );
   }
+  // The teacher's class, which every new student joins (04 §7.4).
+  await db.query(
+    `insert into app.classes (id, institute_id, name, created_by)
+     select $1, institute_id, '{"en":"Hifz 1"}', id from app.users where id = $2`,
+    [hifzClass, staff.teacher],
+  );
   // Every socket connection shares this backend session and its role.
   await db.exec("set role tazkiyah_auth");
   await server.start();
@@ -575,12 +582,14 @@ describe("student accounts made by staff (P0-E5-T03)", () => {
     const year = new Date().getFullYear();
     const first = await teacher.post("/student-account", {
       name: "Ahmed Raza",
+      classId: hifzClass,
     });
     expect(first.status).toBe(201);
     expect(first.json.username).toBe(`maa-${year}-0001`);
     expect(first.json.password).toMatch(/^[a-km-np-z2-9]{10}$/);
     const second = await teacher.post("/student-account", {
       name: "Bilal Khan",
+      classId: hifzClass,
       password: "chosen by teacher",
     });
     expect(second.json).toEqual({
@@ -593,9 +602,12 @@ describe("student accounts made by staff (P0-E5-T03)", () => {
       `select u.status, u.must_change_password, u.email,
          array(select role from app.user_roles r where r.user_id = u.id) as roles,
          (select actor_user_id from app.audit_log a
-          where a.entity_id = u.id::text and a.action = 'users.insert') as created_by
+          where a.entity_id = u.id::text and a.action = 'users.insert') as created_by,
+         (select count(*)::int from app.persona_links l
+          join app.class_members m on m.user_id = l.user_id and m.class_id = $2
+          where l.user_id = u.id) as personas
        from app.users u where username = $1`,
-      [student.username],
+      [student.username, hifzClass],
     );
     expect(row).toEqual({
       status: "active",
@@ -603,6 +615,7 @@ describe("student accounts made by staff (P0-E5-T03)", () => {
       email: null,
       roles: ["student"],
       created_by: staff.teacher,
+      personas: 1,
     });
   });
 
@@ -610,12 +623,21 @@ describe("student accounts made by staff (P0-E5-T03)", () => {
     for (const email of ["editor@example.test", "donor@example.test"]) {
       const browser = await signedIn(email);
       expect(
-        (await browser.post("/student-account", { name: "Someone" })).status,
+        (
+          await browser.post("/student-account", {
+            name: "Someone",
+            classId: hifzClass,
+          })
+        ).status,
       ).toBe(403);
     }
     expect(
-      (await new Browser().post("/student-account", { name: "Someone" }))
-        .status,
+      (
+        await new Browser().post("/student-account", {
+          name: "Someone",
+          classId: hifzClass,
+        })
+      ).status,
     ).toBe(403);
     const pupil = new Browser();
     await spreadOverTime();
@@ -624,7 +646,12 @@ describe("student accounts made by staff (P0-E5-T03)", () => {
       password: student.password,
     });
     expect(
-      (await pupil.post("/student-account", { name: "Someone" })).status,
+      (
+        await pupil.post("/student-account", {
+          name: "Someone",
+          classId: hifzClass,
+        })
+      ).status,
     ).toBe(403);
     expect(
       await asOwner(`select from app.users where full_name = 'Someone'`),

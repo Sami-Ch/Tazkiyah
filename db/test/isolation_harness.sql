@@ -28,8 +28,8 @@ begin
     insert into app.user_roles (institute_id, user_id, role, granted_by)
     values (tenant, ('14000000-0000-4000-8000-00000000030' || n)::uuid, 'teacher',
       ('14000000-0000-4000-8000-00000000030' || n)::uuid);
-    insert into app.classes (institute_id, name, year_label, created_by)
-    values (tenant, jsonb_build_object('en', mark || '-Class'), mark || '-Year',
+    insert into app.classes (id, institute_id, name, year_label, created_by)
+    values (('14000000-0000-4000-8000-00000000080' || n)::uuid, tenant, jsonb_build_object('en', mark || '-Class'), mark || '-Year',
       ('14000000-0000-4000-8000-00000000030' || n)::uuid);
     insert into app.media_assets
       (id, institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, width, height, status, uploaded_by)
@@ -108,6 +108,12 @@ begin
       true, true, true
     );
     assert result.code = 'recorded', 'Fixture donation was not recorded: ' || result.code;
+    -- A student with a persona and its private link, made the way staff make one.
+    assert identity.create_student_account(
+      ('14000000-0000-4000-8000-00000000040' || n)::uuid, mark || '-Student', repeat('h', 64),
+      ('14000000-0000-4000-8000-00000000080' || n)::uuid,
+      false
+    ) is not null, 'Fixture student was not created';
     for link in 0..1 loop
       assert identity.issue_trail_link(
         ('14000000-0000-4000-8000-00000000040' || n)::uuid, result.receipt_number,
@@ -213,6 +219,18 @@ update app.donors d set
   email_verified_at = now(), claimed_at = now()
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
 where d.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
+
+-- Each persona carries its marker and an avatar illustration.
+insert into app.media_assets
+  (id, institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, width, height, status, uploaded_by)
+select ('14000000-0000-4000-8000-00000000026' || n.i)::uuid, ('14000000-0000-4000-8000-00000000000' || n.i)::uuid,
+  'image', 'avatar', 'public', '14000000-0000-4000-8000-00000000000' || n.i || '/' || n.mark || '-avatar.webp',
+  'image/webp', 1000, 96, 96, 'ready', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+update app.personas p set display_name = n.mark || '-Persona', bio = n.mark || '-Bio',
+  avatar_media_id = ('14000000-0000-4000-8000-00000000026' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+where p.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
 
 -- Public trails, so public_api.public_trails has rows of both institutes.
 update app.donations set trail_public = true

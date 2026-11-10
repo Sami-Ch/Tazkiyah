@@ -379,6 +379,14 @@ export const users = app
         using: sql`(id = (select app.current_user_id()) and status in ('active', 'left'))
   or (select app.has_role('admin'))`,
       }),
+      // A student's teachers see the real student behind the persona
+      // (04 §6.4, REQ-TCH-006).
+      pgPolicy("users_teacher_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`app.is_teacher_of(id)`,
+      }),
       pgPolicy("own_language", {
         as: "permissive",
         for: "update",
@@ -1591,7 +1599,10 @@ export const trailEvents = app
         "trail_events_reason_check",
         sql`(reason is null) = (event_type <> 'reversal') and (reason is null or (length(reason) between 1 and 500 and reason = btrim(reason)))`,
       ),
-      check("trail_events_details_check", sql`jsonb_typeof(details) = 'object'`),
+      check(
+        "trail_events_details_check",
+        sql`jsonb_typeof(details) = 'object'`,
+      ),
       manualDonationIsolation(),
       pgPolicy("trail_events_own_read", {
         as: "permissive",
@@ -1837,7 +1848,9 @@ export const classMembers = app
       classId: uuid("class_id").notNull(),
       userId: uuid("user_id").notNull(),
       memberRole: text("member_role").notNull(),
-      joinedAt: date("joined_at").default(sql`current_date`).notNull(),
+      joinedAt: date("joined_at")
+        .default(sql`current_date`)
+        .notNull(),
       endedAt: date("ended_at"),
       addedBy: uuid("added_by"),
     },
@@ -1898,6 +1911,129 @@ export const classMembers = app
         to: ["tazkiyah_app"],
         using: sql`(select app.has_role('admin')) or (member_role = 'student' and app.is_class_teacher(class_id))`,
         withCheck: sql`(select app.has_role('admin')) or (member_role = 'student' and app.is_class_teacher(class_id))`,
+      }),
+    ],
+  )
+  .enableRLS();
+
+// A student's anonymous public identity (04 §7.4, REQ-STU-003). It holds only
+// what others may see; the link to the student is in persona_links. Rows come
+// only from app.create_student_account().
+export const personas = app
+  .table(
+    "personas",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      displayName: text("display_name").notNull(),
+      avatarMediaId: uuid("avatar_media_id"),
+      bio: text(),
+      bioLanguage: text("bio_language"),
+      showRealName: boolean("show_real_name").default(false).notNull(),
+      isActive: boolean("is_active").default(true).notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+      updatedAt: timestamp("updated_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table) => [
+      unique().on(table.instituteId, table.id),
+      uniqueIndex("personas_display_name").on(
+        table.instituteId,
+        sql`lower(display_name)`,
+      ),
+      index("personas_avatar_media").on(table.instituteId, table.avatarMediaId),
+      foreignKey({
+        columns: [table.instituteId, table.avatarMediaId],
+        foreignColumns: [mediaAssets.instituteId, mediaAssets.id],
+      }),
+      check(
+        "personas_display_name_check",
+        sql`app.persona_name_ok(display_name)`,
+      ),
+      check(
+        "personas_bio_check",
+        sql`bio is null or (length(bio) between 1 and 160 and bio ~ '[^[:space:]]' and not app.has_contact_details(bio))`,
+      ),
+      check(
+        "personas_bio_language_check",
+        sql`bio_language is null or bio_language in ('en', 'ur')`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("personas_member_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.is_member())`,
+      }),
+      pgPolicy("personas_edit", {
+        as: "permissive",
+        for: "update",
+        to: ["tazkiyah_app"],
+        using: sql`app.can_trace_persona(id)`,
+        withCheck: sql`app.can_trace_persona(id)`,
+      }),
+    ],
+  )
+  .enableRLS();
+
+// The private link between a persona and its student (04 §7.4, REQ-SEC-007).
+// Only the student, the student's teachers and admins read it. Nobody changes
+// or deletes it.
+export const personaLinks = app
+  .table(
+    "persona_links",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      personaId: uuid("persona_id").notNull(),
+      userId: uuid("user_id").notNull(),
+      createdBy: uuid("created_by").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table) => [
+      unique().on(table.instituteId, table.id),
+      unique("persona_links_persona").on(table.instituteId, table.personaId),
+      unique("persona_links_user").on(table.instituteId, table.userId),
+      index("persona_links_created_by").on(table.instituteId, table.createdBy),
+      foreignKey({
+        columns: [table.instituteId, table.personaId],
+        foreignColumns: [personas.instituteId, personas.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.userId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.createdBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("read_link", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`user_id = (select app.current_user_id()) or (select app.has_role('admin')) or app.is_teacher_of(user_id)`,
       }),
     ],
   )

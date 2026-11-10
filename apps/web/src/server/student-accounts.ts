@@ -18,6 +18,9 @@ export function startingPassword(length = 10) {
   return startingPassword(length);
 }
 
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function validPassword(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -43,19 +46,26 @@ export async function createStudentAccount(
 ) {
   const input = await fields(request);
   const name = typeof input.name === "string" ? input.name.trim() : "";
+  const classId = typeof input.classId === "string" ? input.classId : "";
   const chosen = input.password;
   if (
     !name ||
     name.length > 120 ||
+    !uuidPattern.test(classId) ||
+    (input.isOrphan !== undefined && typeof input.isOrphan !== "boolean") ||
     (chosen !== undefined && !validPassword(chosen))
   )
     return privateJson({ code: "invalid" }, 400);
 
+  // The database also places the student in the class and creates the
+  // persona and its private link (04 §7.4).
   const password = chosen ?? startingPassword();
   const {
     rows: [result],
   } = await tx.execute<{ username: string | null }>(sql`
-    select identity.create_student_account(${sessionId}, ${name}, ${await hashPassword(password)}) as username
+    select identity.create_student_account(
+      ${sessionId}, ${name}, ${await hashPassword(password)}, ${classId}::uuid, ${input.isOrphan === true}::boolean
+    ) as username
   `);
   if (!result?.username) return privateJson({ code: "denied" }, 403);
   return privateJson({ username: result.username, password }, 201);
