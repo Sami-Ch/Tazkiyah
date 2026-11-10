@@ -202,6 +202,10 @@ update app.donors d set
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
 where d.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
 
+-- Public trails, so public_api.public_trails has rows of both institutes.
+update app.donations set trail_public = true
+where institute_id in ('14000000-0000-4000-8000-000000000001', '14000000-0000-4000-8000-000000000002');
+
 create temp table harness_relations on commit drop as
 select c.oid::regclass as rel, c.relkind = 'v' as is_view,
   case when c.oid = 'app.institutes'::regclass then 'id'
