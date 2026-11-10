@@ -239,6 +239,13 @@
       "when": 1794291521236,
       "tag": "0033_spending_entries",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794305777271,
+      "tag": "0034_match_spending",
+      "breakpoints": true
     }
   ]
 }
