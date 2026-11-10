@@ -1,5 +1,5 @@
 -- app.reverse_donation() (P1-E3-T45): reversal allocations and events for a
--- whole donation, refused while money spent from it remains.
+-- whole donation; spent money is reversed and re-matched (P2-E2-T41).
 begin;
 grant tazkiyah_app, tazkiyah_auth to current_user;
 set local plpgsql.check_asserts = on;
@@ -94,12 +94,7 @@ begin
   exception when invalid_parameter_value then null;
   end;
 
-  -- A spent donation is refused until its spending is reversed.
-  begin
-    perform app.reverse_donation(spent, 'wrong_details');
-    assert false, 'a spent donation was reversed';
-  exception when object_not_in_prerequisite_state then null;
-  end;
+  -- A spent donation can be reversed since P2-E2-T41; see spending_reversal.sql.
 
   -- A donation to one cause: its received and allocated events are reversed.
   perform app.reverse_donation(to_wheat, 'recorded_twice', '  Same statement line entered twice  ');

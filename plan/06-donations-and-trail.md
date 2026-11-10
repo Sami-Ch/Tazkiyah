@@ -332,7 +332,7 @@ The trail is an append-only list of events for each donation (REQ-TRL-001, REQ-T
 | **received** | The donation is confirmed (§4.4) | Full donation amount | donation | yes | yes, with name or "Anonymous" |
 | **allocated** | Money enters a cause: at recording for a gift to a cause, or at a split for all needs | The piece that entered | donation, allocation (to cause), cause | yes | yes |
 | **spent** | FIFO matches part of the donation to a spending entry | The matched piece | donation, allocation (to spending entry), spending entry | yes, with description, date, the donor's share and the receipt photo if public | yes, without the receipt photo if it is private |
-| **reported** | A spending entry that this donation paid for appears in a published report (§9). If the entry was already reported when the match was made, *spent* and *reported* are written together. | Same piece as the *spent* event | spending entry, report | yes | yes |
+| **reported** | A spending entry that this donation paid for appears in a published report (§9). If the entry was already reported when the match was made, *spent* and *reported* are written together. | This donation's total matched to the report's entries, one event per donation and report ([D-126](08-decision-log.md#d-126)). A match made after publishing gets its own event for its piece | spending entry, report | yes | yes |
 | **reversal** | Any event above is corrected (§15) | Minus the corrected amount | the event it reverses, plus a reason | yes, with the reason category | yes, with the reason category |
 
 The glossary lists four event kinds. The reversal event is the correction required by REQ-TRL-003. The consistency check may add it to the glossary.
@@ -501,7 +501,7 @@ A report groups recorded spending entries for one period, either a day or a week
 - **Title:** made from the period, such as "Week of 6 to 12 April 2026" or "Report for 9 April 2026", in both languages.
 - **Content:** each entry with its cause, date, description, amount and public receipt photo; a total per cause; and an optional short note from Moazam in Urdu or English.
 - **Corrections:** any entry reversed since the last report is listed under "Corrections", with the reason category.
-- Publishing writes a *reported* event for every match of every entry in the report.
+- Publishing writes one *reported* event for each donation whose money the report's entries used, for its total in the report ([D-126](08-decision-log.md#d-126)).
 - A published report is never edited. Mistakes are fixed by reversal and appear in the next report.
 - Reports appear on each cause page and on a reports list. The pages are specified in [05 §5](05-public-pages-roles-admin.md).
 
