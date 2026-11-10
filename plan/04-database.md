@@ -1325,7 +1325,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P1-E3-T43 | Write `app.record_donation()`: donation, received event, cause allocation and allocated event in one transaction | done | P1-E3-T42 | REQ-DON-008, REQ-TRL-001, REQ-PAY-001 |
 | P1-E3-T44 | Create `trail_links` and the issue, `use_trail_token` and revoke functions, with RLS through the trail donor | done | P1-E3-T40, P0-E2-T05 | REQ-SEC-004, REQ-DPR-002, REQ-SEC-005 |
 | P1-E3-T45 | Write the donation reversal function (reversal events and allocation reversals; refuse while spent allocations remain) | done | P1-E3-T43 | REQ-DON-012, REQ-TRL-003 |
-| P1-E3-T46 | Create `transfer_notices` with RLS, the Zakat check, 30-day expiry and the confirm path into `app.record_donation()` (§8.7) | todo | P1-E3-T43, P1-E3-T44 | REQ-DPR-001, REQ-DON-015 (proposed), REQ-PAY-001 |
+| P1-E3-T46 | Create `transfer_notices` with RLS, the Zakat check, 30-day expiry and the confirm path into `app.record_donation()` (§8.7) | blocked | P1-E3-T43, P1-E3-T44 | REQ-DPR-001, REQ-DON-015 (proposed), REQ-PAY-001 |
 | P1-E3-T47 | Create `recurring_pledges` and add `donations.pledge_id` (§8.8) | todo | P1-E3-T41 | REQ-DON-003 |
 | P1-E4-T40 | Create the `app.donor_trail` view for account and token donors, with share-per-spend columns | todo | P1-E3-T43, P1-E3-T44 | REQ-TRL-007, REQ-DPR-010 |
 | P1-E5-T40 | Add the audit log filter indexes and an admin read view with actor names resolved and redaction kept | todo | P0-E2-T11 | REQ-ROL-009, REQ-SEC-008 |
@@ -1351,6 +1351,8 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P4-E1-T40 | Create `sponsorships` and `sponsorship_updates` and `app.sponsor_child_view` (persona, age, updates) | todo | P3-E1-T41, P1-E3-T41 | REQ-ORP-001, REQ-ORP-002, REQ-ORP-008, REQ-ORP-009 |
 | P4-E2-T40 | Add the `orphan_full_profile` sign-off, assignment and withdrawal functions and full-profile gating in the sponsor view | todo | P4-E1-T40, P3-E2-T40 | REQ-ORP-003, REQ-ORP-004, REQ-ORP-005, REQ-ORP-006 |
 | P4-E3-T40 | Create `sponsor_messages` with RLS and no child-facing path | todo | P4-E1-T40 | REQ-ORP-007 |
+
+2026-11-10 · Blocked: P1-E3-T46 builds the transfer notice, which is proposed REQ-DON-015 (with proposed D-030). It waits for Sami's approval (Q-08). `app.record_donation()` is ready for its confirm path.
 
 2026-11-10 · P1-E3-T45: [`0027_reverse_donation.sql`](../db/drizzle/0027_reverse_donation.sql) adds `app.reverse_donation(donation_id, category, note)` (definer, admin or finance officer, not granted to the runtime roles; the admin screen's wrapper belongs to P1-E3-T09). It locks the donation and refuses one that is already reversed or has an effective `to_spending` allocation. Re-matching after reversing spent money comes with FIFO (06 §15.3, P2-E2-T41). Otherwise every effective `to_cause` or `to_institute` allocation gets its mirror reversal and a `reversal` event pointing at its `allocated` event, the `received` event gets a `reversal` event, and the donation becomes `reversed`, which frees its bank reference. The reason category from 06 §15.2 (`recorded_twice`, `wrong_details`, `wrong_type`, `wrong_donor`, `transfer_returned`, `refund_to_donor`, `moved_to_another_cause`, `other`) goes on the allocations and events, because the donor sees it. The optional note, required for `other`, goes only into the `donations.reversed` audit row's `reason`. Tests: [`db/test/reverse_donation.sql`](../db/test/reverse_donation.sql).
 
