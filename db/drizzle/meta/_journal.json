@@ -225,6 +225,13 @@
       "when": 1794290959849,
       "tag": "0031_audit_reader_view",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794291327193,
+      "tag": "0032_guest_trail_reversal",
+      "breakpoints": true
     }
   ]
 }

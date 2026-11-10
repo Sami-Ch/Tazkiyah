@@ -123,5 +123,17 @@ begin
   assert (select lifetime_raised_paisa from public_api.causes where id = wheat) = 100000;
   assert (select lifetime_raised_paisa from public_api.causes where id = gas) = 0;
   perform app.record_donation(gen_random_uuid(), donor, wheat, 'general', 300000, today, bank, 'to-wheat', 'en');
+
+  -- The guest trail gives the donor the category of a reversed donation only.
+  insert into app.trail_links (institute_id, donor_id, token_hash, token_hint, created_by)
+  values (tenant, donor, repeat('d', 64), 'dddd', '95000000-0000-4000-8000-000000000011');
+  assert (select reversal_reason from identity.read_guest_trail(repeat('d', 64), null, null)
+    where id = to_wheat) = 'recorded_twice';
+  assert (select reversal_reason from identity.read_guest_trail(repeat('d', 64), null, null)
+    where id = split) = 'wrong_type';
+  assert (select count(*) from identity.read_guest_trail(repeat('d', 64), null, null)
+    where reversal_reason is not null) = 2;
+  assert not exists (select from identity.read_guest_trail(repeat('d', 64), null, null) t
+    where t::text like '%Same statement line%');
 end
 $test$;

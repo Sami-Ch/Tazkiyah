@@ -11,6 +11,7 @@ type TrailRow = Cursor & {
   amount_paisa: string;
   donation_type: "general" | "sadaqah" | "zakat";
   status: "recorded" | "reversed";
+  reversal_reason: string | null;
   events: {
     event_type: "received" | "allocated";
     occurred_on: string;
@@ -99,7 +100,7 @@ export async function readDonorTrail(
 ) {
   const { rows } = await tx.execute<TrailRow>(sql`
     select id, receipt_number, receipt_locale, credited_on, amount_paisa,
-      donation_type, status, recorded_at, events
+      donation_type, status, recorded_at, events, reversal_reason
     from identity.read_guest_trail(
       ${query.hash}, ${query.cursor?.recorded_at ?? null}::timestamptz, ${query.cursor?.id ?? null}::uuid
     )

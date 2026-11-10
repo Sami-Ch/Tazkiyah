@@ -913,10 +913,12 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P1-E4-T01 | Donor trail page by private link or account: donations with *received* and *allocated* events, in Urdu and English | done | P1-E3-T04, P1-E3-T06, P0-E3 | REQ-TRL-001, REQ-TRL-007, REQ-DPR-002, REQ-LNG-012 |
-| P1-E4-T02 | Donation state worked out from events and shown in donor words (§4.4 table) | in progress | P1-E4-T01 | REQ-TRL-001 |
+| P1-E4-T02 | Donation state worked out from events and shown in donor words (§4.4 table) | done | P1-E4-T01 | REQ-TRL-001 |
 | P1-E4-T03 | Bilingual printable receipt page reached from the trail (§14.2) | in progress | P1-E3-T03, P1-E4-T01 | REQ-DON-010, REQ-DPR-010, REQ-PAY-008 |
 | P1-E4-T04 | "Send me my link again" without revealing whether the email is known | todo | P1-E3-T05 | REQ-DPR-002, REQ-SEC-004 |
 | P1-E4-T05 | Private by default: no indexing, no public caching, no referrer on trail pages | done | P1-E4-T01 | REQ-TRL-008, REQ-SEC-005 |
+
+2026-11-10 · P1-E4-T02: [`donation-state.ts`](../apps/web/src/app/[locale]/trail/donation-state.ts) works out each donation's §4.4 state from its standing events: the earliest stage any of its money is still at (awaiting split, partly allocated, allocated, partly spent, spent, reported), or *reversed* with its reason category. The trail page shows it under each receipt number in donor words, in Urdu and English, with amounts and cause titles kept in their own direction inside the sentence. `identity.read_guest_trail` now also returns a reversed donation's category ([`0032_guest_trail_reversal.sql`](../db/drizzle/0032_guest_trail_reversal.sql)), never the staff note. The *notified*, *rejected* and *expired* states belong to transfer notices (blocked, P1-E3-T46). Spent and reported states show once the trail returns those events (P2-E2-T05). The Urdu wording awaits review (Q-20). Tests: [`donation-state.test.ts`](../apps/web/src/app/[locale]/trail/donation-state.test.ts) and [`db/test/reverse_donation.sql`](../db/test/reverse_donation.sql).
 
 ### P2-E1 Spending entries with receipts
 

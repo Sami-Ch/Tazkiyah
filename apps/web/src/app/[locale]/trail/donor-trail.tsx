@@ -2,7 +2,7 @@
 
 import type { Locale } from "@tazkiyah/i18n/routing";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { givingCopy } from "@/institutes/giving-copy";
 import { institute } from "@/institutes/markaz-al-azeem";
@@ -11,6 +11,7 @@ import {
   pageTranslation,
   type LocalizedPageText,
 } from "@/institutes/site-pages";
+import { donationState } from "./donation-state";
 import { trailCopy } from "./trail-copy";
 
 type TrailCursor = { recorded_at: string; id: string };
@@ -26,6 +27,7 @@ type TrailDonation = TrailCursor & {
   amount_paisa: string;
   donation_type: DonationType;
   status: "recorded" | "reversed";
+  reversal_reason: string | null;
   receipt_locale: Locale;
   cause_title: LocalizedPageText | null;
   events: TrailEvent[];
@@ -223,6 +225,98 @@ function Receipt({ donation }: { donation: TrailDonation }) {
   );
 }
 
+// Fills {name} slots in a translated sentence with rendered parts, so
+// amounts and cause titles keep their own direction inside Urdu text.
+function Sentence({
+  template,
+  parts,
+}: {
+  template: string;
+  parts: Record<string, React.ReactNode>;
+}) {
+  return template
+    .split(/(\{[a-z]+\})/)
+    .map((piece, index) =>
+      /^\{[a-z]+\}$/.test(piece) ? (
+        <Fragment key={index}>{parts[piece.slice(1, -1)]}</Fragment>
+      ) : (
+        piece
+      ),
+    );
+}
+
+function DonationStateLine({
+  donation,
+  locale,
+}: {
+  donation: TrailDonation;
+  locale: Locale;
+}) {
+  const copy = trailCopy[locale];
+  const state = donationState(donation);
+  const money = (value: bigint) => (
+    <bdi>{formatPkr(value.toString(), locale)}</bdi>
+  );
+  const causes = (titles: (LocalizedPageText | null)[]) =>
+    titles.map((title, index) => (
+      <Fragment key={index}>
+        {index > 0 && copy.causeSeparator}
+        <CauseTitle title={title} locale={locale} />
+      </Fragment>
+    ));
+  let line: React.ReactNode;
+  switch (state.kind) {
+    case "awaiting_split":
+      line = copy.stateAwaitingSplit;
+      break;
+    case "partly_allocated":
+      line = (
+        <Sentence
+          template={copy.statePartlyAllocated}
+          parts={{
+            assigned: money(state.assigned),
+            waiting: money(state.waiting),
+            causes: causes(state.causes),
+          }}
+        />
+      );
+      break;
+    case "allocated":
+      line = (
+        <Sentence
+          template={copy.stateAllocated}
+          parts={{ causes: causes(state.causes) }}
+        />
+      );
+      break;
+    case "partly_spent":
+      line = (
+        <Sentence
+          template={copy.statePartlySpent}
+          parts={{ spent: money(state.spent), total: money(state.total) }}
+        />
+      );
+      break;
+    case "spent":
+      line = copy.stateSpent;
+      break;
+    case "reported":
+      line = copy.stateReported;
+      break;
+    case "reversed":
+      line = state.reason ? (
+        <Sentence
+          template={copy.stateReversedBecause}
+          parts={{ reason: copy[`reason_${state.reason}`] }}
+        />
+      ) : (
+        copy.stateReversed
+      );
+      break;
+  }
+  return <p className="trail-state">{line}</p>;
+}
+
 function DonationRecord({
   donation,
   locale,
@@ -256,6 +350,7 @@ function DonationRecord({
             {copy[donation.status]}
           </strong>
         </header>
+        <DonationStateLine donation={donation} locale={locale} />
         <dl className="trail-donation-facts">
           <div>
             <dt>{copy.amount}</dt>
