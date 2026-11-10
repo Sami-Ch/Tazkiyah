@@ -287,6 +287,18 @@ select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, ('14000000-0000-400
   ('14000000-0000-4000-8000-00000000030' || n.i)::uuid, now(), now(), ('14000000-0000-4000-8000-00000000030' || n.i)::uuid,
   now(), ('14000000-0000-4000-8000-00000000030' || n.i)::uuid, n.mark || '-Takedown'
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+-- The student reported the removed post, and the admin closed the report.
+insert into app.post_reports (institute_id, post_id, reporter_user_id, reason, note)
+select p.institute_id, p.id, l.user_id, 'other', n.mark || '-Report'
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.posts p on p.body = n.mark || '-Removed'
+join app.persona_links l on l.institute_id = p.institute_id;
+alter table app.post_reports disable trigger post_reports_rules;
+update app.post_reports r set status = 'actioned', handled_at = now(), handled_by = ('14000000-0000-4000-8000-00000000030' || n.i)::uuid,
+  outcome_note = n.mark || '-Outcome'
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+where r.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
+alter table app.post_reports enable trigger post_reports_rules;
 -- The student's question carries a photo the student uploaded.
 insert into app.media_assets
   (id, institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, width, height, status, uploaded_by)

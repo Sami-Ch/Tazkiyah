@@ -2721,3 +2721,102 @@ export const postMedia = app
     ],
   )
   .enableRLS();
+
+// Reports on posts by members (04 §11.6, 07 §8.5, REQ-STU-011). The reporter
+// is seen only by staff who moderate the post; the author never learns who
+// reported it. Visitor reports wait for proposed REQ-MOD-008.
+export const postReports = app
+  .table(
+    "post_reports",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      postId: uuid("post_id").notNull(),
+      reporterUserId: uuid("reporter_user_id"),
+      reason: text().notNull(),
+      note: text(),
+      status: text().default("open").notNull(),
+      handledBy: uuid("handled_by"),
+      handledAt: timestamp("handled_at", { withTimezone: true }),
+      outcomeNote: text("outcome_note"),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table): PgTableExtraConfigValue[] => [
+      unique().on(table.instituteId, table.id),
+      index("post_reports_post").on(table.instituteId, table.postId),
+      uniqueIndex("post_reports_one_open")
+        .on(table.instituteId, table.postId, table.reporterUserId)
+        .where(sql`status = 'open'`),
+      index("post_reports_open_queue")
+        .on(table.instituteId, table.createdAt)
+        .where(sql`status = 'open'`),
+      index("post_reports_reporter")
+        .on(table.instituteId, table.reporterUserId)
+        .where(sql`reporter_user_id is not null`),
+      index("post_reports_handled_by")
+        .on(table.instituteId, table.handledBy)
+        .where(sql`handled_by is not null`),
+      foreignKey({
+        columns: [table.instituteId, table.postId],
+        foreignColumns: [posts.instituteId, posts.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.reporterUserId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.handledBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "post_reports_reason_check",
+        sql`reason in ('personal_details', 'face_or_name', 'unkind', 'wrong_information', 'other')`,
+      ),
+      check(
+        "post_reports_note_check",
+        sql`(note is null or (length(note) between 1 and 300 and note ~ '[^[:space:]]'))
+          and (reason <> 'other' or note is not null)`,
+      ),
+      check(
+        "post_reports_status_check",
+        sql`status in ('open', 'actioned', 'dismissed')
+          and (status = 'open') = (handled_at is null)
+          and (handled_at is not null or (handled_by is null and outcome_note is null))
+          and (outcome_note is null or (length(outcome_note) between 1 and 1000 and outcome_note ~ '[^[:space:]]'))`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("post_reports_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`reporter_user_id = (select app.current_user_id()) or app.moderates_post(post_id)`,
+      }),
+      pgPolicy("post_reports_file", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`reporter_user_id = (select app.current_user_id()) and status = 'open'
+          and ((select app.has_role('student')) or (select app.has_role('teacher'))
+            or (select app.has_role('editor')) or (select app.has_role('admin')))
+          and exists (select from app.posts p where p.id = post_id)`,
+      }),
+      pgPolicy("post_reports_handle", {
+        as: "permissive",
+        for: "update",
+        to: ["tazkiyah_app"],
+        using: sql`app.moderates_post(post_id)`,
+        withCheck: sql`app.moderates_post(post_id)`,
+      }),
+    ],
+  )
+  .enableRLS();
