@@ -691,7 +691,17 @@ export const auditLog = app
       requestId: text("request_id"),
     },
     (table) => [
-      index("audit_log_actor").on(table.instituteId, table.actorUserId),
+      // 04 §13.1: the admin filters by time, actor and record (P1-E5-T40).
+      index("audit_log_actor").on(
+        table.instituteId,
+        table.actorUserId,
+        table.occurredAt.desc(),
+      ),
+      index("audit_log_entity").on(
+        table.instituteId,
+        table.entityTable,
+        table.entityId,
+      ),
       index("audit_log_institute_time").on(
         table.instituteId,
         table.occurredAt.desc().nullsFirst(),

@@ -107,7 +107,7 @@ begin
     where r.donation_id = to_wheat and r.event_type = 'reversal' and r.reason = 'recorded_twice')
     = array['received', 'allocated'];
   assert (select count(*) from app.audit_log where entity_id = to_wheat::text and action = 'donations.reversed'
-    and changes = '{"category":"recorded_twice"}' and reason = 'Same statement line entered twice') = 1;
+    and changes = '{"category":{"old":null,"new":"recorded_twice"}}' and reason = 'Same statement line entered twice') = 1;
   begin
     perform app.reverse_donation(to_wheat, 'recorded_twice');
     assert false, 'a donation was reversed twice';

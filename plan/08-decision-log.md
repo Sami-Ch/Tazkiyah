@@ -366,3 +366,9 @@ Who may issue (resend) and revoke a guest trail link? 05 §7.1, the permission m
 
 06 §14.1 says a receipt number taken by a transaction that fails is "skipped and logged, never reused". 04 §8.3 says the counter row is locked inside the recording transaction, so numbers are unique and gap-free per year. Since P1-E3-T41 and T43, the built rule is 04's: a failed recording rolls back its counter update, and the next donation takes the same number. No number is ever on two receipts, and a reversed donation keeps its number. 06 §14.1 now says the same. Options: gap-free under a lock (04); a sequence that skips numbers and logs the gap (06). Reason: a log written in the failing transaction rolls back with it, so "skipped and logged" cannot be done inside one transaction, and an unbroken sequence is easier to reconcile. Sami may reverse this.
 
+## D-123
+
+2026-11-10 · Build agent (P1-E5-T40) · Narrows [05 §9.1 and §9.3](05-public-pages-roles-admin.md#9-audit-log) for now, for Sami
+
+05 §9 shows "the reason where one is required" on each audit entry and offers an "only entries with a reason" filter. The audit reader returns only whether a reason exists (`has_reason`), not its text. Reasons are free text typed by staff, such as a reversal note, and 05 §9.2 says no donor name or student real name may appear in the audit log screen or its data. A test from P1-E5-T03 already required the reader not to return the reason. Safe, fixed values that explain an action are shown as approved fields instead: a reversal's category (06 §15.2) now shows as `category`. Options: show the reason text; show only that one exists and use fixed categories. Reason: privacy wins (00 §4 rule 8), and fixed categories carry the meaning without free text. Showing reasons later needs a reason category or a name check on input, not just a reader change.
+

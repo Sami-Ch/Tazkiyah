@@ -8,6 +8,8 @@ export type AuditEntry = {
   id: string;
   occurred_at: string;
   actor_id: string | null;
+  // Staff actors only; donors and students never appear by name (05 §9.2).
+  actor_name: string | null;
   actor_kind: string;
   roles: string[];
   action: string;
@@ -15,6 +17,8 @@ export type AuditEntry = {
   entity_ref: string | null;
   changes: Record<string, Change>;
   hidden_fields: number;
+  // Whether a reason was recorded; the free text is never sent.
+  has_reason: boolean;
 };
 
 export type AuditWorkspace =
