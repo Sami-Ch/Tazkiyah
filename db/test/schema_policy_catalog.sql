@@ -52,6 +52,8 @@ begin
       join pg_catalog.pg_namespace ns on ns.oid = target.relnamespace
       where c.conrelid = table_info.oid and c.contype = 'f'
         and ns.nspname = 'app' and target.relname <> 'institutes'
+        -- 04 §9.5: a platform-fund allocation belongs to the fund institute.
+        and c.conname <> 'donations_source_allocation_id_allocations_id_fk'
         and not exists (
           select 1 from pg_catalog.pg_attribute a
           where a.attrelid = target.oid and a.attname = 'institute_id'

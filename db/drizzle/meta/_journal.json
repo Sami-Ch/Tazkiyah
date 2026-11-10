@@ -162,6 +162,13 @@
       "when": 1794234329214,
       "tag": "0022_donor_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794289060249,
+      "tag": "0023_donations_spec",
+      "breakpoints": true
     }
   ]
 }

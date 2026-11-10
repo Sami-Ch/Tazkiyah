@@ -186,7 +186,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 - [ ] REQ-MIR-001 Institute name, logo, theme colours, domain, contact details, bank details and enabled modules are stored as institute settings. MUST → 04 §5
 - [ ] REQ-MIR-002 The request's domain selects the institute. MUST → 03 §4
-- [ ] REQ-MIR-003 Adding a second institute needs no schema change. MUST → 04 §5
+- [x] REQ-MIR-003 Adding a second institute needs no schema change. MUST → 04 §5
 - [ ] REQ-MIR-004 The post scope field can hold a future community value without a schema change. SHOULD → 04 §11
 - [ ] REQ-MIR-005 Theme colours come from institute settings, not from code. MUST → 02 §5
 

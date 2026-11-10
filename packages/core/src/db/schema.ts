@@ -19,6 +19,7 @@ import {
   bigint,
   numeric,
   primaryKey,
+  type AnyPgColumn,
   type PgTableExtraConfigValue,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -1061,20 +1062,33 @@ export const donations = app
         .notNull()
         .references(() => institutes.id),
       operationId: uuid("operation_id").notNull(),
-      bankAccountId: uuid("bank_account_id").notNull(),
-      bankReference: text("bank_reference").notNull(),
+      publicRef: text("public_ref")
+        .default(sql`app.new_public_ref()`)
+        .notNull(),
+      bankAccountId: uuid("bank_account_id"),
+      bankReference: text("bank_reference"),
       creditedOn: date("credited_on").notNull(),
+      amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
       amountPaisa: bigint("amount_paisa", { mode: "bigint" }).notNull(),
-      currency: text().default("PKR").notNull(),
+      currency: char({ length: 3 }).default("PKR").notNull(),
+      fxRate: numeric("fx_rate", { precision: 18, scale: 8 }),
       method: text().default("bank_transfer").notNull(),
       frequency: text().default("one_off").notNull(),
       donationType: text("donation_type").notNull(),
-      donorId: uuid("donor_id"),
+      donorId: uuid("donor_id").notNull(),
       causeId: uuid("cause_id"),
+      gatewayPaymentId: text("gateway_payment_id"),
+      // Single-column on purpose: a platform-fund allocation belongs to the
+      // fund institute, not this one (04 §9.5).
+      sourceAllocationId: uuid("source_allocation_id").references(
+        (): AnyPgColumn => allocations.id,
+      ),
       receiptNumber: text("receipt_number").notNull(),
       receiptLocale: text("receipt_locale").notNull(),
       isAnonymous: boolean("is_anonymous").default(true).notNull(),
+      trailPublic: boolean("trail_public").default(false).notNull(),
       status: text().default("recorded").notNull(),
+      privateNote: text("private_note"),
       recordedBy: uuid("recorded_by").notNull(),
       recordedAt: timestamp("recorded_at", { withTimezone: true })
         .defaultNow()
@@ -1086,6 +1100,8 @@ export const donations = app
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.operationId),
       unique().on(table.instituteId, table.receiptNumber),
+      unique().on(table.instituteId, table.publicRef),
+      unique().on(table.instituteId, table.gatewayPaymentId),
       uniqueIndex("donations_recorded_bank_reference")
         .on(table.instituteId, table.bankAccountId, table.bankReference)
         .where(sql`status = 'recorded'`),
@@ -1129,11 +1145,32 @@ export const donations = app
       ),
       check(
         "donations_bank_reference_check",
-        sql`length(bank_reference) between 1 and 120 and bank_reference = btrim(bank_reference) and bank_reference !~ '[[:cntrl:]]'`,
+        sql`bank_reference is null or (length(bank_reference) between 1 and 120 and bank_reference = btrim(bank_reference) and bank_reference !~ '[[:cntrl:]]')`,
+      ),
+      check(
+        "donations_bank_guard_check",
+        sql`method <> 'bank_transfer' or (bank_account_id is not null and bank_reference is not null)`,
+      ),
+      check(
+        "donations_method_check",
+        sql`method in ('bank_transfer', 'card', 'jazzcash', 'easypaisa', 'platform_transfer') and frequency in ('one_off', 'monthly', 'yearly')`,
+      ),
+      check(
+        "donations_source_check",
+        sql`(method = 'platform_transfer') = (source_allocation_id is not null) and (gateway_payment_id is null or method in ('card', 'jazzcash', 'easypaisa'))`,
+      ),
+      check(
+        "donations_currency_check",
+        sql`currency ~ '^[A-Z]{3}$' and amount_minor > 0 and ((currency = 'PKR' and amount_minor = amount_paisa and fx_rate is null) or (currency <> 'PKR' and fx_rate > 0))`,
       ),
       check(
         "donations_manual_source_check",
         sql`currency = 'PKR' and method = 'bank_transfer' and frequency = 'one_off'`,
+      ),
+      check("donations_public_ref_check", sql`public_ref ~ '^[a-z2-7]{10}$'`),
+      check(
+        "donations_private_note_check",
+        sql`private_note is null or length(private_note) between 1 and 2000`,
       ),
       check(
         "donations_type_check",

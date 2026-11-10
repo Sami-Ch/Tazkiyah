@@ -62,7 +62,7 @@ New decisions made in this document. They are **not yet in [08](08-decision-log.
 | 04-D7 | **Users are per institute.** The same email at two institutes is two user rows. | One global user table | Keeps the rule "every table has `institute_id`" with no exception. A future shared identity can be a new table that links user rows, with no change to these tables. |
 | 04-D8 | **State fields are `text` with a `CHECK` list**, not Postgres enum types. | Native enums | Easier to read and to change in a migration. Values reserved for the future (`community`, `to_institute`) are in the list now but blocked by a rule, so enabling them is not a schema change. |
 | 04-D9 | **New donations default to anonymous** (`is_anonymous = true`) and trails default to private. The donor chooses to show their name. | Default to showing names | Agent rule 8: privacy wins over convenience. See proposed REQ-DPR-012 at the end. |
-| 04-D10 | **FIFO order is the donation's `received_at`, then `id`.** All-needs money allocated to a cause later keeps its original received date. | Order by allocation date | Matches the glossary: the oldest donations pay first. 06 §8 may confirm or change this; the data supports both. |
+| 04-D10 | **FIFO order is the donation's `credited_on` (named `received_at` before D-120), then `id`.** All-needs money allocated to a cause later keeps its original received date. | Order by allocation date | Matches the glossary: the oldest donations pay first. 06 §8 may confirm or change this; the data supports both. |
 | 04-D11 | **Admins and finance officers can see who gave an anonymous donation**, because they record bank transfers, send receipts and reconcile. Every other path (public views, editor and teacher screens, exports for others, logs, the audit log) never contains the name. | Hide the name from admins too | Manual bank recording (D-008) needs the payer's name. This is how this document reads REQ-DPR-009. See the conflict note under Requirements covered. |
 
 ## 4. Entity overview and ER diagram
@@ -128,7 +128,7 @@ erDiagram
         bigint amount_minor
         text currency
         bigint amount_paisa
-        timestamptz received_at
+        date credited_on
         bool is_anonymous
         bool trail_public
         text receipt_number
@@ -627,7 +627,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `public_ref` | `text not null` | 10-character random base32 string, for donor wall and public trail URLs. `unique (institute_id, public_ref)`. Not the receipt number and not guessable. |
 | `donor_id` | `uuid not null` | |
 | `cause_id` | `uuid null` | Null means all needs (REQ-DON-001, REQ-DON-002). |
-| `sponsorship_id` | `uuid null` | Set for sponsorship gifts. These follow the same trail (REQ-ORP-009). |
+| `sponsorship_id` | `uuid null` | Set for sponsorship gifts. These follow the same trail (REQ-ORP-009). Added with its foreign key by P4-E1-T40, when `sponsorships` exists. |
 | `donation_type` | `text not null` | `zakat`, `sadaqah`, `general` (REQ-DON-004). |
 | `currency` | `char(3) not null default 'PKR'` | As given by the donor. |
 | `amount_minor` | `bigint not null` | `> 0`, in `currency`'s minor unit. |
@@ -640,19 +640,20 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `bank_reference` | `text null` | REQ-DON-008. Partial unique index on `(institute_id, bank_account_id, bank_reference)` where `status = 'recorded'`, so the same transfer is not recorded twice. |
 | `gateway_payment_id` | `text null` | P5. `unique (institute_id, gateway_payment_id)` (REQ-PAY-006). |
 | `source_allocation_id` | `uuid null` | Reserved for platform-fund transfers (§9.5). Single-column FK on purpose. |
-| `received_at` | `timestamptz not null` | When the money arrived. FIFO order key (04-D10). |
+| `credited_on` | `date not null` | When the money arrived: the bank statement's credit date. FIFO order key (04-D10), with `id` breaking ties. Named `received_at` before [D-120](08-decision-log.md#d-120). |
 | `recorded_at`, `recorded_by` | | |
-| `is_anonymous` | `bool not null default true` | REQ-DPR-006, 04-D9. Donor or admin can change it. |
+| `operation_id` | `uuid not null` | The recording form's idempotency key. `unique (institute_id, operation_id)`, so a retried submit returns the first donation. |
+| `is_anonymous` | `bool not null default true` | REQ-DPR-006, 04-D9. Donor or admin can change it. Until the anonymity read layer (P1-E3-T06) and the donor's switch (P2-E5-T03) exist, a check keeps it `true`. |
 | `trail_public` | `bool not null default false` | REQ-TRL-008, REQ-TRL-009. Donor can change it. |
 | `receipt_number` | `text not null` | `{prefix}-{year}-{5-digit sequence}`, for example `MAA-2026-00042` (06 §14), `unique (institute_id, receipt_number)` (REQ-DON-010). |
-| `receipt_language` | `text not null` | Copied from the donor at recording time. |
+| `receipt_locale` | `text not null` | `en` or `ur`, copied from the donor at recording time. Named `receipt_language` before D-120. |
 | `status` | `text not null default 'recorded'` | `recorded`, `reversed`. Changed only by the reversal function. |
 | `private_note` | `text null` | Staff only. Must not hold an anonymous donor's name (reviewed in the admin form, [05 §8](05-public-pages-roles-admin.md)). |
 
 **Data-level rules (triggers):**
 
 - After insert, only `is_anonymous`, `trail_public` and (through the reversal function) `status` may change. Any other column change is rejected. Corrections are reversals plus a new donation (REQ-DON-012).
-- `cause_id`, when set, must point at a cause with `status = 'active'`. For a campaign, `received_at::date <= ends_on` (REQ-DON-006). An admin recording a late bank transfer for a closed campaign records it as all needs; 06 §5 owns that rule.
+- `cause_id`, when set, must point at a cause with `status = 'active'`. For a campaign, `credited_on <= ends_on` (REQ-DON-006). An admin recording a late bank transfer for a closed campaign records it as all needs; 06 §5 owns that rule.
 - If `donation_type = 'zakat'` and `cause_id` is set, the cause must have `accepts_zakat` (§9.4).
 
 **Receipt numbers.** `receipt_counters (institute_id, year smallint, last_number int)`, primary key `(institute_id, year)`. `app.next_receipt_number()` does `update … set last_number = last_number + 1 returning` inside the recording transaction. The row lock makes numbers unique and gap-free per year.
@@ -676,7 +677,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 create view public_api.donor_wall with (security_barrier = true) as
 select d.public_ref,
        d.amount_minor, d.currency, d.amount_paisa,
-       d.received_at::date                as given_on,
+       d.credited_on                      as given_on,
        d.cause_id,                         -- null = all needs
        case when d.is_anonymous then null  -- page shows "Anonymous" from translations
             when dn.profile_public then dn.display_name
@@ -799,7 +800,7 @@ Both are append-only. The definer functions that write allocations always write 
 `app.match_spending(spending_entry_id)` (definer, A or F):
 
 1. Lock the cause: `select … from app.causes where id = $cause for update`. Two spends in one cause cannot match at the same time.
-2. Read `to_cause` allocations in the cause with an unspent balance, ordered by the donation's `received_at`, then `donation_id` (04-D10).
+2. Read `to_cause` allocations in the cause with an unspent balance, ordered by the donation's `credited_on`, then `donation_id` (04-D10).
 3. Walk the list. Take `least(balance, still_needed)` from each, and insert a `to_spending` allocation plus a `spent` trail event for that donation.
 4. Stop when the spending amount is covered or the list ends. If the list ends first, the entry is left partly matched (`matched_paisa < amount_paisa`). [06 §9](06-donations-and-trail.md) decides whether the admin form blocks this or lets later money cover it.
 
@@ -1189,9 +1190,9 @@ Every table has its primary key and `unique (institute_id, id)`. Postgres does n
 | `class_members` | `(institute_id, user_id) where ended_at is null`; `(class_id, member_role)` | Teacher and member helpers |
 | `persona_links` | `unique (persona_id)`, `unique (user_id)` | Tracing, own persona |
 | `donors` | `unique (institute_id, email)`, `unique (institute_id, user_id)` | Guest reuse, claiming |
-| `donations` | `(institute_id, cause_id, received_at, id)` | FIFO walk |
-| `donations` | `(institute_id, donor_id, received_at desc)` | Donor's history |
-| `donations` | `(institute_id, received_at desc) where status = 'recorded'` | Donor wall |
+| `donations` | `(institute_id, cause_id, credited_on, id)` | FIFO walk |
+| `donations` | `(institute_id, donor_id, credited_on desc)` | Donor's history |
+| `donations` | `(institute_id, credited_on desc) where status = 'recorded'` | Donor wall |
 | `donations` | `unique (institute_id, receipt_number)`; partial unique on bank reference; `unique (institute_id, gateway_payment_id)` | Receipts, double-entry guard |
 | `allocations` | `(institute_id, cause_id, kind)`; `(from_allocation_id)`; `(spending_entry_id)`; `(donation_id)`; `unique (reverses_allocation_id)` | Balances, FIFO, reversal |
 | `trail_events` | `(institute_id, donation_id, id)`; `unique (reverses_event_id)` | Donor trail |
@@ -1317,7 +1318,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P1-E1-T40 | Create `public_api.cause_summary` (target, raised, spent, unspent, Zakat flag; no donor fields) | todo | P1-E2-T40, P1-E3-T43 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
 | P1-E2-T40 | Create `causes` with type, campaign dates, target, `accepts_zakat`, scholar name, status, project flag, bilingual fields, RLS and audit | done | P0-E2-T07, P0-E2-T09, P0-E2-T11 | REQ-DON-005, REQ-DON-006, REQ-DON-007, REQ-DON-009, REQ-DON-013, REQ-DON-014, REQ-ROL-005 |
 | P1-E3-T40 | Create `donors` with guest fields, private and public profile fields, RLS and audit redaction | done | P0-E2-T08, P0-E2-T11 | REQ-DPR-001, REQ-DPR-009 |
-| P1-E3-T41 | Create `donations` and `receipt_counters`, `app.next_receipt_number()`, the column-lock trigger, campaign end-date check and bank-reference guard | todo | P1-E3-T40, P1-E2-T40 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-006, REQ-DON-008, REQ-DON-010, REQ-PAY-001 |
+| P1-E3-T41 | Create `donations` and `receipt_counters`, `app.next_receipt_number()`, the column-lock trigger, campaign end-date check and bank-reference guard | done | P1-E3-T40, P1-E2-T40 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-006, REQ-DON-008, REQ-DON-010, REQ-PAY-001 |
 | P1-E3-T42 | Create `allocations` and `trail_events` with shape checks, deferred sum checks, reversal uniqueness and append-only guards; run the test kit on both | todo | P1-E3-T41, P0-E2-T16 | REQ-TRL-001, REQ-TRL-002, REQ-TRL-003, REQ-TRL-014 |
 | P1-E3-T43 | Write `app.record_donation()`: donation, received event, cause allocation and allocated event in one transaction | todo | P1-E3-T42 | REQ-DON-008, REQ-TRL-001, REQ-PAY-001 |
 | P1-E3-T44 | Create `trail_links` and the issue, `use_trail_token` and revoke functions, with RLS through the trail donor | todo | P1-E3-T40, P0-E2-T05 | REQ-SEC-004, REQ-DPR-002, REQ-SEC-005 |
@@ -1348,6 +1349,8 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P4-E1-T40 | Create `sponsorships` and `sponsorship_updates` and `app.sponsor_child_view` (persona, age, updates) | todo | P3-E1-T41, P1-E3-T41 | REQ-ORP-001, REQ-ORP-002, REQ-ORP-008, REQ-ORP-009 |
 | P4-E2-T40 | Add the `orphan_full_profile` sign-off, assignment and withdrawal functions and full-profile gating in the sponsor view | todo | P4-E1-T40, P3-E2-T40 | REQ-ORP-003, REQ-ORP-004, REQ-ORP-005, REQ-ORP-006 |
 | P4-E3-T40 | Create `sponsor_messages` with RLS and no child-facing path | todo | P4-E1-T40 | REQ-ORP-007 |
+
+2026-11-10 · P1-E3-T41: `donations`, `receipt_counters` and the bank-reference index came from the manual recording work ([`0009_manual_donations.sql`](../db/drizzle/0009_manual_donations.sql)). [`0023_donations_spec.sql`](../db/drizzle/0023_donations_spec.sql) closes the gaps against §8.3: `public_ref` (10 random base32 characters from `app.new_public_ref()`), `amount_minor`, `currency char(3)`, `fx_rate`, `gateway_payment_id` (unique), `source_allocation_id` (single-column foreign key, exempt in the catalog test), `trail_public` and `private_note`. `donor_id` is now required: a transfer with no known donor gets its own donor row with no email, and the migration backfills one per existing unknown donation. `bank_account_id` and `bank_reference` may be null for future methods, but a check requires both for a bank transfer. Triggers: the column lock (only `is_anonymous`, `trail_public` and `status` from `recorded` to `reversed` may change; no delete or truncate), and the cause rules on every insert (active cause, campaign `credited_on <= ends_on`, Zakat only to `accepts_zakat`). `app.next_receipt_number(year)` draws gap-free numbers per institute and year, and only definer functions can call it; `identity.record_manual_donation` now uses it. The built column names `credited_on` and `receipt_locale` stay ([D-120](08-decision-log.md#d-120)). `sponsorship_id` comes with `sponsorships` in P4-E1-T40, and `pledge_id` with P1-E3-T47. Tests: [`db/test/donations.sql`](../db/test/donations.sql).
 
 2026-11-09 · P1-E3-T40: `app.donors` started with only an email and a language (P1-E3 manual recording). [`0022_donor_profile.sql`](../db/drizzle/0022_donor_profile.sql) adds the rest of §8.2: `kind`, `user_id` (unique per institute), `email_verified_at`, the private `legal_name` and `phone`, the public `display_name`, `photo_media_id`, `profile_links` and `profile_public`, reminder opt-in with its time, `claimed_at` and `erased_at`. `email` may now be null. Checks: at most five https profile links shaped `{"label","url"}` (`app.valid_profile_links`), an opt-in needs its time, a claim needs an account, and an erased row holds no personal field. `audit_row_change` is now attached, and it redacts every personal field. RLS stays restrictive-only, so neither runtime role can read donors directly (§8.4). The donor's own read and update policy belongs to P2-E5-T40. Tests: [`db/test/donors.sql`](../db/test/donors.sql), and the isolation harness now sets every donor field with its institute marker.
 
