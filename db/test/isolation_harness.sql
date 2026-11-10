@@ -232,6 +232,29 @@ update app.personas p set display_name = n.mark || '-Persona', bio = n.mark || '
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
 where p.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
 
+-- A signed and withdrawn consent record with a form scan per student, so
+-- every signer key has a row.
+select set_config('app.institute_id', '', true), set_config('app.user_id', '', true);
+insert into app.media_assets
+  (id, institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, status, uploaded_by)
+select ('14000000-0000-4000-8000-00000000027' || n.i)::uuid, ('14000000-0000-4000-8000-00000000000' || n.i)::uuid,
+  'document', 'consent_form', 'private', '14000000-0000-4000-8000-00000000000' || n.i || '/' || n.mark || '-form.pdf',
+  'application/pdf', 1000, 'ready', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+insert into app.consent_records (id, institute_id, student_user_id, kind, guardian_name, guardian_relation,
+  method, given_on, form_media_id, notes, recorded_by)
+select ('14000000-0000-4000-8000-00000000090' || n.i)::uuid, l.institute_id, l.user_id, 'public_work',
+  n.mark || '-Guardian', 'guardian', 'paper_form', current_date,
+  ('14000000-0000-4000-8000-00000000027' || n.i)::uuid, n.mark || '-Notes',
+  ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.persona_links l on l.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
+update app.consent_records c set principal_signed_by = c.recorded_by, principal_signed_at = now(),
+  second_signer_assigned = c.recorded_by, second_assigned_by = c.recorded_by, second_assigned_at = now(),
+  second_signed_by = c.recorded_by, second_signed_at = now(),
+  withdrawn_at = now(), withdrawn_by = c.recorded_by, withdrawal_reason = 'Fixture withdrawal'
+where c.id in ('14000000-0000-4000-8000-000000000901', '14000000-0000-4000-8000-000000000902');
+
 -- Public trails, so public_api.public_trails has rows of both institutes.
 update app.donations set trail_public = true
 where institute_id in ('14000000-0000-4000-8000-000000000001', '14000000-0000-4000-8000-000000000002');

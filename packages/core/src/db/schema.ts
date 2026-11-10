@@ -2038,3 +2038,161 @@ export const personaLinks = app
     ],
   )
   .enableRLS();
+
+// A guardian's consent, recorded by staff (04 §10.1, 07 §5, REQ-CHS-006). One
+// row per covered item. An orphan's record needs the principal's and an
+// assigned teacher's sign-offs before it counts. Sign-offs, the assignment and
+// withdrawal change only through the app.*_consent functions.
+export const consentRecords = app
+  .table(
+    "consent_records",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      studentUserId: uuid("student_user_id").notNull(),
+      kind: text().notNull(),
+      guardianName: text("guardian_name").notNull(),
+      guardianRelation: text("guardian_relation").notNull(),
+      method: text().notNull(),
+      givenOn: date("given_on").notNull(),
+      formMediaId: uuid("form_media_id"),
+      notes: text(),
+      recordedBy: uuid("recorded_by").notNull(),
+      recordedAt: timestamp("recorded_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+      principalSignedBy: uuid("principal_signed_by"),
+      principalSignedAt: timestamp("principal_signed_at", {
+        withTimezone: true,
+      }),
+      secondSignerAssigned: uuid("second_signer_assigned"),
+      secondAssignedBy: uuid("second_assigned_by"),
+      secondAssignedAt: timestamp("second_assigned_at", { withTimezone: true }),
+      secondSignedBy: uuid("second_signed_by"),
+      secondSignedAt: timestamp("second_signed_at", { withTimezone: true }),
+      withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+      withdrawnBy: uuid("withdrawn_by"),
+      withdrawalReason: text("withdrawal_reason"),
+    },
+    (table) => [
+      unique().on(table.instituteId, table.id),
+      index("consent_records_student_kind").on(
+        table.instituteId,
+        table.studentUserId,
+        table.kind,
+      ),
+      index("consent_records_form_media").on(
+        table.instituteId,
+        table.formMediaId,
+      ),
+      index("consent_records_recorded_by").on(
+        table.instituteId,
+        table.recordedBy,
+      ),
+      index("consent_records_principal_signed_by").on(
+        table.instituteId,
+        table.principalSignedBy,
+      ),
+      index("consent_records_second_signer").on(
+        table.instituteId,
+        table.secondSignerAssigned,
+      ),
+      index("consent_records_second_assigned_by").on(
+        table.instituteId,
+        table.secondAssignedBy,
+      ),
+      index("consent_records_second_signed_by").on(
+        table.instituteId,
+        table.secondSignedBy,
+      ),
+      index("consent_records_withdrawn_by").on(
+        table.instituteId,
+        table.withdrawnBy,
+      ),
+      foreignKey({
+        columns: [table.instituteId, table.studentUserId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.formMediaId],
+        foreignColumns: [mediaAssets.instituteId, mediaAssets.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.recordedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.principalSignedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.secondSignerAssigned],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.secondAssignedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.secondSignedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.withdrawnBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "consent_records_kind_check",
+        sql`kind in ('public_work', 'real_name', 'face')`,
+      ),
+      check(
+        "consent_records_guardian_check",
+        sql`length(guardian_name) between 1 and 120 and guardian_name = btrim(guardian_name)
+          and guardian_relation in ('father', 'mother', 'guardian', 'other')`,
+      ),
+      check(
+        "consent_records_method_check",
+        sql`method in ('paper_form', 'in_person', 'phone', 'other')`,
+      ),
+      check(
+        "consent_records_notes_check",
+        sql`notes is null or (length(notes) between 1 and 1000 and notes ~ '[^[:space:]]')`,
+      ),
+      check(
+        "consent_records_signoff_check",
+        sql`(principal_signed_by is null) = (principal_signed_at is null)
+          and (second_signer_assigned is null) = (second_assigned_by is null)
+          and (second_signer_assigned is null) = (second_assigned_at is null)
+          and (second_signed_by is null) = (second_signed_at is null)`,
+      ),
+      check(
+        "consent_records_withdrawal_check",
+        sql`(withdrawn_at is null) = (withdrawn_by is null) and (withdrawn_at is null) = (withdrawal_reason is null)
+          and (withdrawal_reason is null or (length(withdrawal_reason) between 1 and 500 and withdrawal_reason ~ '[^[:space:]]'))`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("consent_staff_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or app.is_teacher_of(student_user_id)
+          or second_signer_assigned = (select app.current_user_id())`,
+      }),
+      pgPolicy("consent_staff_record", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`recorded_by = (select app.current_user_id())
+          and ((select app.has_role('admin')) or app.is_teacher_of(student_user_id))`,
+      }),
+    ],
+  )
+  .enableRLS();
