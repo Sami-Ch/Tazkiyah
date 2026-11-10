@@ -1,8 +1,8 @@
 -- P0-E2-T19: query plans of the policy helpers and the donation reads with
 -- seeded volume (04 §13.1). 5,000 donations in one institute and 1,000 in a
 -- second one go through the real recording function, then every read that
--- looks up a few rows must use an index. The 20,000 posts wait for the posts
--- table (P3-E3-T40).
+-- looks up a few rows must use an index. 20,000 hub posts follow, read under
+-- row-level security as a student and a teacher.
 begin;
 set local plpgsql.check_asserts = on;
 set local role tazkiyah_schema_owner;
@@ -222,5 +222,140 @@ begin
     'Public cause totals scan every allocation:' || E'\n' || plan;
 end
 $test$;
+
+-- The hub: 20 classes with a teacher and 10 students each, every student with
+-- a persona, 1,500 class threads, 500 madrasa threads and 20,000 posts, all in
+-- the first institute (04 §13.1).
+reset role;
+set local role tazkiyah_schema_owner;
+insert into app.users (id, institute_id, username, email, full_name, status)
+select ('19000000-0000-4000-8001-' || lpad(n::text, 12, '0'))::uuid, '19000000-0000-4000-8000-000000000001',
+  case when n <= 200 then 'hubplan-' || n end, case when n > 200 then 'hubplan-' || n || '@example.test' end,
+  case when n <= 200 then 'Plan student' else 'Plan teacher' end, 'active'
+from generate_series(1, 220) n;
+insert into app.user_roles (institute_id, user_id, role)
+select institute_id, id, case full_name when 'Plan student' then 'student' else 'teacher' end
+from app.users where full_name in ('Plan student', 'Plan teacher');
+insert into app.classes (id, institute_id, name, created_by)
+select ('19000000-0000-4000-8002-' || lpad(c::text, 12, '0'))::uuid, '19000000-0000-4000-8000-000000000001',
+  jsonb_build_object('en', 'Class ' || c), ('19000000-0000-4000-8001-' || lpad((200 + c)::text, 12, '0'))::uuid
+from generate_series(1, 20) c;
+-- Student n is in class ((n - 1) % 20) + 1; teacher 200 + c teaches class c.
+insert into app.class_members (institute_id, class_id, user_id, member_role)
+select '19000000-0000-4000-8000-000000000001',
+  ('19000000-0000-4000-8002-' || lpad((((n - 1) % 20) + 1)::text, 12, '0'))::uuid,
+  ('19000000-0000-4000-8001-' || lpad(n::text, 12, '0'))::uuid, 'student'
+from generate_series(1, 200) n
+on conflict do nothing;
+insert into app.class_members (institute_id, class_id, user_id, member_role)
+select '19000000-0000-4000-8000-000000000001', ('19000000-0000-4000-8002-' || lpad(c::text, 12, '0'))::uuid,
+  ('19000000-0000-4000-8001-' || lpad((200 + c)::text, 12, '0'))::uuid, 'teacher'
+from generate_series(1, 20) c
+on conflict do nothing;
+insert into app.personas (id, institute_id, display_name)
+select ('19000000-0000-4000-8003-' || lpad(n::text, 12, '0'))::uuid, '19000000-0000-4000-8000-000000000001',
+  'Plan ' || n
+from generate_series(1, 200) n;
+insert into app.persona_links (institute_id, persona_id, user_id, created_by)
+select '19000000-0000-4000-8000-000000000001', ('19000000-0000-4000-8003-' || lpad(n::text, 12, '0'))::uuid,
+  ('19000000-0000-4000-8001-' || lpad(n::text, 12, '0'))::uuid,
+  ('19000000-0000-4000-8001-' || lpad((200 + ((n - 1) % 20) + 1)::text, 12, '0'))::uuid
+from generate_series(1, 200) n;
+-- Thread k (1 to 1,500) is in class (k % 20) + 1, started by one of its
+-- students; threads 1,501 to 2,000 are madrasa threads started by a teacher.
+insert into app.threads (id, institute_id, class_id, scope, title, language, author_persona_id, author_user_id)
+select ('19000000-0000-4000-8004-' || lpad(k::text, 12, '0'))::uuid, '19000000-0000-4000-8000-000000000001',
+  case when k <= 1500 then ('19000000-0000-4000-8002-' || lpad((k % 20 + 1)::text, 12, '0'))::uuid end,
+  case when k <= 1500 then 'class' else 'madrasa' end, 'Thread ' || k, 'ur',
+  case when k <= 1500 then ('19000000-0000-4000-8003-'
+    || lpad((20 * ((k / 20) % 10) + k % 20 + 1)::text, 12, '0'))::uuid end,
+  case when k > 1500 then ('19000000-0000-4000-8001-' || lpad((201 + k % 20)::text, 12, '0'))::uuid end
+from generate_series(1, 2000) k;
+-- Ten posts in each thread, by students of the class or by the teacher.
+insert into app.posts (institute_id, thread_id, post_type, language, body, author_persona_id, author_user_id)
+select '19000000-0000-4000-8000-000000000001', ('19000000-0000-4000-8004-' || lpad(k::text, 12, '0'))::uuid,
+  case when j = 0 then 'question' else 'message' end, 'ur', 'Post ' || j || ' in thread ' || k,
+  case when k <= 1500 then ('19000000-0000-4000-8003-'
+    || lpad((20 * ((k / 20 + j) % 10) + k % 20 + 1)::text, 12, '0'))::uuid end,
+  case when k > 1500 then ('19000000-0000-4000-8001-' || lpad((201 + k % 20)::text, 12, '0'))::uuid end
+from generate_series(1, 2000) k cross join generate_series(0, 9) j
+order by k, j;
+
+reset role;
+analyze app.posts, app.threads, app.class_members, app.personas, app.persona_links, app.classes,
+  app.users, app.user_roles;
+
+do $test$
+begin
+  assert (select count(*) from app.posts where institute_id = '19000000-0000-4000-8000-000000000001') = 20000,
+    'Seeded volume is not 20,000 posts';
+end
+$test$;
+
+-- The lookups inside the policy helpers run as their owner, once per row
+-- checked. Memberships and persona links stay small, so sequential scans are
+-- switched off to show the index serves them.
+set local enable_seqscan = off;
+do $test$
+declare
+  tenant constant text := '19000000-0000-4000-8000-000000000001';
+begin
+  perform pg_temp.assert_indexed('Class membership (app.is_class_member)',
+    'class_members_(one_open|class_role|user)', format($q$
+    select from app.class_members m where m.institute_id = %L
+      and m.class_id = '19000000-0000-4000-8002-000000000001'
+      and m.user_id = '19000000-0000-4000-8001-000000000001' and m.ended_at is null $q$, tenant));
+  perform pg_temp.assert_indexed('Teachers of a student (app.is_teacher_of)',
+    'class_members_(one_open|class_role|user)', format($q$
+    select from app.class_members t
+    join app.class_members s on s.institute_id = t.institute_id and s.class_id = t.class_id
+    where t.institute_id = %L and t.user_id = '19000000-0000-4000-8001-000000000201'
+      and t.member_role = 'teacher' and t.ended_at is null
+      and s.user_id = '19000000-0000-4000-8001-000000000001' and s.member_role = 'student' $q$, tenant));
+  perform pg_temp.assert_indexed('Own persona (app.current_persona_id)', 'persona_links_user', format($q$
+    select l.persona_id from app.persona_links l
+    where l.institute_id = %L and l.user_id = '19000000-0000-4000-8001-000000000001' $q$, tenant));
+end
+$test$;
+reset enable_seqscan;
+
+-- What a student and a teacher read on every hub page, under row-level
+-- security. The role checks must run once per statement (an InitPlan), and
+-- the per-row class checks only on the rows the index returns.
+create function pg_temp.assert_hub_reads() returns void
+language plpgsql as $function$
+declare
+  check_query record;
+begin
+  for check_query in select * from (values
+    ('Posts of one thread', 'posts_thread', $q$ select id from app.posts
+      where thread_id = '19000000-0000-4000-8004-000000000001' order by created_at limit 50 $q$),
+    ('Threads of one class', 'threads_class_recent', $q$ select id from app.threads
+      where class_id = '19000000-0000-4000-8002-000000000002' order by last_post_at desc limit 20 $q$),
+    ('Madrasa threads', 'threads_scope_recent', $q$ select id from app.threads
+      where scope = 'madrasa' order by last_post_at desc limit 20 $q$),
+    ('Posts of one persona', 'posts_author_persona', $q$ select id from app.posts
+      where author_persona_id = '19000000-0000-4000-8003-000000000001' $q$),
+    ('Replies to one post', 'posts_parent', $q$ select id from app.posts
+      where parent_post_id = '19000000-0000-4000-8004-000000000001' $q$),
+    ('Approval queue', 'posts_approval_queue', $q$ select id from app.posts
+      where moderation_state = 'submitted' $q$)
+  ) as queries(label, index_name, query)
+  loop
+    perform pg_temp.assert_indexed(check_query.label || ' as ' || current_setting('app.user_id'),
+      check_query.index_name, check_query.query);
+    assert pg_temp.plan_of(check_query.query) ~ 'InitPlan',
+      check_query.label || ' does not run the role checks once per statement';
+  end loop;
+end
+$function$;
+
+set local role tazkiyah_app;
+select set_config('app.institute_id', '19000000-0000-4000-8000-000000000001', true);
+-- A student of class 2 and the teacher of class 2.
+select set_config('app.user_id', '19000000-0000-4000-8001-000000000002', true);
+select pg_temp.assert_hub_reads();
+select set_config('app.user_id', '19000000-0000-4000-8001-000000000202', true);
+select pg_temp.assert_hub_reads();
 
 rollback;
