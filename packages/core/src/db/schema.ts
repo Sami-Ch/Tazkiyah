@@ -1038,6 +1038,21 @@ export const donors = app
       `,
       ),
       manualDonationIsolation(),
+      // The donor's own row (04 §6.4, P2-E5-T40): account and trail-link donors
+      // read it; only account donors change it.
+      pgPolicy("donors_own_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`id in (select app.my_donor_ids())`,
+      }),
+      pgPolicy("donors_own_update", {
+        as: "permissive",
+        for: "update",
+        to: ["tazkiyah_app"],
+        using: sql`user_id = (select app.current_user_id())`,
+        withCheck: sql`user_id = (select app.current_user_id())`,
+      }),
     ],
   )
   .enableRLS();

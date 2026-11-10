@@ -86,11 +86,16 @@ begin
 end
 $test$;
 
--- 04 §8.4: no runtime role reads donors directly.
+-- 04 §6.4, §8.4: the app role reads donors only under the own-row policy and
+-- changes only profile fields (P2-E5-T40); the auth role never reaches them.
 do $test$
 begin
-  assert not has_table_privilege('tazkiyah_app', 'app.donors', 'SELECT, INSERT, UPDATE, DELETE'),
-    'The application role can reach donors directly';
+  assert not has_table_privilege('tazkiyah_app', 'app.donors', 'INSERT, DELETE'),
+    'The application role can add or delete donors';
+  assert not has_column_privilege('tazkiyah_app', 'app.donors', 'email', 'UPDATE')
+    and not has_column_privilege('tazkiyah_app', 'app.donors', 'legal_name', 'UPDATE')
+    and not has_column_privilege('tazkiyah_app', 'app.donors', 'user_id', 'UPDATE'),
+    'The application role can change private donor fields';
   assert not has_table_privilege('tazkiyah_auth', 'app.donors', 'SELECT, INSERT, UPDATE, DELETE'),
     'The auth role can reach donors directly';
 end

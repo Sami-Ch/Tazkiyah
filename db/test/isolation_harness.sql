@@ -31,6 +31,11 @@ begin
       ('14000000-0000-4000-8000-00000000030' || n)::uuid);
     update app.users set photo_media_id = ('14000000-0000-4000-8000-00000000010' || n)::uuid
     where id = ('14000000-0000-4000-8000-00000000030' || n)::uuid;
+    insert into app.media_assets
+      (id, institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, width, height, status, uploaded_by)
+    values (('14000000-0000-4000-8000-00000000025' || n)::uuid, tenant, 'image', 'donor_photo', 'public',
+      tenant || '/' || mark || '-donor.webp', 'image/webp', 1000, 96, 96, 'ready',
+      ('14000000-0000-4000-8000-00000000030' || n)::uuid);
 
     insert into app.institute_settings
       (institute_id, name, address, theme, receipt_prefix, logo_media_id, principal_user_id, updated_by)
@@ -194,7 +199,7 @@ where l.institute_id = j.institute_id and l.donor_id = j.donor_id and l.revoked_
 -- Private and public donor profile fields (04 §8.2), each carrying its marker.
 update app.donors d set
   user_id = ('14000000-0000-4000-8000-00000000030' || n.i)::uuid,
-  photo_media_id = ('14000000-0000-4000-8000-00000000010' || n.i)::uuid,
+  photo_media_id = ('14000000-0000-4000-8000-00000000025' || n.i)::uuid,
   legal_name = n.mark || '-Legal', phone = '+92 300 000000' || n.i,
   display_name = n.mark || '-Display', profile_public = true,
   profile_links = jsonb_build_array(jsonb_build_object('label', n.mark || '-Link', 'url', 'https://example.test/' || n.mark)),
