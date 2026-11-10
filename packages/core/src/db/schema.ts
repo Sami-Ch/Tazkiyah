@@ -2233,6 +2233,7 @@ export const threads = app
       replyCount: integer("reply_count").default(0).notNull(),
       lockedAt: timestamp("locked_at", { withTimezone: true }),
       lockedBy: uuid("locked_by"),
+      articlePostId: uuid("article_post_id"),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
         .notNull(),
@@ -2256,6 +2257,13 @@ export const threads = app
       index("threads_author_user").on(table.instituteId, table.authorUserId),
       index("threads_first_post").on(table.instituteId, table.firstPostId),
       index("threads_locked_by").on(table.instituteId, table.lockedBy),
+      uniqueIndex("threads_article_post")
+        .on(table.instituteId, table.articlePostId)
+        .where(sql`article_post_id is not null`),
+      foreignKey({
+        columns: [table.instituteId, table.articlePostId],
+        foreignColumns: [posts.instituteId, posts.id],
+      }),
       foreignKey({
         columns: [table.instituteId, table.classId],
         foreignColumns: [classes.instituteId, classes.id],
@@ -2356,6 +2364,9 @@ export const posts = app
       takenDownAt: timestamp("taken_down_at", { withTimezone: true }),
       takenDownBy: uuid("taken_down_by"),
       takedownReason: text("takedown_reason"),
+      isVerified: boolean("is_verified").default(false).notNull(),
+      verifiedBy: uuid("verified_by"),
+      verifiedAt: timestamp("verified_at", { withTimezone: true }),
       editedAt: timestamp("edited_at", { withTimezone: true }),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
@@ -2390,6 +2401,18 @@ export const posts = app
       index("posts_taken_down_by")
         .on(table.instituteId, table.takenDownBy)
         .where(sql`taken_down_by is not null`),
+      index("posts_verified_by")
+        .on(table.instituteId, table.verifiedBy)
+        .where(sql`verified_by is not null`),
+      foreignKey({
+        columns: [table.instituteId, table.verifiedBy],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "posts_verified_check",
+        sql`(is_verified = (verified_by is not null)) and (is_verified = (verified_at is not null))
+          and (not is_verified or (post_type = 'article' and author_user_id is not null))`,
+      ),
       foreignKey({
         columns: [table.instituteId, table.approvedBy],
         foreignColumns: [users.instituteId, users.id],

@@ -287,6 +287,17 @@ select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, ('14000000-0000-400
   ('14000000-0000-4000-8000-00000000030' || n.i)::uuid, now(), now(), ('14000000-0000-4000-8000-00000000030' || n.i)::uuid,
   now(), ('14000000-0000-4000-8000-00000000030' || n.i)::uuid, n.mark || '-Takedown'
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+-- The class thread became a verified article.
+insert into app.posts (institute_id, thread_id, post_type, language, title, body, author_user_id,
+  is_verified, verified_by, verified_at)
+select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, ('14000000-0000-4000-8000-00000000091' || n.i)::uuid,
+  'article', 'en', n.mark || '-Article', n.mark || '-Article body', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid,
+  true, ('14000000-0000-4000-8000-00000000030' || n.i)::uuid, now()
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+update app.threads t set article_post_id = p.id
+from app.posts p
+where p.thread_id = t.id and p.is_verified
+  and t.id in ('14000000-0000-4000-8000-000000000911', '14000000-0000-4000-8000-000000000912');
 -- The student reported the removed post, and the admin closed the report.
 insert into app.post_reports (institute_id, post_id, reporter_user_id, reason, note)
 select p.institute_id, p.id, l.user_id, 'other', n.mark || '-Report'

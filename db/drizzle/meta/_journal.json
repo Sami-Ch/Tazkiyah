@@ -351,6 +351,13 @@
       "when": 1794324882588,
       "tag": "0049_post_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794325206517,
+      "tag": "0050_verified_articles",
+      "breakpoints": true
     }
   ]
 }
