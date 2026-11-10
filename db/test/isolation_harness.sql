@@ -100,7 +100,7 @@ begin
       assert identity.issue_trail_link(
         ('14000000-0000-4000-8000-00000000040' || n)::uuid, result.receipt_number,
         lower(mark) || '-donor@example.test',
-        repeat(case mark when 'ZZA' then 'a' else 'b' end || link, 32)
+        repeat(case mark when 'ZZA' then 'a' else 'b' end || link, 32), 'hnt' || link
       ) = 'issued', 'Fixture trail link was not issued';
     end loop;
   end loop;

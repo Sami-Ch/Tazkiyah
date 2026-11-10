@@ -1348,12 +1348,17 @@ export const trailLinks = app
         .references(() => institutes.id),
       donorId: uuid("donor_id").notNull(),
       tokenHash: text("token_hash").notNull(),
+      // Null only for links issued before P1-E3-T44.
+      tokenHint: text("token_hint"),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
         .notNull(),
       createdBy: uuid("created_by").notNull(),
+      expiresAt: timestamp("expires_at", { withTimezone: true }),
       revokedAt: timestamp("revoked_at", { withTimezone: true }),
       revokedBy: uuid("revoked_by"),
+      revokeReason: text("revoke_reason"),
+      lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     },
     (table) => [
       index("trail_links_donor").on(table.instituteId, table.donorId),
@@ -1379,9 +1384,25 @@ export const trailLinks = app
       check("trail_links_hash_check", sql`token_hash ~ '^[0-9a-f]{64}$'`),
       check(
         "trail_links_revocation_check",
-        sql`(revoked_at is null) = (revoked_by is null)`,
+        sql`(revoked_at is null) = (revoked_by is null) and (revoke_reason is null or (revoked_at is not null and length(revoke_reason) between 1 and 200 and revoke_reason !~ '[[:cntrl:]]'))`,
+      ),
+      check(
+        "trail_links_hint_check",
+        sql`token_hint is null or token_hint ~ '^[A-Za-z0-9_-]{4}$'`,
+      ),
+      check(
+        "trail_links_expiry_check",
+        sql`expires_at is null or expires_at > created_at`,
       ),
       manualDonationIsolation(),
+      // 04 §6.4: the donor reads their own links' metadata (never the hash,
+      // which is not granted); admins and finance officers read all.
+      pgPolicy("trail_links_own_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`donor_id in (select app.my_donor_ids()) or (select app.has_role('admin')) or (select app.has_role('finance_officer'))`,
+      }),
     ],
   )
   .enableRLS();

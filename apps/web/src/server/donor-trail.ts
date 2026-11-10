@@ -149,7 +149,7 @@ export async function manageDonorLink(
       crypto.getRandomValues(new Uint8Array(32)),
     ).toString("base64url");
     const hash = await tokenHash(token);
-    query = sql`select identity.issue_trail_link(${sessionId}::uuid, ${receipt}, ${email}, ${hash}) as outcome`;
+    query = sql`select identity.issue_trail_link(${sessionId}::uuid, ${receipt}, ${email}, ${hash}, ${token.slice(-4)}) as outcome`;
     link = new URL(`/${data.language}/trail`, origin);
     link.hash = token;
   } else if (data.action === "revoke") {

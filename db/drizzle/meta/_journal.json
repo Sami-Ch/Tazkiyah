@@ -183,6 +183,13 @@
       "when": 1794289754558,
       "tag": "0025_record_donation",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794289959915,
+      "tag": "0026_trail_links_spec",
+      "breakpoints": true
     }
   ]
 }

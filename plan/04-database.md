@@ -699,8 +699,8 @@ Covers REQ-DPR-007 and REQ-DPR-008. Tests for REQ-DPR-009: for an anonymous dona
 | --- | --- | --- |
 | `id`, `institute_id` | | |
 | `donor_id` | `uuid not null` | One link shows all of that donor's donations. |
-| `token_hash` | `bytea not null unique` | SHA-256 of the token. The raw token is never stored. |
-| `token_hint` | `text not null` | Last 4 characters, so staff can tell links apart. |
+| `token_hash` | `text not null unique` | SHA-256 of the token as 64 lower-case hex characters (the same bytes as a `bytea`, in the form the app already sends). The raw token is never stored. |
+| `token_hint` | `text null` | Last 4 characters, so staff can tell links apart. Null only for links issued before P1-E3-T44. |
 | `created_at`, `created_by` | | |
 | `expires_at` | `timestamptz null` | Null means no expiry. 06 §11 decides. |
 | `revoked_at`, `revoked_by`, `revoke_reason` | | Set once, never cleared (REQ-SEC-004). |
@@ -708,7 +708,7 @@ Covers REQ-DPR-007 and REQ-DPR-008. Tests for REQ-DPR-009: for an anonymous dona
 
 The token is 32 random bytes from a secure generator, written as base64url (43 characters). It carries no personal data (REQ-SEC-005). It is sent only by email.
 
-`app.use_trail_token(token text)` (definer) hashes the token, looks for a row in the current institute that is not revoked or expired, and if found sets `app.trail_donor_id` for the transaction. Otherwise it returns null. Tokens from another institute never match (§6.6, test 8). Admins, finance officers and the donor can revoke a link and issue a new one.
+`app.use_trail_token(token text)` (definer) hashes the token, looks for a row in the current institute that is not revoked or expired, and if found sets `app.trail_donor_id` for the transaction. Otherwise it returns null. Tokens from another institute never match (§6.6, test 8). Who can revoke a link and issue a new one is open: 05 §7.1 says admins and finance officers, 06 §11.2 says a two-factor verified admin for the first release, and this section said the donor too. Until Sami decides, the built rule is the narrowest, admin only ([D-121](08-decision-log.md#d-121)).
 
 ### 8.7 `transfer_notices`: donations waiting for confirmation
 
@@ -1323,7 +1323,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P1-E3-T41 | Create `donations` and `receipt_counters`, `app.next_receipt_number()`, the column-lock trigger, campaign end-date check and bank-reference guard | done | P1-E3-T40, P1-E2-T40 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-006, REQ-DON-008, REQ-DON-010, REQ-PAY-001 |
 | P1-E3-T42 | Create `allocations` and `trail_events` with shape checks, deferred sum checks, reversal uniqueness and append-only guards; run the test kit on both | done | P1-E3-T41, P0-E2-T16 | REQ-TRL-001, REQ-TRL-002, REQ-TRL-003, REQ-TRL-014 |
 | P1-E3-T43 | Write `app.record_donation()`: donation, received event, cause allocation and allocated event in one transaction | done | P1-E3-T42 | REQ-DON-008, REQ-TRL-001, REQ-PAY-001 |
-| P1-E3-T44 | Create `trail_links` and the issue, `use_trail_token` and revoke functions, with RLS through the trail donor | todo | P1-E3-T40, P0-E2-T05 | REQ-SEC-004, REQ-DPR-002, REQ-SEC-005 |
+| P1-E3-T44 | Create `trail_links` and the issue, `use_trail_token` and revoke functions, with RLS through the trail donor | done | P1-E3-T40, P0-E2-T05 | REQ-SEC-004, REQ-DPR-002, REQ-SEC-005 |
 | P1-E3-T45 | Write the donation reversal function (reversal events and allocation reversals; refuse while spent allocations remain) | todo | P1-E3-T43 | REQ-DON-012, REQ-TRL-003 |
 | P1-E3-T46 | Create `transfer_notices` with RLS, the Zakat check, 30-day expiry and the confirm path into `app.record_donation()` (§8.7) | todo | P1-E3-T43, P1-E3-T44 | REQ-DPR-001, REQ-DON-015 (proposed), REQ-PAY-001 |
 | P1-E3-T47 | Create `recurring_pledges` and add `donations.pledge_id` (§8.8) | todo | P1-E3-T41 | REQ-DON-003 |
@@ -1351,6 +1351,8 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 | P4-E1-T40 | Create `sponsorships` and `sponsorship_updates` and `app.sponsor_child_view` (persona, age, updates) | todo | P3-E1-T41, P1-E3-T41 | REQ-ORP-001, REQ-ORP-002, REQ-ORP-008, REQ-ORP-009 |
 | P4-E2-T40 | Add the `orphan_full_profile` sign-off, assignment and withdrawal functions and full-profile gating in the sponsor view | todo | P4-E1-T40, P3-E2-T40 | REQ-ORP-003, REQ-ORP-004, REQ-ORP-005, REQ-ORP-006 |
 | P4-E3-T40 | Create `sponsor_messages` with RLS and no child-facing path | todo | P4-E1-T40 | REQ-ORP-007 |
+
+2026-11-10 · P1-E3-T44: `trail_links` and the admin issue and revoke functions came from P1-E3-T04 ([`0013_guest_trail.sql`](../db/drizzle/0013_guest_trail.sql)). [`0026_trail_links_spec.sql`](../db/drizzle/0026_trail_links_spec.sql) adds `token_hint`, `expires_at` (always null for now, 06-P10), `revoke_reason` and `last_used_at`. A guard trigger lets a link change only by one revocation and by its last use moving forward. `app.use_trail_token(token)` hashes the token, finds a live link in the current institute, writes `last_used_at` at most once an hour, and sets `app.trail_donor_id` for the transaction, or clears it and returns null. `app.my_donor_ids()` returns the user's donor rows plus the token donor, but only while that donor holds a live link, so a revoked link stops working in the same transaction and a forged setting gives nothing. `tazkiyah_app` may read link metadata (not the hash, created-by or revoked-by) through the new `trail_links_own_read` policy: the donor their own links, admins and finance officers all. Issuing now needs the hint and marks the replaced link "Replaced by a new link". Revoking takes an optional reason. Both keep the admin-only check (D-121). The guest trail page still reads through `identity.read_guest_trail` by hash; moving it onto `use_trail_token` and the donor policies belongs to `app.donor_trail` (P1-E4-T40). Tests: [`db/test/trail_links.sql`](../db/test/trail_links.sql).
 
 2026-11-10 · P1-E3-T43: [`0025_record_donation.sql`](../db/drizzle/0025_record_donation.sql) adds `app.record_donation()` (definer, admin or finance officer). It draws the receipt number and writes the donation, the `received` event, and for a cause the `to_cause` allocation and `allocated` event, then the `donations.recorded` audit row. Any failure undoes everything, including the receipt counter. `identity.record_manual_donation` keeps its session check, idempotency and answers, and now records through it. Tests: [`db/test/record_donation.sql`](../db/test/record_donation.sql) (both roles, cause and all needs, a refused donation leaves no row and no receipt-number gap).
 

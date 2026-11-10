@@ -102,22 +102,22 @@ begin
 
   assert identity.issue_trail_link(
     '13000000-0000-4000-8000-000000000024', first_receipt, target_email, old_hash
-  ) = 'denied', 'Admin MFA was bypassed';
+  , 'hint') = 'denied', 'Admin MFA was bypassed';
   perform set_config('app.user_id', '13000000-0000-4000-8000-000000000013', true);
   assert identity.issue_trail_link(
     '13000000-0000-4000-8000-000000000023', first_receipt, target_email, old_hash
-  ) = 'denied', 'Finance can issue an admin-only link';
+  , 'hint') = 'denied', 'Finance can issue an admin-only link';
   assert identity.revoke_trail_link(
     '13000000-0000-4000-8000-000000000023', first_receipt
   ) = 'denied', 'Finance can revoke an admin-only link';
   perform set_config('app.user_id', '13000000-0000-4000-8000-000000000011', true);
-  assert identity.issue_trail_link(admin_a, first_receipt, target_email, 'raw-token') = 'invalid';
-  assert identity.issue_trail_link(admin_a, first_receipt, 'different@example.test', old_hash) = 'unavailable';
-  assert identity.issue_trail_link(admin_a, missing_donor_receipt, target_email, old_hash) = 'unavailable';
-  assert identity.issue_trail_link(admin_a, lower(first_receipt), '  DONOR-A@EXAMPLE.TEST  ', old_hash) = 'issued';
-  assert identity.issue_trail_link(admin_a, last_receipt, target_email, live_hash) = 'issued';
+  assert identity.issue_trail_link(admin_a, first_receipt, target_email, 'raw-token', 'hint') = 'invalid';
+  assert identity.issue_trail_link(admin_a, first_receipt, 'different@example.test', old_hash, 'hint') = 'unavailable';
+  assert identity.issue_trail_link(admin_a, missing_donor_receipt, target_email, old_hash, 'hint') = 'unavailable';
+  assert identity.issue_trail_link(admin_a, lower(first_receipt), '  DONOR-A@EXAMPLE.TEST  ', old_hash, 'hint') = 'issued';
+  assert identity.issue_trail_link(admin_a, last_receipt, target_email, live_hash, 'hint') = 'issued';
   assert not exists (select from identity.read_guest_trail(old_hash, null, null)), 'Old token survived rotation';
-  assert identity.issue_trail_link(admin_a, last_receipt, target_email, old_hash) = 'collision',
+  assert identity.issue_trail_link(admin_a, last_receipt, target_email, old_hash, 'hint') = 'collision',
     'A revoked hash was reactivated';
 
   perform set_config('app.user_id', '', true);
@@ -158,9 +158,9 @@ begin
   );
   assert receipt_b = first_receipt, 'Fixture needs the same receipt in both tenants';
   assert not exists (select from identity.read_guest_trail(live_hash, null, null)), 'A valid hash crossed tenant boundaries';
-  assert identity.issue_trail_link(admin_b, last_receipt, target_email, other_hash) = 'unavailable',
+  assert identity.issue_trail_link(admin_b, last_receipt, target_email, other_hash, 'hint') = 'unavailable',
     'Issuance resolved a receipt in another tenant';
-  assert identity.issue_trail_link(admin_b, receipt_b, target_email, other_hash) = 'issued';
+  assert identity.issue_trail_link(admin_b, receipt_b, target_email, other_hash, 'hint') = 'issued';
   assert (select amount_paisa from identity.read_guest_trail(other_hash, null, null)) = '20000';
   assert identity.revoke_trail_link(admin_b, last_receipt) = 'unavailable', 'Revocation resolved a receipt in another tenant';
 

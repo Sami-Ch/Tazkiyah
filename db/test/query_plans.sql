@@ -88,7 +88,7 @@ begin
     assert identity.issue_trail_link(
       '19000000-0000-4000-8000-000000000021', donor.receipt_number, donor.email,
       case when donor.email = 'plan-donor-7@example.test' then repeat('7', 64)
-        else encode(sha256(convert_to(donor.email, 'UTF8')), 'hex') end
+        else encode(sha256(convert_to(donor.email, 'UTF8')), 'hex') end, 'plan'
     ) = 'issued', 'Fixture trail link was not issued';
   end loop;
 end
