@@ -309,7 +309,10 @@ begin
   where u.view_schema = 'public_api' and u.table_schema = 'app'
     and (u.table_name = 'persona_links'
       or (u.table_name = 'users' and u.column_name in
-        ('full_name', 'username', 'email', 'date_of_birth', 'is_orphan', 'photo_media_id', 'left_at')));
+        ('full_name', 'username', 'email', 'date_of_birth', 'is_orphan', 'photo_media_id', 'left_at')))
+    -- A teacher's public photo: that view admits only teachers, and a student
+    -- cannot also hold a staff role (P3-E8-T40).
+    and not (u.view_name = 'public_teachers' and u.column_name = 'photo_media_id');
   assert used is null, 'a public view reads private student data: ' || used;
 end
 $test$;

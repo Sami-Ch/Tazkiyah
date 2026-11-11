@@ -369,6 +369,23 @@ select l.institute_id, ('14000000-0000-4000-8000-00000000093' || n.i)::uuid,
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
 join app.persona_links l on l.institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid;
 
+-- Public work, so public_api.public_posts and public_api.public_teachers
+-- have rows of both institutes: the teacher has a public name, and a
+-- public thread holds the teacher's article.
+update app.institute_settings set enabled_modules = array['student_hub', 'teacher_hub']
+where institute_id in ('14000000-0000-4000-8000-000000000001', '14000000-0000-4000-8000-000000000002');
+update app.users u set public_name = n.mark || '-Teacher', public_bio = jsonb_build_object('en', n.mark || '-Bio')
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+where u.id = ('14000000-0000-4000-8000-00000000030' || n.i)::uuid;
+insert into app.threads (id, institute_id, scope, title, language, author_user_id)
+select ('14000000-0000-4000-8000-00000000095' || n.i)::uuid, ('14000000-0000-4000-8000-00000000000' || n.i)::uuid,
+  'public', n.mark || '-Public', 'en', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+insert into app.posts (institute_id, thread_id, post_type, language, title, body, author_user_id)
+select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, ('14000000-0000-4000-8000-00000000095' || n.i)::uuid,
+  'article', 'en', n.mark || '-Lesson', n.mark || '-Lesson body', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
+
 -- Public trails, so public_api.public_trails has rows of both institutes.
 update app.donations set trail_public = true
 where institute_id in ('14000000-0000-4000-8000-000000000001', '14000000-0000-4000-8000-000000000002');
