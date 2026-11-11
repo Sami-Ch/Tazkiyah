@@ -279,7 +279,40 @@
     "signedIn": "Signed in as",
     "signOut": "Sign out",
     "backToSignIn": "Back to sign in",
-    "staffWorkspace": "Admin workspace"
+    "continue": "Continue to your account",
+    "forgotPassword": "Forgot your password?",
+    "createDonorAccount": "Create a donor account",
+    "emailNotVerified": "Open the confirmation link in your email before signing in."
+  },
+  "account": {
+    "heading": "Your account",
+    "name": "Full name",
+    "email": "Email address",
+    "newPassword": "New password",
+    "passwordHint": "Use at least 8 characters.",
+    "choosePassword": "Choose a new password",
+    "firstPassword": "Replace the starting password your teacher gave you.",
+    "startingPassword": "Starting password",
+    "savePassword": "Save password",
+    "signupIntro": "Create an account to manage your donations. We’ll send a link to confirm your email address.",
+    "signupSent": "If this email address can be registered, you’ll receive a confirmation link. Check your inbox and spam folder.",
+    "recoveryHeading": "Recover your account",
+    "recoveryIntro": "Enter the email address on your account. Students who sign in with a username can ask their teacher to reset their password.",
+    "sendReset": "Send a reset link",
+    "resetSent": "If this email address is registered and eligible for password recovery, you’ll receive a reset link.",
+    "resetDone": "Your password has been changed. Sign in with your new password.",
+    "resetInvalid": "This reset link is invalid or has expired. Request a new link.",
+    "invalid": "Check the information you entered and try again.",
+    "unavailable": "This service is currently unavailable. Please try again later.",
+    "roles": {
+      "visitor": "Visitor",
+      "donor": "Donor",
+      "student": "Student",
+      "teacher": "Teacher",
+      "editor": "Editor",
+      "finance_officer": "Finance officer",
+      "admin": "Administrator"
+    }
   },
   "admin": {
     "heading": "Admin workspace",

@@ -86,6 +86,7 @@ export default async function LocaleLayout({
             <div>
               <p className="footer-name">{institute.name[locale]}</p>
               <p className="footer-platform">{t("footer.platform")}</p>
+              <a href={`/${locale}/sign-in`}>{t("signIn.heading")}</a>
             </div>
             <LanguageSwitch locale={locale} {...switchLabels} />
           </div>

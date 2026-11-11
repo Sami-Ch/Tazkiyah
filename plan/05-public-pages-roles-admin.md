@@ -745,11 +745,13 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 | P1-E1-T08 | Donate page: cause or all-needs choice, type with Zakat filter, amount, bank details with copy buttons | in progress | P1-E1-T06, P1-E5-T03 | REQ-PUB-008, REQ-DON-001, REQ-DON-002, REQ-DON-004 |
 | P1-E1-T09 | "Tell us about your transfer" form on the donate page and its thank-you state | todo | P1-E1-T08, P1-E3-T07 | REQ-DPR-001, REQ-DPR-006, REQ-PAY-001, REQ-PAY-007 |
 | P1-E1-T10 | Contact page from institute settings, with tap-to-call, WhatsApp and static map link | done | P1-E1-T02, P1-E5-T03 | REQ-PUB-006 |
-| P1-E1-T11 | Login and create-donor-account pages, with two-factor step for staff and role-based landing | todo | P0-E5 | REQ-DPR-004, REQ-SEC-003, REQ-STU-001, REQ-ROL-003 |
-| P1-E1-T12 | Account page: profile, language, password, two-factor, donor links | todo | P1-E1-T11 | REQ-DPR-004, REQ-LNG-004 |
+| P1-E1-T11 | Login and create-donor-account pages, with two-factor step for staff and role-based landing | in progress | P0-E5 | REQ-DPR-004, REQ-SEC-003, REQ-STU-001, REQ-ROL-003 |
+| P1-E1-T12 | Account page: profile, language, password, two-factor, donor links | in progress | P1-E1-T11 | REQ-DPR-004, REQ-LNG-004 |
 | P1-E1-T13 | Per-language page titles, `hreflang` links, `sitemap.xml` and share previews with logo fallback | done | P1-E1-T02 | REQ-LNG-008 |
 | P1-E1-T14 | Check public pages on a slow 3G profile and a low-end phone; fix page weight, alt text and touch targets | in progress | P1-E1-T04, P1-E1-T07, P1-E1-T08, P1-E1-T10 | REQ-PRF-001, REQ-PRF-002, REQ-ACC-003, REQ-ACC-004 |
 | P1-E1-T15 | Phase 1 public check: "Wheat stock" in both languages, a recorded guest donation, and the new total on the cause page | in progress | P1-E1-T06, P1-E2-T50, P1-E3, P1-E4 | REQ-PUB-003, REQ-DON-009 |
+
+2026-11-12 · The bilingual sign-in flow now links to donor signup and password recovery. The signed-in account page shows the user's name and roles and requires students to change their starting password. Admins and finance officers still use the existing two-factor gate, and editors reach the admin workspace after sign-in. Hosted email verification, account editing, and donor links still need verification or implementation.
 
 ### P1-E5 Admin area shell and audit log (owner 05)
 

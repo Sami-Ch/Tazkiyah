@@ -20,6 +20,58 @@ type Session = {
   session: { id: string };
 };
 
+export type AccountAccess =
+  | {
+      state: "allowed";
+      name: string;
+      email: string | null;
+      roles: Role[];
+      mustChangePassword: boolean;
+    }
+  | { state: "signed-out" | "enroll" | "unavailable" };
+
+const currentRoles = sql`array(
+  select r from unnest(string_to_array(${roles.join(",")}, ',')) as r
+  where app.has_role(r)
+)`;
+
+export async function readAccountAccess(
+  tx: AuthQuery,
+  access: Session | null,
+): Promise<AccountAccess> {
+  if (!access) return { state: "signed-out" };
+
+  await tx.execute(
+    sql`select set_config('app.user_id', ${access.user.id}, true)`,
+  );
+  const {
+    rows: [account],
+  } = await tx.execute<{
+    name: string;
+    email: string | null;
+    roles: Role[];
+    mustChangePassword: boolean;
+  }>(sql`
+    select u.full_name as name, u.email, ${currentRoles} as roles,
+      u.must_change_password as "mustChangePassword"
+    from app.users u where u.id = ${access.user.id} and u.status in ('active', 'left')
+  `);
+  if (!account || !can(account, "account.edit_own", ["own"])) {
+    return { state: "signed-out" };
+  }
+
+  if (
+    account.roles.includes("admin") ||
+    account.roles.includes("finance_officer")
+  ) {
+    const workspace = await checkWorkspaceAccess(tx, access);
+    if (workspace.state === "enroll") return { state: "enroll" };
+    if (workspace.state !== "allowed") return { state: "signed-out" };
+  }
+
+  return { state: "allowed", ...account };
+}
+
 export async function checkWorkspaceAccess(
   tx: AuthQuery,
   access: Session | null,
@@ -38,10 +90,7 @@ export async function checkWorkspaceAccess(
   }>(sql`
     select
       app.is_staff() and u.status = 'active' and not u.must_change_password as eligible,
-      array(
-        select r from unnest(string_to_array(${roles.join(",")}, ',')) as r
-        where app.has_role(r)
-      ) as roles,
+      ${currentRoles} as roles,
       u.two_factor_enabled and exists (
         select from identity.two_factor f
         where f.institute_id = u.institute_id and f.user_id = u.id and f.verified

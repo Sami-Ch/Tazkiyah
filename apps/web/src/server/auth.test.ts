@@ -135,6 +135,77 @@ class Browser {
   }
 }
 
+it("resolves the Vercel host for both API and server-rendered account requests and sends through Resend", async () => {
+  const host = "azeem-lateef.com";
+  const hosted = `https://${host}`;
+  const requestHeaders = new Headers({
+    host,
+    origin: hosted,
+    "content-type": "application/json",
+    "x-forwarded-proto": "https",
+    "x-vercel-forwarded-for": "192.0.2.42",
+    "x-tazkiyah-auth-origin": "https://elsewhere.example.test",
+  });
+  const send = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(
+      Response.json({ id: "00000000-0000-4000-8000-000000000001" }),
+    );
+  vi.stubGlobal("fetch", send);
+  vi.stubEnv("VERCEL", "1");
+  vi.stubEnv("RESEND_API_KEY", "re_fixture");
+  vi.stubEnv("AUTH_EMAIL_FROM", "accounts@notify.example.test");
+
+  function post(path: string, body: Record<string, string>) {
+    return auth.handleAuth(
+      new Request(`${origin}/api/auth${path}`, {
+        method: "POST",
+        headers: requestHeaders,
+        body: JSON.stringify(body),
+      }),
+    );
+  }
+
+  try {
+    const login = await post("/sign-in/email", {
+      email: "editor@example.test",
+      password,
+    });
+    expect(login.status).toBe(200);
+    const cookies = login.headers.getSetCookie();
+    expect(cookies.some((cookie) => cookie.includes("Secure"))).toBe(true);
+    requestHeaders.set(
+      "cookie",
+      cookies.map((cookie) => cookie.split(";")[0]).join("; "),
+    );
+    expect(await auth.getAccountAccess(requestHeaders)).toMatchObject({
+      state: "allowed",
+      roles: ["editor"],
+    });
+    requestHeaders.delete("cookie");
+
+    const signup = await post("/sign-up/email", {
+      name: "Hosted Fixture",
+      email: "vercel-donor@example.test",
+      password,
+      callbackURL: "/ur/sign-in",
+      preferredLanguage: "ur",
+    });
+    expect(signup.status).toBe(200);
+    expect(send).toHaveBeenCalledExactlyOnceWith(
+      "https://api.resend.com/emails",
+      expect.objectContaining({ method: "POST", body: expect.any(String) }),
+    );
+    const email = JSON.parse(String(send.mock.calls[0][1]?.body));
+    expect(email.to).toEqual(["vercel-donor@example.test"]);
+    expect(email.text).toContain(`${host}/api/auth/verify-email`);
+    expect(email.text).not.toContain("Hosted Fixture");
+  } finally {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  }
+});
+
 // Better Auth also allows 3 two-factor requests per 10 seconds per IP. Clearing
 // that bucket stands in for attempts spread over time, so the lockout is tested.
 async function spreadOverTime() {
@@ -170,6 +241,12 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     });
     expect(signIn.status).toBe(200);
     expect(await browser.access()).toEqual({ state: "enroll" });
+    expect(await auth.getAccountAccess(browser.headers())).toEqual({
+      state: "enroll",
+    });
+    expect(await auth.getAccountAccess(new Browser().headers())).toEqual({
+      state: "signed-out",
+    });
   });
 
   it("does not ask an editor for two-factor", async () => {
@@ -510,6 +587,13 @@ describe("donor sign-up, email verification and password reset (P0-E5-T02)", () 
     expect((await browser.get("/get-session")).json).toMatchObject({
       user: { email: donorEmail },
     });
+    expect(await auth.getAccountAccess(browser.headers())).toEqual({
+      state: "allowed",
+      name: "New Donor",
+      email: donorEmail,
+      roles: ["donor"],
+      mustChangePassword: false,
+    });
   });
 
   it("resets a password by email and signs out every device", async () => {
@@ -521,11 +605,17 @@ describe("donor sign-up, email verification and password reset (P0-E5-T02)", () 
 
     const requested = await post(new Browser(), "/request-password-reset", {
       email: donorEmail,
+      redirectTo: "/ur/reset-password",
     });
     expect(requested.status).toBe(200);
     expect(outbox.at(-1)).toContain("اپنا پاس ورڈ دوبارہ ترتیب دیں");
     const link = lastLink("reset-password")!;
-    const token = link.pathname.split("/").at(-1)!;
+    const landing = await open(link);
+    expect(landing.status).toBe(302);
+    const page = new URL(landing.headers.get("location")!, origin);
+    expect(page.pathname).toBe("/ur/reset-password");
+    const token = page.searchParams.get("token");
+    expect(token).toBeTruthy();
 
     const newPassword = "a brand new passphrase";
     const reset = await post(new Browser(), "/reset-password", {

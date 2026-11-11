@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   createConsoleEmailSender,
+  createResendEmailSender,
   renderAuthEmail,
   type AuthEmail,
   type EmailSender,
@@ -16,10 +17,20 @@ export const emailPaths = new Set([
   "/request-password-reset",
 ]);
 
-// The console adapter prints links, so it is only used on a local origin.
-// Hosted environments get a real adapter with P1-E3-T30 (Q-06).
-export function authEmailSender(local: boolean): EmailSender | undefined {
-  return local ? consoleSender : undefined;
+export function authEmailSender(
+  local: boolean,
+  config: { apiKey?: string; from?: string; replyTo?: string },
+): EmailSender | undefined {
+  // The console adapter prints links and must stay on loopback origins.
+  if (local) return consoleSender;
+  const apiKey = config.apiKey?.trim();
+  const from = config.from?.trim();
+  if (!apiKey || !from) return undefined;
+  return createResendEmailSender({
+    apiKey,
+    from,
+    replyTo: config.replyTo?.trim() || undefined,
+  });
 }
 
 type AuthUser = { id: string; email: string; preferredLanguage?: unknown };

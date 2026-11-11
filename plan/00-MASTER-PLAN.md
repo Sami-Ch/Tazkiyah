@@ -170,7 +170,7 @@ Each phase ends in a test that a person can run by hand. Online payments come la
 | Q-03 | Who holds the editor and finance officer roles | Moazam | P1 |
 | Q-04 | Which scholar's name, if any, is shown as approving Zakat causes | Moazam | P2 |
 | Q-05 | When photos and videos of the madrasa will be available | Moazam | P1 |
-| Q-06 | Which email sending service fits the free tier | Sami (03) | P0 |
+| Q-06 | Resend selected for account emails and donor receipts ([D-142](08-decision-log.md#d-142)) | Sami (03) | Resolved |
 | Q-07 | Confirm the proposed performance and takedown targets ([D-026](08-decision-log.md#d-026), [D-027](08-decision-log.md#d-027)) | Sami | P0 |
 | Q-08 | Approve or reject the proposed requirements in [01](01-requirements-checklist.md#proposed-awaiting-approval) | Sami | Before the phase of each one |
 | Q-09 | Approve or reject the proposed decisions from the specialist documents ([08](08-decision-log.md#proposed-decisions-from-the-specialist-documents)) | Sami | P0 |

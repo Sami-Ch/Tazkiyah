@@ -29,6 +29,9 @@ export function LanguageSwitch({
         if (suffix === "/staff-invite") {
           event.currentTarget.hash = window.location.hash;
         }
+        if (suffix === "/reset-password") {
+          event.currentTarget.search = window.location.search;
+        }
       }}
     >
       <Icon name="globe" />

@@ -1,6 +1,7 @@
 "use client";
 
 import type common from "@tazkiyah/i18n/messages/en/common.json";
+import type { Locale } from "@tazkiyah/i18n/routing";
 import { useEffect, useState, type FormEvent } from "react";
 import { authRequest } from "@/components/auth-request";
 
@@ -8,17 +9,12 @@ type Copy = typeof common.signIn;
 type Mode = "loading" | "credentials" | "totp" | "backup" | "signed-in";
 type AuthResult = { twoFactorRedirect?: boolean; user?: { name: string } };
 
-export function SignInForm({
-  copy,
-  staffHref,
-}: {
-  copy: Copy;
-  staffHref: string;
-}) {
+export function SignInForm({ copy, locale }: { copy: Copy; locale: Locale }) {
   const [mode, setMode] = useState<Mode>("loading");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const continueHref = `/${locale}/account?continue=1`;
 
   useEffect(() => {
     let mounted = true;
@@ -73,6 +69,7 @@ export function SignInForm({
       }
 
       if (!response.ok) {
+        const failure = await response.json().catch(() => null);
         const message =
           response.status === 429
             ? copy.rateLimited
@@ -80,9 +77,11 @@ export function SignInForm({
                 response.status >= 500 ||
                 mode === "signed-in"
               ? copy.unavailable
-              : mode === "credentials"
-                ? copy.invalidCredentials
-                : copy.invalidCode;
+              : failure?.code === "EMAIL_NOT_VERIFIED"
+                ? copy.emailNotVerified
+                : mode === "credentials"
+                  ? copy.invalidCredentials
+                  : copy.invalidCode;
         setError(message);
         return;
       }
@@ -97,8 +96,7 @@ export function SignInForm({
       if (result.twoFactorRedirect) {
         setMode("totp");
       } else if (result.user) {
-        setName(result.user.name);
-        setMode("signed-in");
+        window.location.replace(continueHref);
       } else {
         setError(copy.unavailable);
       }
@@ -151,8 +149,8 @@ export function SignInForm({
           <p role="status">
             {copy.signedIn} <bdi>{name}</bdi>
           </p>
-          <a className="button button-outline" href={staffHref}>
-            {copy.staffWorkspace}
+          <a className="button button-outline" href={continueHref}>
+            {copy.continue}
           </a>
         </>
       ) : (
@@ -184,6 +182,12 @@ export function SignInForm({
               ? copy.heading
               : copy.verify}
       </button>
+      {mode === "credentials" && (
+        <div className="sign-in-alternatives">
+          <a href={`/${locale}/forgot-password`}>{copy.forgotPassword}</a>
+          <a href={`/${locale}/signup`}>{copy.createDonorAccount}</a>
+        </div>
+      )}
       {(mode === "totp" || mode === "backup") && (
         <div className="sign-in-alternatives">
           <button

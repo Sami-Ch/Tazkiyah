@@ -83,7 +83,7 @@ These are this document's proposals. Each needs a `D-` entry in [08](08-decision
 | i18n | next-intl (AR-04) | §7. |
 | Media | Cloudflare R2 (AR-05) | §8. |
 | Jobs | Cron Triggers + Queues in a jobs Worker (AR-06) | §9. |
-| Email | Resend proposed, Q-06 open (AR-07) | §10. |
+| Email | Resend ([D-142](08-decision-log.md#d-142)) | §10. |
 | Bot checks | Cloudflare Turnstile | On public forms (§12). |
 | CI and backups | GitHub Actions | §5, §13. |
 
@@ -492,7 +492,7 @@ Recurring card charges are normally run by the gateway's own subscription featur
 | Cloudflare Email Service | Sending to any address is **not available on Workers Free**. Workers Paid includes 3,000 a month, then $0.35 per 1,000. | Good if we move to Workers Paid anyway (§14). |
 | Brevo | Not verified in this session. | Check before deciding. |
 
-The final pick is **open question Q-06** (owner Sami, due P0). The code talks to one `EmailSender` interface in `packages/email` (`send(to, locale, template, data)`), so switching services means writing one adapter.
+Sami selected Resend for account emails and donor receipts on 2026-11-12 ([D-142](08-decision-log.md#d-142)). Both use the `EmailSender` interface in `packages/email`.
 
 ### 10.2 Domain setup
 
@@ -856,7 +856,7 @@ The local Worker serves bilingual sign-in and staff pages. The server checks the
 | P1-E3-T31 | `PaymentProvider` interface and `applyPaymentEvent`; `bank_transfer` provider used by the admin recording form; idempotency key on provider reference | todo | P0-E2-T30, P1-E3-T41, P1-E3-T42 | REQ-PAY-001, REQ-PAY-006 |
 | P1-E3-T32 | Guest trail tokens: 32 random bytes, hash stored, token-for-cookie exchange with clean redirect, `no-referrer`, log redaction | todo | P0-E1-T11, P1-E3-T40 | REQ-SEC-004, REQ-SEC-005 |
 
-2026-11-09 · Blocked: P1-E3-T30 waits for the email service choice (Q-06) and a sending account with DNS records on `notify.azeem-lateef.com`.
+2026-11-12 · The Resend adapters are wired for hosted account email and receipt jobs. Hosted delivery still needs a verified sending domain, runtime credentials, and a receipt job schedule. See the [Vercel handoff](../docs/vercel.md).
 
 ### P2-E1 Spending entries with receipts (owned by 06; architecture tasks)
 

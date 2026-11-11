@@ -31,6 +31,8 @@ npm run preview:worker
 
 The last two commands build and serve the Cloudflare Worker locally. For a protected preview or production deployment, follow the [hosted launch runbook](docs/hosted-launch.md).
 
+For the current Vercel handoff, see [Run Tazkiyah on Vercel](docs/vercel.md).
+
 ## Run database migrations
 
 `npm test` applies every migration and runs every `db/test/*.sql` suite, including the generated cross-institute [isolation harness](db/test/isolation_harness.sql), in PGlite, an in-process Postgres. It needs no database server or credentials. A new table must get fixture rows in both harness institutes, or the harness fails.
@@ -67,7 +69,7 @@ npm run db:bootstrap-admin -- azeem-lateef.com admin@example.test "Admin Name"
 
 The command stops if the institute already has an admin or principal or the email belongs to an existing account. Sign in at `/en/sign-in` or `/ur/sign-in`, open **Admin workspace**, and follow the authenticator setup. Save the recovery codes when shown. Admin and finance officer sessions require two-factor verification and lock after 30 minutes of inactivity.
 
-Use **Invite a staff member** in the admin workspace to create a teacher, editor, or finance officer setup link. Share it privately so the recipient can choose their password. Links expire after 24 hours and can be redeemed once. Submit the same email and role again to replace a pending link. Donor registration, password recovery, and automated email delivery are tracked in the [Phase 0 plan](plan/03-architecture.md#p0-e5-authentication-roles-and-permission-checks).
+Use **Invite a staff member** in the admin workspace to create a teacher, editor, or finance officer setup link. Share it privately so the recipient can choose their password. Links expire after 24 hours and can be redeemed once. Submit the same email and role again to replace a pending link. Donors can register at `/en/signup` or `/ur/signup`, and the sign-in page links to password recovery. Hosted account email uses Resend.
 
 Open **Staff directory** from the admin workspace to check invitation status, search by name or email, and filter by role or account status. Admins can edit roles or suspend and restore access for other staff. These changes revoke the affected sessions. The principal and the signed-in admin are protected from changes through the directory.
 
@@ -89,7 +91,7 @@ The seed supplies the institute's address and directions. An authorized database
 
 Record the transfer with the donor's verified email. As a two-factor verified administrator, open **Private donor links** and enter the receipt number and matching email. Choose the link language, confirm, then copy and share the link privately. The recipient can open it without an account to see their recorded gifts and print bilingual donation receipts. The original link is needed to reopen the trail after a refresh.
 
-Generate a replacement link or revoke access from the same workspace. Replacing a link disables the old one across all gifts from that guest donor. The database stores the link's hash. Automatic email delivery is still pending.
+Generate a replacement link or revoke access from the same workspace. Replacing a link disables the old one across all gifts from that guest donor. The database stores the link's hash. When a receipt recipient's email is confirmed during recording, the app queues an email for the [receipt job](docs/vercel.md#receipt-email).
 
 ## Add campus photos and video
 

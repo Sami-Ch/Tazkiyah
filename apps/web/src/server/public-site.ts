@@ -3,7 +3,7 @@ import { routing, type Locale } from "@tazkiyah/i18n/routing";
 import type { Metadata } from "next";
 import { institute } from "@/institutes/markaz-al-azeem";
 import type { PublishedSitePage } from "@/institutes/site-pages";
-import { authOriginHeader } from "./auth-origin";
+import { authOriginHeader, forwardedHttpsOrigin } from "./auth-origin";
 
 type PublicBindings = { PUBLIC_SITE_ORIGINS?: string };
 
@@ -37,14 +37,9 @@ export function publicSiteOrigin(requestHeaders: Headers) {
     bindings?.PUBLIC_SITE_ORIGINS ?? process.env.PUBLIC_SITE_ORIGINS;
   if (!configured) return undefined;
 
-  const host = requestHeaders.get("host");
-  const origin = secureOrigin(
-    bindings
-      ? requestHeaders.get(authOriginHeader)
-      : host && requestHeaders.get("x-forwarded-proto") === "https"
-        ? `https://${host}`
-        : null,
-  );
+  const origin = bindings
+    ? secureOrigin(requestHeaders.get(authOriginHeader))
+    : forwardedHttpsOrigin(requestHeaders);
 
   return origin &&
     configured.split(",").some((value) => secureOrigin(value.trim()) === origin)

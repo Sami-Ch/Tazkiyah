@@ -42,7 +42,7 @@ import {
   writeSitePage,
   type SitePageWorkspace,
 } from "./site-pages";
-import { authOriginHeader } from "./auth-origin";
+import { authOriginHeader, forwardedHttpsOrigin } from "./auth-origin";
 import { readAuditWorkspace, type AuditWorkspace } from "./audit-log";
 import { manageDonorLink, readDonorTrail, readTrailQuery } from "./donor-trail";
 import {
@@ -55,7 +55,12 @@ import {
   issueStaffInvitation,
   privateJson,
 } from "./staff-invitations";
-import { checkWorkspaceAccess, type AdminAccess } from "./workspace-access";
+import {
+  checkWorkspaceAccess,
+  readAccountAccess,
+  type AccountAccess,
+  type AdminAccess,
+} from "./workspace-access";
 import { authEmailSender, emailPaths, sendAuthEmail } from "./auth-email";
 import { createStudentAccount, setFirstPassword } from "./student-accounts";
 
@@ -126,6 +131,9 @@ type AuthBindings = {
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_LOCAL_ORIGIN?: string;
   BETTER_AUTH_LOCAL_INSTITUTE_DOMAIN?: string;
+  RESEND_API_KEY?: string;
+  AUTH_EMAIL_FROM?: string;
+  AUTH_EMAIL_REPLY_TO?: string;
 };
 
 function workerBindings(): AuthBindings | undefined {
@@ -154,6 +162,10 @@ export async function handleAuth(request: Request) {
 
 export function getAdminAccess(headers: Headers): Promise<AdminAccess> {
   return readWorkspace<AdminAccess>(headers, "/admin-access");
+}
+
+export function getAccountAccess(headers: Headers): Promise<AccountAccess> {
+  return readWorkspace<AccountAccess>(headers, "/account-access");
 }
 
 export function getStaffDirectory(
@@ -226,6 +238,7 @@ export async function getPublishedCauses(
 
 async function readWorkspace<
   T extends
+    | AccountAccess
     | AdminAccess
     | StaffDirectory
     | SitePageWorkspace
@@ -255,7 +268,7 @@ function instituteRequest(
     URL.canParse(configuredOrigin) &&
     new URL(configuredOrigin).host === headers.get("host")
       ? configuredOrigin
-      : "http://invalid.invalid";
+      : (forwardedHttpsOrigin(headers) ?? "http://invalid.invalid");
   const url = new URL(`/api/auth${path}`, origin);
   if (filters) url.search = filters.toString();
   return runAuth(new Request(url, { headers }), path);
@@ -264,7 +277,12 @@ function instituteRequest(
 async function runAuth(request: Request, path: string) {
   const url = new URL(request.url);
   const bindings = workerBindings();
-  const origin = bindings ? request.headers.get(authOriginHeader) : url.origin;
+  const vercel = !bindings && process.env.VERCEL === "1";
+  const origin = bindings
+    ? request.headers.get(authOriginHeader)
+    : vercel
+      ? forwardedHttpsOrigin(request.headers)
+      : url.origin;
   if (!origin) return jsonError("Not found.", 404);
 
   const publicUrl = new URL(url.pathname + url.search, origin);
@@ -295,7 +313,8 @@ async function runAuth(request: Request, path: string) {
     ? (bindings?.BETTER_AUTH_LOCAL_INSTITUTE_DOMAIN ??
       process.env.BETTER_AUTH_LOCAL_INSTITUTE_DOMAIN)
     : publicUrl.hostname;
-  const ip = local ? "127.0.0.1" : request.headers.get("cf-connecting-ip");
+  const ipHeader = vercel ? "x-vercel-forwarded-for" : "cf-connecting-ip";
+  const ip = local ? "127.0.0.1" : request.headers.get(ipHeader);
   const secret = bindings?.BETTER_AUTH_SECRET ?? process.env.BETTER_AUTH_SECRET;
   const publicContent =
     trailQuery !== null ||
@@ -306,7 +325,11 @@ async function runAuth(request: Request, path: string) {
   if (!host || (!publicContent && (!ip || !secret || secret.length < 32))) {
     return jsonError("Authentication is unavailable.", 503);
   }
-  const emailSender = authEmailSender(local);
+  const emailSender = authEmailSender(local, {
+    apiKey: bindings?.RESEND_API_KEY ?? process.env.RESEND_API_KEY,
+    from: bindings?.AUTH_EMAIL_FROM ?? process.env.AUTH_EMAIL_FROM,
+    replyTo: bindings?.AUTH_EMAIL_REPLY_TO ?? process.env.AUTH_EMAIL_REPLY_TO,
+  });
   if (emailPaths.has(path) && !emailSender)
     return jsonError("Email is unavailable.", 503);
 
@@ -451,7 +474,7 @@ async function runAuth(request: Request, path: string) {
             useSecureCookies: !local,
             cookiePrefix: "tazkiyah",
             ipAddress: {
-              ipAddressHeaders: ["cf-connecting-ip"],
+              ipAddressHeaders: [ipHeader],
               ipv6Subnet: 128,
             },
           },
@@ -528,6 +551,11 @@ async function runAuth(request: Request, path: string) {
           return touched?.valid ? session : null;
         };
         if (path === "/get-session") return privateJson(await currentSession());
+        if (path === "/account-access") {
+          return privateJson(
+            await readAccountAccess(tx, await currentSession()),
+          );
+        }
         if (path === "/staff-invite/accept") {
           return acceptStaffInvitation(tx, request);
         }

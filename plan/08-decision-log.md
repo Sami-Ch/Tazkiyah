@@ -480,3 +480,9 @@ Four points, each the narrower reading. **Sponsor view:** 04 filters `app.sponso
 2026-11-11 · Build agent (P4-E3-T40) · Narrows [06 §12.5](06-donations-and-trail.md#125-messages-through-the-madrasa) for `sponsor_messages` until the inbox task, Sami may reverse
 
 06 §12.5 says the admin "and any teacher he chooses" read and reply. 04 §10.3 has no column or table for that choice, so only admins read and reply for now; P4-E3-T01 (staff inbox) can add the chosen teachers with a schema change. A sponsor writes only while the sponsorship is active, matching the sponsor page, which shows active sponsorships only; an admin may still reply while it is paused, so the madrasa can explain the pause, and nobody writes after it ends. The sponsor keeps reading the history. Options: let any teacher of the child read; admins only. Reason: messages about an orphan should reach as few people as possible until the admin chooses (00 §4 rule 9).
+
+## D-142
+
+2026-11-12 · Sami · Vercel handoff and Resend email
+
+Sami will deploy the current Next.js app to Vercel and chose Resend for account emails and donor receipts (Q-06). The handoff adds Vercel request handling and an authenticated receipt job endpoint using the existing outbox. The [Vercel handoff](../docs/vercel.md) describes the project settings and database roles for this release.

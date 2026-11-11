@@ -181,52 +181,58 @@ export async function runReceiptJobs(
   }
 }
 
-export default {
+export async function runConfiguredReceiptJobs(env: Env) {
+  const connectionString =
+    env.RECEIPT_JOBS_HYPERDRIVE?.connectionString ??
+    env.RECEIPT_JOBS_DATABASE_URL;
+  const from = env.RECEIPT_EMAIL_FROM?.trim();
+  const replyTo = env.RECEIPT_EMAIL_REPLY_TO?.trim() || undefined;
+  const apiKey = env.RESEND_API_KEY;
+  const linkKey = env.RECEIPT_EMAIL_LINK_KEY;
+  if (!connectionString || !from || !apiKey || !linkKey)
+    throw new Error("Receipt email configuration is incomplete.");
+
+  const db = new pg.Client({
+    connectionString,
+    connectionTimeoutMillis: 5000,
+    query_timeout: 15000,
+  });
+  let closing = false;
+  db.on("error", (error: Error) => {
+    if (
+      closing &&
+      error instanceof TypeError &&
+      error.message === "This socket has been closed."
+    )
+      return;
+    console.error("Receipt email database connection error.");
+  });
+  try {
+    await db.connect();
+    await runReceiptJobs(
+      db,
+      { from, replyTo, linkKey },
+      createResendEmailSender({ apiKey, from, replyTo }),
+    );
+  } catch {
+    throw new Error("Receipt email batch could not complete.");
+  } finally {
+    closing = true;
+    await db
+      .end()
+      .catch(() =>
+        console.error(
+          "Receipt email database connection did not close cleanly.",
+        ),
+      );
+  }
+}
+
+const worker = {
   async scheduled(_controller: unknown, env: Env) {
     if (env.RECEIPT_EMAIL_PROVIDER !== "resend") return;
-    const connectionString =
-      env.RECEIPT_JOBS_HYPERDRIVE?.connectionString ??
-      env.RECEIPT_JOBS_DATABASE_URL;
-    const from = env.RECEIPT_EMAIL_FROM?.trim();
-    const replyTo = env.RECEIPT_EMAIL_REPLY_TO?.trim() || undefined;
-    const apiKey = env.RESEND_API_KEY;
-    const linkKey = env.RECEIPT_EMAIL_LINK_KEY;
-    if (!connectionString || !from || !apiKey || !linkKey)
-      throw new Error("Receipt email Worker configuration is incomplete.");
-
-    const db = new pg.Client({
-      connectionString,
-      connectionTimeoutMillis: 5000,
-      query_timeout: 15000,
-    });
-    let closing = false;
-    db.on("error", (error: Error) => {
-      if (
-        closing &&
-        error instanceof TypeError &&
-        error.message === "This socket has been closed."
-      )
-        return;
-      console.error("Receipt email database connection error.");
-    });
-    try {
-      await db.connect();
-      await runReceiptJobs(
-        db,
-        { from, replyTo, linkKey },
-        createResendEmailSender({ apiKey, from, replyTo }),
-      );
-    } catch {
-      throw new Error("Receipt email batch could not complete.");
-    } finally {
-      closing = true;
-      await db
-        .end()
-        .catch(() =>
-          console.error(
-            "Receipt email database connection did not close cleanly.",
-          ),
-        );
-    }
+    await runConfiguredReceiptJobs(env);
   },
 };
+
+export default worker;
