@@ -2050,7 +2050,8 @@ export const personaLinks = app
 // A guardian's consent, recorded by staff (04 §10.1, 07 §5, REQ-CHS-006). One
 // row per covered item. An orphan's record needs the principal's and an
 // assigned teacher's sign-offs before it counts. Sign-offs, the assignment and
-// withdrawal change only through the app.*_consent functions.
+// withdrawal change only through the app.*_consent functions. Full-profile
+// consent is for one sponsorship (04 §10.1, REQ-ORP-005).
 export const consentRecords = app
   .table(
     "consent_records",
@@ -2061,6 +2062,7 @@ export const consentRecords = app
         .references(() => institutes.id),
       studentUserId: uuid("student_user_id").notNull(),
       kind: text().notNull(),
+      sponsorshipId: uuid("sponsorship_id"),
       guardianName: text("guardian_name").notNull(),
       guardianRelation: text("guardian_relation").notNull(),
       method: text().notNull(),
@@ -2095,6 +2097,10 @@ export const consentRecords = app
         table.instituteId,
         table.formMediaId,
       ),
+      index("consent_records_sponsorship").on(
+        table.instituteId,
+        table.sponsorshipId,
+      ),
       index("consent_records_recorded_by").on(
         table.instituteId,
         table.recordedBy,
@@ -2128,6 +2134,10 @@ export const consentRecords = app
         foreignColumns: [mediaAssets.instituteId, mediaAssets.id],
       }),
       foreignKey({
+        columns: [table.instituteId, table.sponsorshipId],
+        foreignColumns: [sponsorships.instituteId, sponsorships.id],
+      }),
+      foreignKey({
         columns: [table.instituteId, table.recordedBy],
         foreignColumns: [users.instituteId, users.id],
       }),
@@ -2153,7 +2163,8 @@ export const consentRecords = app
       }),
       check(
         "consent_records_kind_check",
-        sql`kind in ('public_work', 'real_name', 'face')`,
+        sql`kind in ('public_work', 'real_name', 'face', 'orphan_full_profile')
+          and (kind = 'orphan_full_profile') = (sponsorship_id is not null)`,
       ),
       check(
         "consent_records_guardian_check",

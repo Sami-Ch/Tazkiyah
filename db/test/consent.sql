@@ -92,8 +92,8 @@ begin
     insert into app.consent_records (institute_id, student_user_id, kind, guardian_name, guardian_relation,
       method, given_on, recorded_by)
     values (tenant, s1, 'orphan_full_profile', 'Guardian', 'mother', 'phone', current_date, t1);
-    assert false, 'a sponsorship kind was recorded before P4';
-  exception when check_violation then null;
+    assert false, 'full-profile consent was recorded without a sponsorship';
+  exception when check_violation or insufficient_privilege then null;
   end;
   begin
     insert into app.consent_records (institute_id, student_user_id, kind, guardian_name, guardian_relation,

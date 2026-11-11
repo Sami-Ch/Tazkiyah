@@ -285,6 +285,14 @@ select s.institute_id, s.child_persona_id, jsonb_build_object('en', n.mark || '-
   ('14000000-0000-4000-8000-00000000096' || n.i)::uuid, ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
 join app.sponsorships s on s.id = ('14000000-0000-4000-8000-00000000095' || n.i)::uuid;
+-- The principal opened full-profile consent for the sponsorship.
+insert into app.consent_records (institute_id, student_user_id, kind, sponsorship_id, guardian_name,
+  guardian_relation, method, given_on, recorded_by)
+select s.institute_id, l.user_id, 'orphan_full_profile', s.id, n.mark || '-Principal', 'guardian', 'in_person',
+  current_date, ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.sponsorships s on s.id = ('14000000-0000-4000-8000-00000000095' || n.i)::uuid
+join app.persona_links l on l.institute_id = s.institute_id and l.persona_id = s.child_persona_id;
 
 -- A class thread started by the student's persona with a teacher's reply, and
 -- a locked madrasa thread started by the teacher.
@@ -378,11 +386,11 @@ update app.users u set public_name = n.mark || '-Teacher', public_bio = jsonb_bu
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
 where u.id = ('14000000-0000-4000-8000-00000000030' || n.i)::uuid;
 insert into app.threads (id, institute_id, scope, title, language, author_user_id)
-select ('14000000-0000-4000-8000-00000000095' || n.i)::uuid, ('14000000-0000-4000-8000-00000000000' || n.i)::uuid,
+select ('14000000-0000-4000-8000-00000000097' || n.i)::uuid, ('14000000-0000-4000-8000-00000000000' || n.i)::uuid,
   'public', n.mark || '-Public', 'en', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
 insert into app.posts (institute_id, thread_id, post_type, language, title, body, author_user_id)
-select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, ('14000000-0000-4000-8000-00000000095' || n.i)::uuid,
+select ('14000000-0000-4000-8000-00000000000' || n.i)::uuid, ('14000000-0000-4000-8000-00000000097' || n.i)::uuid,
   'article', 'en', n.mark || '-Lesson', n.mark || '-Lesson body', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark);
 
