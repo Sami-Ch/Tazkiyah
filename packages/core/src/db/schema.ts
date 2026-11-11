@@ -3030,3 +3030,107 @@ export const sponsorshipUpdates = app
     ],
   )
   .enableRLS();
+
+// Messages between a sponsor and the madrasa about the sponsored child (04
+// §10.3, 06 §12.5, REQ-ORP-007). No column can name a child, and students
+// have no policy, so a sponsor cannot reach a child in data. The sponsor
+// writes to the madrasa; admins read and reply. Only the reader's read mark
+// changes afterwards.
+export const sponsorMessages = app
+  .table(
+    "sponsor_messages",
+    {
+      id: uuid().defaultRandom().primaryKey(),
+      instituteId: uuid("institute_id")
+        .notNull()
+        .references(() => institutes.id),
+      sponsorshipId: uuid("sponsorship_id").notNull(),
+      direction: text().notNull(),
+      body: text().notNull(),
+      language: text().notNull(),
+      senderDonorId: uuid("sender_donor_id"),
+      senderUserId: uuid("sender_user_id"),
+      readAt: timestamp("read_at", { withTimezone: true }),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (table): PgTableExtraConfigValue[] => [
+      unique().on(table.instituteId, table.id),
+      index("sponsor_messages_sponsorship").on(
+        table.instituteId,
+        table.sponsorshipId,
+        table.createdAt,
+      ),
+      index("sponsor_messages_sender_donor")
+        .on(table.instituteId, table.senderDonorId)
+        .where(sql`sender_donor_id is not null`),
+      index("sponsor_messages_sender_user")
+        .on(table.instituteId, table.senderUserId)
+        .where(sql`sender_user_id is not null`),
+      foreignKey({
+        columns: [table.instituteId, table.sponsorshipId],
+        foreignColumns: [sponsorships.instituteId, sponsorships.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.senderDonorId],
+        foreignColumns: [donors.instituteId, donors.id],
+      }),
+      foreignKey({
+        columns: [table.instituteId, table.senderUserId],
+        foreignColumns: [users.instituteId, users.id],
+      }),
+      check(
+        "sponsor_messages_direction_check",
+        sql`(direction = 'to_madrasa' and sender_donor_id is not null and sender_user_id is null)
+          or (direction = 'to_sponsor' and sender_user_id is not null and sender_donor_id is null)`,
+      ),
+      check(
+        "sponsor_messages_body_check",
+        sql`length(body) between 1 and 2000 and body ~ '[^[:space:]]'`,
+      ),
+      check(
+        "sponsor_messages_language_check",
+        sql`language ~ '^[a-z]{2,3}$'`,
+      ),
+      pgPolicy("iso", {
+        as: "restrictive",
+        for: "all",
+        to: ["tazkiyah_app"],
+        using: sql`institute_id = (select app.current_institute_id())`,
+        withCheck: sql`institute_id = (select app.current_institute_id())`,
+      }),
+      pgPolicy("sponsor_messages_read", {
+        as: "permissive",
+        for: "select",
+        to: ["tazkiyah_app"],
+        using: sql`(select app.has_role('admin')) or exists (select from app.sponsorships s
+            where s.id = sponsor_messages.sponsorship_id
+              and s.sponsor_donor_id = (select app.my_account_donor_id()))`,
+      }),
+      pgPolicy("sponsor_messages_sponsor_write", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`direction = 'to_madrasa' and sender_donor_id = (select app.my_account_donor_id())`,
+      }),
+      pgPolicy("sponsor_messages_admin_write", {
+        as: "permissive",
+        for: "insert",
+        to: ["tazkiyah_app"],
+        withCheck: sql`direction = 'to_sponsor' and sender_user_id = (select app.current_user_id())
+          and (select app.has_role('admin'))`,
+      }),
+      pgPolicy("sponsor_messages_mark_read", {
+        as: "permissive",
+        for: "update",
+        to: ["tazkiyah_app"],
+        using: sql`(direction = 'to_madrasa' and (select app.has_role('admin')))
+          or (direction = 'to_sponsor' and exists (select from app.sponsorships s
+            where s.id = sponsor_messages.sponsorship_id
+              and s.sponsor_donor_id = (select app.my_account_donor_id())))`,
+        withCheck: sql`true`,
+      }),
+    ],
+  )
+  .enableRLS();

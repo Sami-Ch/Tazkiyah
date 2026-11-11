@@ -293,6 +293,15 @@ select s.institute_id, l.user_id, 'orphan_full_profile', s.id, n.mark || '-Princ
 from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
 join app.sponsorships s on s.id = ('14000000-0000-4000-8000-00000000095' || n.i)::uuid
 join app.persona_links l on l.institute_id = s.institute_id and l.persona_id = s.child_persona_id;
+-- The sponsor wrote to the madrasa, and the admin replied.
+insert into app.sponsor_messages (institute_id, sponsorship_id, direction, body, language, sender_donor_id)
+select s.institute_id, s.id, 'to_madrasa', n.mark || '-Question', 'en', s.sponsor_donor_id
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.sponsorships s on s.id = ('14000000-0000-4000-8000-00000000095' || n.i)::uuid;
+insert into app.sponsor_messages (institute_id, sponsorship_id, direction, body, language, sender_user_id)
+select s.institute_id, s.id, 'to_sponsor', n.mark || '-Reply', 'en', ('14000000-0000-4000-8000-00000000030' || n.i)::uuid
+from (values (1, 'ZZA'), (2, 'ZZB')) as n(i, mark)
+join app.sponsorships s on s.id = ('14000000-0000-4000-8000-00000000095' || n.i)::uuid;
 
 -- A class thread started by the student's persona with a teacher's reply, and
 -- a locked madrasa thread started by the teacher.

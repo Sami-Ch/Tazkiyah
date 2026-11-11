@@ -379,6 +379,13 @@
       "when": 1794376312584,
       "tag": "0053_orphan_full_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794376690090,
+      "tag": "0054_sponsor_messages",
+      "breakpoints": true
     }
   ]
 }
