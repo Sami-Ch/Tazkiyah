@@ -886,10 +886,12 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 | --- | --- | --- | --- | --- |
 | P1-E2-T01 | Cause rules: three types, four states, targets and periods (§5.1, §5.2) | todo | P0-E2 | REQ-DON-005, REQ-DON-007, REQ-DON-014 |
 | P1-E2-T02 | Bilingual admin form to create, edit, close and archive a cause, with type-specific fields | in progress | P1-E2-T01, P1-E5, P0-E3 | REQ-DON-009, REQ-DON-013, REQ-LNG-009 |
-| P1-E2-T03 | Zakat flag, approving scholar's name and receipt-photo default on each cause | todo | P1-E2-T02 | REQ-ROL-005 |
+| P1-E2-T03 | Zakat flag, approving scholar's name and receipt-photo default on each cause | done | P1-E2-T02 | REQ-ROL-005 |
 | P1-E2-T04 | Campaign auto-close at end date, late-recording rule, and archive guard (§5.3) | in progress | P1-E2-T01 | REQ-DON-006 |
 | P1-E2-T05 | Cause progress figures (raised, spent, target, period) for public pages and the home page | in progress | P1-E2-T01, P1-E3-T01 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
-| P1-E2-T06 | Seed Markaz Al Azeem's starting causes as drafts (§5.4) | todo | P1-E2-T03 | REQ-DON-014 |
+| P1-E2-T06 | Seed Markaz Al Azeem's starting causes as drafts (§5.4) | done | P1-E2-T03 | REQ-DON-014 |
+
+The bilingual admin cause form saves the optional scholar name and the spending receipt-photo default through [migration 0055](../db/drizzle/0055_cause_donation_settings.sql). New spending entries inherit the default and accept an explicit visibility choice. The [institute seed](../db/seed/markaz_al_azeem.sql) adds all seven starter causes as drafts with Zakat eligibility off pending Moazam's review. The illustrative sponsorship target is Rs 40,000 per month for five children at Rs 8,000 each.
 
 ### P1-E3 Manual donation recording and guest donors
 

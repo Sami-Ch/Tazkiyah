@@ -872,6 +872,9 @@ export const causes = app
       endsOn: date("ends_on"),
       acceptsZakat: boolean("accepts_zakat").default(false).notNull(),
       zakatApprovedBy: localizedText("zakat_approved_by"),
+      receiptPublicByDefault: boolean("receipt_public_by_default")
+        .default(false)
+        .notNull(),
       status: text().default("draft").notNull(),
       revision: uuid().defaultRandom().notNull(),
       listedAsProject: boolean("listed_as_project").default(false).notNull(),
@@ -1378,7 +1381,7 @@ export const spendingEntries = app
       spentOn: date("spent_on").notNull(),
       description: localizedText().notNull(),
       receiptMediaId: uuid("receipt_media_id"),
-      receiptPublic: boolean("receipt_public").default(true).notNull(),
+      receiptPublic: boolean("receipt_public").notNull(),
       reportId: uuid("report_id"),
       status: text().default("draft").notNull(),
       recordedBy: uuid("recorded_by").notNull(),

@@ -51,7 +51,7 @@ Drizzle uses one migration history in [db/drizzle](db/drizzle). On a fresh datab
 
 Edit the [Drizzle schema](packages/core/src/db/schema.ts) and run `npm run db:generate -- --name describe_change`. Review the generated SQL before applying it. Use `npm run db:generate -- --custom --name describe_change` for PostgreSQL-specific changes such as grants, triggers, functions and security-barrier views. Put custom SQL between the generated role statements. Apply either kind with `npm run db:migrate` and keep applied migrations immutable.
 
-Markaz Al Azeem's bilingual settings are seeded on `dev` and `preview`. For a fresh development branch, run `psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/seed/markaz_al_azeem.sql`. The seed preserves existing settings when rerun.
+After applying the migrations, run `psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/seed/markaz_al_azeem.sql` to seed Markaz Al Azeem's bilingual settings and seven draft causes. Rerunning the seed adds missing drafts and preserves existing settings and causes.
 
 ## Configure Better Auth
 

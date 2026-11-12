@@ -583,6 +583,7 @@ Business rules are in [06](06-donations-and-trail.md). This section gives the fi
 | `starts_on`, `ends_on` | `date null` | `ends_on` required for a campaign, and `ends_on >= starts_on` (REQ-DON-006). |
 | `accepts_zakat` | `bool not null default false` | Admin-set (D-011, REQ-ROL-005). |
 | `zakat_approved_by` | `localized_text null` | Optional scholar name (Q-04). Allowed only when `accepts_zakat`. |
+| `receipt_public_by_default` | `bool not null default false` | Sets the starting visibility on new spending entries (06-P20). |
 | `status` | `text not null default 'draft'` | `draft`, `active`, `closed`, `archived` (REQ-DON-009). |
 | `listed_as_project` | `bool not null default false` | Shown on the new projects page when that module is on, for example future tech costs (REQ-DON-013, [05 §10](05-public-pages-roles-admin.md)). |
 | `category` | `text null` | Free label such as `kitchen`, `clinic`, `tech`. The clinic is only a cause and stores no patient data (REQ-DON-014). |

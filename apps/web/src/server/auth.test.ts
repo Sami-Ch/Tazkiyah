@@ -288,6 +288,93 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     expect(await browser.access()).toEqual({ state: "signed-out" });
   });
 
+  it("saves cause donation settings through the admin API and exposes the scholar after publication", async () => {
+    const seeded = await auth.getCauseWorkspace(enrolledAdmin.headers());
+    if (seeded.state !== "allowed") throw new Error("Missing admin access");
+    expect(seeded.causes).toHaveLength(7);
+    expect(
+      seeded.causes.every(
+        (cause) => cause.status === "draft" && !cause.accepts_zakat,
+      ),
+    ).toBe(true);
+    expect(
+      seeded.causes
+        .filter((cause) => cause.receipt_public_by_default)
+        .map((cause) => cause.slug)
+        .sort(),
+    ).toEqual(["electricity", "kitchen-gas", "wheat-stock"]);
+
+    const draft = {
+      kind: "ongoing",
+      slug: "test-zakat-cause",
+      title: { en: "Test cause", ur: "آزمائشی شعبہ" },
+      summary: { en: "Test summary", ur: "آزمائشی خلاصہ" },
+      body: { en: "", ur: "" },
+      target: "",
+      period: "monthly",
+      starts: "",
+      ends: "",
+      zakat: true,
+      scholar: { en: "Test scholar", ur: "" },
+      receiptPublicByDefault: true,
+    };
+    const denied = await new Browser().post("/cause", {
+      action: "create",
+      ...draft,
+    });
+    expect(denied.status).toBe(403);
+    const invalid = await enrolledAdmin.post("/cause", {
+      action: "create",
+      ...draft,
+      zakat: false,
+    });
+    expect(invalid.status).toBe(400);
+    const created = await enrolledAdmin.post("/cause", {
+      action: "create",
+      ...draft,
+    });
+    expect(created.status).toBe(201);
+
+    const read = async () => {
+      const workspace = await auth.getCauseWorkspace(enrolledAdmin.headers());
+      expect(workspace.state).toBe("allowed");
+      if (workspace.state !== "allowed")
+        throw new Error("Missing admin access");
+      return workspace.causes.find((cause) => cause.slug === draft.slug)!;
+    };
+    const cause = await read();
+    expect(cause).toMatchObject({
+      status: "draft",
+      accepts_zakat: true,
+      zakat_approved_by: { en: "Test scholar" },
+      receipt_public_by_default: true,
+    });
+    const published = await enrolledAdmin.post("/cause", {
+      action: "publish",
+      id: cause.id,
+      revision: cause.revision,
+    });
+    expect(published.status).toBe(200);
+    expect(
+      await auth.getPublishedCauses(enrolledAdmin.headers(), draft.slug),
+    ).toMatchObject([{ zakat_approved_by: { en: "Test scholar" } }]);
+
+    const current = await read();
+    const changed = await enrolledAdmin.post("/cause", {
+      action: "edit",
+      ...draft,
+      id: current.id,
+      revision: current.revision,
+      scholar: null,
+      receiptPublicByDefault: false,
+    });
+    expect(changed.status).toBe(200);
+    expect(await read()).toMatchObject({
+      zakat_approved_by: null,
+      receipt_public_by_default: false,
+    });
+  });
+
   it("locks the account for 15 minutes after 5 wrong codes", async () => {
     const setup = new Browser();
     const { enabled } = await enrol(setup, "finance_officer@example.test");

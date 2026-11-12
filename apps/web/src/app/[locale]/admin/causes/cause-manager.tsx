@@ -37,6 +37,7 @@ export function CauseManager({
   const copy = labels.admin;
   const [kind, setKind] = useState<CauseKind>("campaign");
   const [editing, setEditing] = useState<EditableCause>();
+  const [zakat, setZakat] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const formKind = editing?.cause_type ?? kind;
   const settingsLocked =
@@ -123,7 +124,9 @@ export function CauseManager({
           stockMonth: settingsLocked
             ? editing?.stock_year_start_month
             : Number(fields.get("stockMonth")),
-          zakat: settingsLocked ? editing?.accepts_zakat : fields.has("zakat"),
+          zakat,
+          scholar: zakat ? pair("scholar") : null,
+          receiptPublicByDefault: fields.has("receiptPublicByDefault"),
         },
         "form",
       )
@@ -131,6 +134,7 @@ export function CauseManager({
       form.reset();
       setKind("campaign");
       setEditing(undefined);
+      setZakat(false);
     }
   }
 
@@ -297,10 +301,34 @@ export function CauseManager({
           <input
             type="checkbox"
             name="zakat"
-            defaultChecked={editing?.accepts_zakat}
+            checked={zakat}
+            onChange={(event) => setZakat(event.target.checked)}
             disabled={settingsLocked}
           />
           {copy.zakat}
+        </label>
+        <fieldset className="cause-field-grid cause-scholar" hidden={!zakat}>
+          <legend>{copy.scholar}</legend>
+          {(Object.keys(languages) as Locale[]).map((language) => (
+            <label key={language}>
+              <span lang={language}>{languages[language]}</span>
+              <input
+                name={`scholar-${language}`}
+                lang={language}
+                dir="auto"
+                maxLength={causeLimits.scholar}
+                defaultValue={editing?.zakat_approved_by?.[language]}
+              />
+            </label>
+          ))}
+        </fieldset>
+        <label className="cause-zakat">
+          <input
+            type="checkbox"
+            name="receiptPublicByDefault"
+            defaultChecked={editing?.receipt_public_by_default}
+          />
+          {copy.receiptPublicByDefault}
         </label>
         {settingsLocked && <p>{copy.settingsLocked}</p>}
         <div className="sign-in-alternatives">
@@ -318,6 +346,7 @@ export function CauseManager({
               type="button"
               onClick={() => {
                 setEditing(undefined);
+                setZakat(false);
                 setNotice(undefined);
               }}
             >
@@ -369,6 +398,7 @@ export function CauseManager({
                           type="button"
                           onClick={() => {
                             setEditing(cause);
+                            setZakat(cause.accepts_zakat);
                             setNotice(undefined);
                           }}
                         >

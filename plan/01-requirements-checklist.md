@@ -19,7 +19,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-DON-011 Donor receives an emailed receipt in their chosen language when a donation is recorded. SHOULD → 06 §14
 - [ ] REQ-DON-012 Admin can reverse a recorded donation with a reason, and the original record stays. MUST → 06 §15
 - [ ] REQ-DON-013 Future tech costs can be created as causes in the same way as any other cause. SHOULD → 05 §10
-- [ ] REQ-DON-014 The clinic appears only as a cause and stores no patient data. MUST → 06 §5
+- [x] REQ-DON-014 The clinic appears only as a cause and stores no patient data. MUST → 06 §5
 
 ## Trail
 
@@ -103,7 +103,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-ROL-002 Every role's allowed actions are defined in one permission matrix. MUST → 05 §7
 - [ ] REQ-ROL-003 There are no guardian logins. MUST → 05 §6
 - [ ] REQ-ROL-004 Admin can create teacher, editor and finance officer accounts. MUST → 05 §8
-- [ ] REQ-ROL-005 Admin can set Zakat eligibility and an optional approving scholar's name for each cause. MUST → 06 §6
+- [x] REQ-ROL-005 Admin can set Zakat eligibility and an optional approving scholar's name for each cause. MUST → 06 §6
 - [ ] REQ-ROL-006 Admin can split all-needs funds across causes. MUST → 06 §7
 - [ ] REQ-ROL-007 Admin can record spending entries with receipts. MUST → 06 §9
 - [ ] REQ-ROL-008 Every staff action that changes data is written to an audit log. MUST → 05 §9

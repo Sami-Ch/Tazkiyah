@@ -59,6 +59,7 @@ begin
   values (tenant, 'weekly', date '2026-11-01', date '2026-11-07', '{"en":"Week 1"}', admin) returning id into published;
   insert into app.spending_reports (institute_id, period_kind, period_start, period_end, title, created_by)
   values (tenant, 'weekly', date '2026-11-08', date '2026-11-14', '{"en":"Week 2"}', admin) returning id into pending;
+  update app.causes set receipt_public_by_default = true where institute_id = tenant and id = wheat;
   insert into app.spending_entries (institute_id, cause_id, amount_paisa, spent_on, description, receipt_media_id,
     report_id, status, recorded_by)
   values (tenant, wheat, 600000, date '2026-11-04', '{"en":"Wheat, 10 maunds"}',

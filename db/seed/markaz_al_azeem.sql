@@ -55,6 +55,38 @@ begin
   ) then
     raise exception 'The Markaz Al Azeem domain already belongs to another institute';
   end if;
+
+  -- The principal reviews the illustrative targets and Zakat eligibility before publishing.
+  insert into app.causes (
+    institute_id, slug, cause_type, title, summary, target_paisa, target_period,
+    stock_year_start_month, receipt_public_by_default, display_order
+  )
+  select markaz_id, draft.slug,
+    case when draft.stock_month is null then 'ongoing' else 'yearly_stock' end,
+    jsonb_build_object('en', draft.title_en, 'ur', draft.title_ur),
+    jsonb_build_object('en', draft.summary_en, 'ur', draft.summary_ur),
+    draft.target_rupees::bigint * 100,
+    case when draft.stock_month is null then 'monthly' end,
+    draft.stock_month, draft.public_receipt, draft.sort_order
+  from (values
+    ('wheat-stock', 'Wheat stock', 'گندم کا ذخیرہ',
+      'Bulk wheat purchases for the madrasa’s kitchen.', 'مدرسے کے باورچی خانے کے لیے گندم کی تھوک خریداری۔',
+      500000, 3, true, 1),
+    ('kitchen-gas', 'Kitchen gas', 'باورچی خانے کی گیس',
+      'Cooking gas for daily meals.', 'روزانہ کھانا پکانے کے لیے گیس۔', 30000, null, true, 2),
+    ('electricity', 'Electricity', 'بجلی',
+      'Monthly electricity bills for the madrasa.', 'مدرسے کے ماہانہ بجلی کے بل۔', 40000, null, true, 3),
+    ('teacher-salaries', 'Teacher salaries', 'اساتذہ کی تنخواہیں',
+      'Monthly salaries for teachers.', 'اساتذہ کی ماہانہ تنخواہیں۔', 250000, null, false, 4),
+    ('pharmacy', 'Pharmacy (medicines)', 'دواخانہ',
+      'Medicines for the clinic.', 'کلینک کے لیے ادویات۔', 50000, null, false, 5),
+    ('clinic', 'Clinic', 'کلینک',
+      'The clinic’s running costs and equipment.', 'کلینک کے جاری اخراجات اور آلات۔', null, null, false, 6),
+    ('orphan-sponsorship', 'Orphan sponsorship', 'یتیم بچوں کی کفالت',
+      'Shared support for meals, clothes and books.', 'کھانے، کپڑوں اور کتابوں کے لیے مشترکہ معاونت۔',
+      40000, null, false, 7)
+  ) as draft(slug, title_en, title_ur, summary_en, summary_ur, target_rupees, stock_month, public_receipt, sort_order)
+  on conflict (institute_id, slug) do nothing;
 end
 $seed$;
 

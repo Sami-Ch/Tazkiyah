@@ -33,7 +33,7 @@ export async function readCauseWorkspace(tx: AuthQuery, sessionId: string) {
   const { rows } = await tx.execute<EditableCause>(sql`
     select id, slug, cause_type, title, summary, body, status, starts_on::text, ends_on::text,
       target_paisa::text, target_period, stock_year_start_month, accepts_zakat,
-      revision, has_recorded_allocations
+      revision, has_recorded_allocations, zakat_approved_by, receipt_public_by_default
     from identity.read_causes(${sessionId})
   `);
   return privateJson({
@@ -71,6 +71,24 @@ function optionalDate(value: unknown) {
     : undefined;
 }
 
+function scholarName(input: unknown) {
+  if (input === null) return null;
+  if (!input || typeof input !== "object") return undefined;
+  const { en, ur } = input as Record<string, unknown>;
+  if (typeof en !== "string" || typeof ur !== "string") return undefined;
+  const names = Object.entries({ en: en.trim(), ur: ur.trim() }).filter(
+    ([, value]) => value,
+  );
+  if (
+    names.some(
+      ([, value]) =>
+        value.length > causeLimits.scholar || /\p{Cc}/u.test(value),
+    )
+  )
+    return undefined;
+  return names.length ? Object.fromEntries(names) : null;
+}
+
 function targetPaisa(value: unknown) {
   if (value === "") return null;
   if (typeof value !== "string" || !/^\d{1,12}(?:\.\d{1,2})?$/.test(value))
@@ -102,7 +120,11 @@ export async function writeCause(
 
   let query;
   if (action === "create" || action === "edit") {
-    const { slug, kind, period, stockMonth, zakat } = data;
+    const { slug, kind, period, stockMonth, zakat, receiptPublicByDefault } =
+      data;
+    const hasDonationSettings =
+      data.scholar !== undefined || receiptPublicByDefault !== undefined;
+    const scholar = hasDonationSettings ? scholarName(data.scholar) : null;
     const title = localizedPair(data.title, causeLimits.title);
     const summary = localizedPair(data.summary, causeLimits.summary);
     const body = localizedPair(data.body, causeLimits.body, true);
@@ -120,6 +142,9 @@ export async function writeCause(
       ends === undefined ||
       (starts !== null && ends !== null && starts > ends) ||
       typeof zakat !== "boolean" ||
+      scholar === undefined ||
+      (!zakat && scholar !== null) ||
+      (hasDonationSettings && typeof receiptPublicByDefault !== "boolean") ||
       (kind === "campaign" && (target === null || ends === null)) ||
       (kind !== "campaign" && ends !== null) ||
       (kind === "ongoing" && period !== "monthly" && period !== "yearly") ||
@@ -130,9 +155,12 @@ export async function writeCause(
           stockMonth > 12))
     )
       return invalid();
+    const settings = hasDonationSettings
+      ? { scholar, receiptPublicByDefault }
+      : null;
     const values = sql`${kind}, ${sql.param(title)}::jsonb, ${sql.param(summary)}::jsonb,
       ${sql.param(body)}::jsonb, ${target}::bigint, ${kind === "ongoing" ? period : null},
-      ${kind === "yearly_stock" ? stockMonth : null}::smallint, ${starts}::date, ${ends}::date, ${zakat}`;
+      ${kind === "yearly_stock" ? stockMonth : null}::smallint, ${starts}::date, ${ends}::date, ${zakat}, ${sql.param(settings)}::jsonb`;
     query =
       action === "create"
         ? sql`select identity.create_cause(${sessionId}::uuid, ${slug}, ${values}) as outcome`

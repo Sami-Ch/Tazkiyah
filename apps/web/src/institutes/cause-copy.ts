@@ -65,6 +65,10 @@ export const causeCopy = {
       yearly: "Annual",
       stockMonth: "Annual cycle start month",
       zakat: "This cause may receive Zakat",
+      scholar:
+        "Approving scholar’s name (optional, shown for Zakat-eligible causes)",
+      receiptPublicByDefault:
+        "Make new spending receipt photos public by default",
       create: "Save draft",
       publish: "Publish",
       close: "Close cause",
@@ -154,6 +158,10 @@ export const causeCopy = {
       yearly: "سالانہ",
       stockMonth: "سالانہ مدت کا پہلا مہینہ",
       zakat: "اس شعبے کے لیے زکوٰۃ وصول کی جا سکتی ہے",
+      scholar:
+        "منظوری دینے والے عالم کا نام (اختیاری، صرف زکوٰۃ کے اہل شعبوں کے لیے)",
+      receiptPublicByDefault:
+        "نئے اخراجات کی رسیدوں کی تصاویر بطورِ طے شدہ عوام کو دکھائیں",
       create: "مسودہ محفوظ کریں",
       publish: "شائع کریں",
       close: "عطیات کا شعبہ بند کریں",
