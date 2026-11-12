@@ -86,6 +86,7 @@ export function ManualDonationForm({
         bank,
         cause,
         reference: values.get("reference"),
+        replacesReceipt: values.get("replacesReceipt"),
         amount: values.get("amount"),
         email: values.get("email"),
         emailConfirmed: values.has("emailConfirmed"),
@@ -193,6 +194,17 @@ export function ManualDonationForm({
             maxLength={120}
             dir="auto"
             autoComplete="off"
+          />
+        </label>
+        <label>
+          {copy.replacesReceipt}
+          <input
+            name="replacesReceipt"
+            maxLength={89}
+            dir="ltr"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
           />
         </label>
         <label>

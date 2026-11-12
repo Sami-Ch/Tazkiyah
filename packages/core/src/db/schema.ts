@@ -1178,6 +1178,7 @@ export const donations = app
       ),
       receiptNumber: text("receipt_number").notNull(),
       receiptLocale: text("receipt_locale").notNull(),
+      replacesDonationId: uuid("replaces_donation_id"),
       isAnonymous: boolean("is_anonymous").default(true).notNull(),
       trailPublic: boolean("trail_public").default(false).notNull(),
       status: text().default("recorded").notNull(),
@@ -1199,6 +1200,15 @@ export const donations = app
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.operationId),
       unique().on(table.instituteId, table.receiptNumber),
+      unique("donations_replaces_once").on(
+        table.instituteId,
+        table.replacesDonationId,
+      ),
+      foreignKey({
+        columns: [table.instituteId, table.replacesDonationId],
+        foreignColumns: [table.instituteId, table.id],
+        name: "donations_replaces_donation_fkey",
+      }),
       unique().on(table.instituteId, table.publicRef),
       unique().on(table.instituteId, table.gatewayPaymentId),
       uniqueIndex("donations_recorded_bank_reference")
@@ -1298,6 +1308,10 @@ export const donations = app
       check(
         "donations_statement_check",
         sql`(statement_audit_id is null) = (statement_matched is null) and (statement_audit_id is null or method = 'bank_transfer')`,
+      ),
+      check(
+        "donations_replaces_check",
+        sql`replaces_donation_id is null or (id <> replaces_donation_id and method = 'bank_transfer')`,
       ),
       check("donations_anonymity_check", sql`is_anonymous`),
       manualDonationIsolation(),
@@ -3106,10 +3120,7 @@ export const sponsorMessages = app
         "sponsor_messages_body_check",
         sql`length(body) between 1 and 2000 and body ~ '[^[:space:]]'`,
       ),
-      check(
-        "sponsor_messages_language_check",
-        sql`language ~ '^[a-z]{2,3}$'`,
-      ),
+      check("sponsor_messages_language_check", sql`language ~ '^[a-z]{2,3}$'`),
       pgPolicy("iso", {
         as: "restrictive",
         for: "all",

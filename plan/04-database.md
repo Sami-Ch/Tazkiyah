@@ -648,6 +648,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `trail_public` | `bool not null default false` | REQ-TRL-008, REQ-TRL-009. Donor can change it. |
 | `receipt_number` | `text not null` | `{prefix}-{year}-{5-digit sequence}`, for example `MAA-2026-00042` (06 §14), `unique (institute_id, receipt_number)` (REQ-DON-010). |
 | `receipt_locale` | `text not null` | `en` or `ur`, copied from the donor at recording time. Named `receipt_language` before D-120. |
+| `replaces_donation_id` | `uuid null` | Same-institute foreign key to the cancelled bank transfer. A cancelled transfer can have one direct replacement. |
 | `status` | `text not null default 'recorded'` | `recorded`, `reversed`. Changed only by the reversal function. |
 | `statement_audit_id` | `bigint null` | Composite foreign key to the institute's audit row for the last statement review. The audit row records the date range and totals. |
 | `statement_matched` | `bool null` | True when found on the statement, false when flagged as missing, null before the first review. |
@@ -655,7 +656,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 
 **Data-level rules (triggers):**
 
-- After insert, the anonymity and trail choices can change. The reversal function updates `status`, and closing a statement updates `statement_audit_id` and `statement_matched` together. Corrections to transfer details are reversals plus a new donation (REQ-DON-012).
+- After insert, the anonymity and trail choices can change. The reversal function updates `status`, and closing a statement updates `statement_audit_id` and `statement_matched` together. A correction records a reversal and a new donation. The recording transaction sets the replacement link once and audits the link using donation IDs (REQ-DON-012).
 - `cause_id`, when set, must point at a cause with `status = 'active'`. For a campaign, `credited_on <= ends_on` (REQ-DON-006). An admin recording a late bank transfer for a closed campaign records it as all needs; 06 §5 owns that rule.
 - If `donation_type = 'zakat'` and `cause_id` is set, the cause must have `accepts_zakat` (§9.4).
 

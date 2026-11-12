@@ -15,7 +15,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-DON-007 Admin can set a target amount for each cause. MUST → 06 §5
 - [x] REQ-DON-008 Admin can record a bank-transfer donation with amount, date, donor, cause or all needs, type and bank reference. MUST → 06 §4
 - [ ] REQ-DON-009 Admin can create, edit, close and archive causes with Urdu and English text. MUST → 05 §8
-- [ ] REQ-DON-010 Every recorded donation gets a unique receipt number. MUST → 06 §14
+- [x] REQ-DON-010 Every recorded donation gets a unique receipt number. MUST → 06 §14
 - [ ] REQ-DON-011 Donor receives an emailed receipt in their chosen language when a donation is recorded. SHOULD → 06 §14
 - [ ] REQ-DON-012 Admin can reverse a recorded donation with a reason, and the original record stays. MUST → 06 §15
 - [ ] REQ-DON-013 Future tech costs can be created as causes in the same way as any other cause. SHOULD → 05 §10

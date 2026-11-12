@@ -6,8 +6,8 @@ import { Fragment, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { authRequest } from "@/components/auth-request";
 import { givingCopy } from "@/institutes/giving-copy";
-import { institute } from "@/institutes/markaz-al-azeem";
 import { formatPkr, type DonationType } from "@/institutes/manual-donations";
+import { receiptAmountInWords } from "@/institutes/receipt-amount";
 import {
   pageTranslation,
   type LocalizedPageText,
@@ -32,6 +32,12 @@ type TrailDonation = TrailCursor & {
   receipt_locale: Locale;
   public_ref?: string;
   bank_reference_tail: string | null;
+  donor_name: string | null;
+  issuer_name: LocalizedPageText | null;
+  issuer_address: LocalizedPageText | null;
+  issuer_logo: string | null;
+  replaces_donation: boolean;
+  replaces_receipt: string | null;
   cause_title: LocalizedPageText | null;
   events: TrailEvent[];
 };
@@ -140,38 +146,104 @@ function CauseTitle({
   );
 }
 
-function Receipt({ donation }: { donation: TrailDonation }) {
+function Receipt({
+  donation,
+  token,
+}: {
+  donation: TrailDonation;
+  token?: string;
+}) {
   const preferred = donation.receipt_locale;
   const alternate = preferred === "en" ? "ur" : "en";
   return (
     <section className="trail-receipt">
-      <Image
-        src={institute.logo.small}
-        width={72}
-        height={72}
-        alt=""
-        unoptimized
-        loading="eager"
-      />
-      <div className="trail-receipt-languages">
+      {donation.issuer_logo && (
+        <Image
+          src={donation.issuer_logo}
+          width={72}
+          height={72}
+          alt=""
+          unoptimized
+          loading="eager"
+          referrerPolicy="no-referrer"
+        />
+      )}
+      <div
+        className="trail-receipt-languages"
+        dir={preferred === "ur" ? "rtl" : "ltr"}
+      >
         {([preferred, alternate] as const).map((locale) => {
           const copy = trailCopy[locale];
+          const name = pageTranslation(
+            donation.issuer_name ?? undefined,
+            locale,
+          );
+          const address = pageTranslation(
+            donation.issuer_address ?? undefined,
+            locale,
+          );
+          const trailLink = donation.public_ref
+            ? `/${locale}/account/donations/${donation.public_ref}`
+            : token && `/${locale}/trail#${token}`;
           return (
             <section
               key={locale}
               lang={locale}
               dir={locale === "ur" ? "rtl" : "ltr"}
             >
-              <h2>{institute.name[locale]}</h2>
-              <address>
-                <bdi dir="ltr">{institute.address.roadNumber}</bdi>{" "}
-                {institute.address.roadLabel[locale]},{" "}
-                {institute.address.region[locale]}
-              </address>
+              {name && (
+                <h2 lang={name.language} dir="auto">
+                  {name.text}
+                </h2>
+              )}
+              {address && (
+                <address
+                  lang={address.language}
+                  dir={address.language === "ur" ? "rtl" : "ltr"}
+                >
+                  {address.language === "ur"
+                    ? address.text
+                        .split(/([A-Za-z0-9](?:[A-Za-z0-9./ -]*[A-Za-z0-9])?)/g)
+                        .map((part, index) =>
+                          index % 2 ? (
+                            <bdi key={index} dir="ltr">
+                              {part}
+                            </bdi>
+                          ) : (
+                            part
+                          ),
+                        )
+                    : address.text}
+                </address>
+              )}
               <h3>{copy.receipt}</h3>
-              <p>{copy.anonymous}</p>
+              <p>
+                {donation.donor_name ? (
+                  <bdi>{donation.donor_name}</bdi>
+                ) : (
+                  copy.anonymous
+                )}
+              </p>
               {donation.status === "reversed" && (
-                <p className="trail-cancelled">{copy.cancelledNotice}</p>
+                <strong className="trail-cancelled trail-receipt-stamp">
+                  {copy.reversed}
+                </strong>
+              )}
+              {donation.replaces_donation && (
+                <p>
+                  {donation.replaces_receipt ? (
+                    <Sentence
+                      template={copy.replacesReceipt}
+                      parts={{
+                        receipt: (
+                          <bdi dir="ltr">{donation.replaces_receipt}</bdi>
+                        ),
+                      }}
+                    />
+                  ) : (
+                    copy.replacesPrivateReceipt
+                  )}
+                </p>
               )}
               <dl>
                 <div>
@@ -185,6 +257,10 @@ function Receipt({ donation }: { donation: TrailDonation }) {
                   <dd>
                     <bdi>{formatPkr(donation.amount_paisa, locale)}</bdi>
                   </dd>
+                </div>
+                <div>
+                  <dt>{copy.amountInWords}</dt>
+                  <dd>{receiptAmountInWords(donation.amount_paisa, locale)}</dd>
                 </div>
                 <div>
                   <dt>{copy.credited}</dt>
@@ -222,11 +298,12 @@ function Receipt({ donation }: { donation: TrailDonation }) {
                 )}
               </dl>
               <p>{copy.taxNotice}</p>
-              {donation.public_ref && (
-                <a href={`/${locale}/account/donations/${donation.public_ref}`}>
+              {trailLink && (
+                <a href={trailLink} rel="noreferrer">
                   {copy.viewTrail}
                 </a>
               )}
+              {token && <p>{copy.receiptPrivacy}</p>}
             </section>
           );
         })}
@@ -333,12 +410,14 @@ function DonationRecord({
   printable,
   onPrint,
   showTrailLink,
+  token,
 }: {
   donation: TrailDonation;
   locale: Locale;
   printable: boolean;
   onPrint: () => void;
   showTrailLink: boolean;
+  token?: string;
 }) {
   const copy = trailCopy[locale];
   return (
@@ -427,7 +506,7 @@ function DonationRecord({
           </a>
         )}
       </div>
-      <Receipt donation={donation} />
+      <Receipt donation={donation} token={token} />
     </article>
   );
 }
@@ -493,6 +572,7 @@ function TrailResults({
                 printable={printId === donation.id}
                 onPrint={() => printReceipt(donation.id)}
                 showTrailLink={!token && !donationRef}
+                token={token}
               />
             ))}
           </section>

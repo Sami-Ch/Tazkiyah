@@ -132,8 +132,13 @@ export async function recordDonation(
     language,
     confirmLarge,
     confirmSimilar,
+    replacesReceipt,
   } = input as Record<string, unknown>;
   const rupees = typeof amount === "string" ? asciiDigits(amount) : "";
+  const replacement =
+    typeof replacesReceipt === "string"
+      ? asciiDigits(replacesReceipt.trim()).toUpperCase()
+      : "";
   if (
     typeof operation !== "string" ||
     !uuid.test(operation) ||
@@ -155,6 +160,8 @@ export async function recordDonation(
     (emailConfirmed !== undefined && typeof emailConfirmed !== "boolean") ||
     (emailConfirmed === true && email.trim() === "") ||
     (language !== "en" && language !== "ur") ||
+    (replacesReceipt !== undefined && typeof replacesReceipt !== "string") ||
+    (replacement !== "" && !receiptPattern.test(replacement)) ||
     typeof confirmLarge !== "boolean" ||
     typeof confirmSimilar !== "boolean"
   )
@@ -184,7 +191,7 @@ export async function recordDonation(
       ${sessionId}::uuid, ${operation}::uuid, ${bank}::uuid, ${reference.trim()},
       ${date}::date, ${(BigInt(rupees) * 100n).toString()}::bigint, ${type},
       ${cause || null}::uuid, ${email.trim().toLowerCase() || null}, ${language},
-      true, ${confirmLarge}, ${confirmSimilar}
+      true, ${confirmLarge}, ${confirmSimilar}, ${replacement || null}::text
     )
   `);
   switch (result?.code) {
@@ -204,6 +211,7 @@ export async function recordDonation(
     case "similar_confirmation_required":
     case "operation_conflict":
     case "bank_reference_conflict":
+    case "replacement_unavailable":
       return privateJson({ code: result.code }, 409);
     case "invalid":
       return invalid();

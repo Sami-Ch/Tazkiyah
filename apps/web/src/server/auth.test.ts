@@ -376,7 +376,7 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     });
   });
 
-  it("reverses a recorded transfer once and reports the cancellation on its private trail", async () => {
+  it("cancels a transfer once and records a private replacement receipt", async () => {
     const [bank] = await asOwner<{ id: string }>(`
       insert into app.institute_bank_accounts (institute_id, label, bank_name, account_title, account_number)
       select institute_id, '{"en":"Fixture bank"}', 'Bank', 'Institute', '123456'
@@ -388,7 +388,7 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
       "test-zakat-cause",
     );
     const email = "fixture-reversal@example.test";
-    const recorded = await enrolledAdmin.post("/manual-donation", {
+    const transfer = {
       operation: crypto.randomUUID(),
       bank: bank.id,
       reference: "fixture-reversal-reference",
@@ -400,7 +400,8 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
       language: "ur",
       confirmLarge: false,
       confirmSimilar: false,
-    });
+    };
+    const recorded = await enrolledAdmin.post("/manual-donation", transfer);
     expect(recorded.status).toBe(201);
     const receipt = recorded.json.receipt;
     const issued = await enrolledAdmin.post("/donor-link", {
@@ -412,6 +413,16 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     });
     expect(issued.status).toBe(201);
     const token = new URL(issued.json.link).hash.slice(1);
+    const correction = {
+      ...transfer,
+      operation: crypto.randomUUID(),
+      cause: "",
+      amount: "1300",
+      replacesReceipt: receipt,
+    };
+    expect(
+      (await enrolledAdmin.post("/manual-donation", correction)).json.code,
+    ).toBe("replacement_unavailable");
 
     const lookup = { action: "lookup", receipt };
     expect(
@@ -488,6 +499,92 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
       [receipt],
     );
     expect(audit).toEqual([{ reason: reversal.note }]);
+
+    const replacement = await enrolledAdmin.post(
+      "/manual-donation",
+      correction,
+    );
+    expect(replacement.status).toBe(201);
+    expect(replacement.json.receipt).not.toBe(receipt);
+    expect(
+      (await enrolledAdmin.post("/manual-donation", correction)).json,
+    ).toMatchObject({
+      code: "existing",
+      receipt: replacement.json.receipt,
+    });
+    expect(
+      (
+        await enrolledAdmin.post("/manual-donation", {
+          ...correction,
+          replacesReceipt: "",
+        })
+      ).json.code,
+    ).toBe("operation_conflict");
+    expect(
+      (
+        await enrolledAdmin.post("/manual-donation", {
+          ...correction,
+          operation: crypto.randomUUID(),
+          reference: "duplicate-correction",
+        })
+      ).json.code,
+    ).toBe("replacement_unavailable");
+    expect(
+      (await new Browser().post("/donor-trail", { token })).json.donations,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          receipt_number: replacement.json.receipt,
+          replaces_donation: true,
+          replaces_receipt: receipt,
+        }),
+        expect.objectContaining({
+          receipt_number: receipt,
+          status: "reversed",
+        }),
+      ]),
+    );
+
+    expect(
+      (
+        await enrolledAdmin.post("/donation-reversal", {
+          ...reversal,
+          receipt: replacement.json.receipt,
+          category: "wrong_donor",
+          note: "",
+          confirm: true,
+        })
+      ).status,
+    ).toBe(200);
+    const differentEmail = "fixture-corrected-donor@example.test";
+    const differentDonor = await enrolledAdmin.post("/manual-donation", {
+      ...correction,
+      operation: crypto.randomUUID(),
+      email: differentEmail,
+      replacesReceipt: replacement.json.receipt,
+    });
+    expect(differentDonor.status).toBe(201);
+    const newLink = await enrolledAdmin.post("/donor-link", {
+      action: "issue",
+      receipt: differentDonor.json.receipt,
+      email: differentEmail,
+      language: "ur",
+      confirm: true,
+    });
+    expect(newLink.status).toBe(201);
+    const differentTrail = await new Browser().post("/donor-trail", {
+      token: new URL(newLink.json.link).hash.slice(1),
+    });
+    expect(differentTrail.json.donations).toMatchObject([
+      {
+        receipt_number: differentDonor.json.receipt,
+        replaces_donation: true,
+        replaces_receipt: null,
+      },
+    ]);
+    expect(JSON.stringify(differentTrail.json)).not.toContain(
+      replacement.json.receipt,
+    );
   });
 
   it("closes a bank statement atomically and records other credits in the audit log", async () => {
@@ -652,11 +749,24 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     });
     expect(issued.status).toBe(201);
     const token = new URL(issued.json.link).hash.slice(1);
+    await asOwner(
+      "update app.donors set display_name = 'Private display name' where email = 'donor@example.test'",
+    );
     const guest = new Browser();
     const guestTrail = await guest.post("/donor-trail", { token });
     expect(guestTrail.json.donations).toMatchObject([
-      { receipt_number: receipt, bank_reference_tail: "6721" },
+      {
+        receipt_number: receipt,
+        bank_reference_tail: "6721",
+        donor_name: null,
+        issuer_name: { en: "Markaz Al Azeem", ur: "مرکز العظیم" },
+        issuer_address: { en: "92/6-R Road, Sahiwal, Punjab, Pakistan" },
+        issuer_logo: "/branding/markaz-al-azeem-emblem-96.webp",
+      },
     ]);
+    expect(JSON.stringify(guestTrail.json)).not.toContain(
+      "Private display name",
+    );
     expect(JSON.stringify(guestTrail.json)).not.toContain("private-reference");
     expect(
       (
@@ -705,6 +815,7 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
         receipt_number: receipt,
         receipt_locale: "ur",
         bank_reference_tail: "6721",
+        donor_name: null,
       },
     ]);
     const donationRef = linked.json.donations[0].public_ref;
@@ -744,6 +855,32 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
       404,
     );
     expect((await other.post("/account-trail", {})).json.donations).toEqual([]);
+
+    const [branding] = await asOwner<{ institute_id: string }>(`
+      with logo as (
+        insert into app.media_assets (institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, status)
+        select institute_id, 'image', 'logo', 'public', institute_id || '/branding/print emblem.webp', 'image/webp', 500, 'ready'
+        from app.institute_domains where domain = 'azeem-lateef.com'
+        returning id, institute_id
+      )
+      update app.institute_settings settings set logo_media_id = logo.id from logo
+      where settings.institute_id = logo.institute_id returning settings.institute_id
+    `);
+    const branded = await donor.post("/account-trail", { donationRef });
+    expect(branded.json.donations).toMatchObject([
+      {
+        donor_name: null,
+        issuer_logo: `https://media.azeem-lateef.com/${branding.institute_id}/branding/print%20emblem.webp`,
+      },
+    ]);
+    await asOwner(
+      "update app.donors set display_name = null where user_id = $1",
+      [staff.donor],
+    );
+    await asOwner(
+      "update app.institute_settings set logo_media_id = null where institute_id = $1",
+      [branding.institute_id],
+    );
 
     const next = await enrolledAdmin.post("/manual-donation", {
       operation: crypto.randomUUID(),

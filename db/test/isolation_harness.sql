@@ -98,6 +98,7 @@ declare
   statement_bank uuid;
   statement_on constant date := (now() at time zone 'Asia/Karachi')::date;
   statement_review text;
+  cancelled_receipt text;
 begin
   for n in 1..2 loop
     mark := (array['ZZA', 'ZZB'])[n];
@@ -130,6 +131,20 @@ begin
         repeat(case mark when 'ZZA' then 'a' else 'b' end || link, 32), 'hnt' || link
       ) = 'issued', 'Fixture trail link was not issued';
     end loop;
+    perform set_config('app.receipt_email_confirmed', 'false', true);
+    select * into strict result from identity.record_manual_donation(
+      statement_session, gen_random_uuid(), statement_bank, mark || '-correction', statement_on,
+      300000, 'general', null, lower(mark) || '-donor@example.test', 'en', true, true, true
+    );
+    assert result.code = 'recorded', 'Fixture transfer was not recorded before correction';
+    cancelled_receipt := result.receipt_number;
+    assert identity.reverse_manual_donation(statement_session, cancelled_receipt, 'wrong_details', null) = 'reversed',
+      'Fixture transfer was not reversed';
+    select * into strict result from identity.record_manual_donation(
+      statement_session, gen_random_uuid(), statement_bank, mark || '-correction', statement_on,
+      310000, 'general', null, lower(mark) || '-donor@example.test', 'en', true, true, true, cancelled_receipt
+    );
+    assert result.code = 'recorded', 'Fixture replacement receipt was not recorded';
   end loop;
 end
 $fixture$;
@@ -207,7 +222,8 @@ select ('14000000-0000-4000-8000-00000000070' || n.i)::uuid, d.institute_id, d.d
   'general', 'monthly', 500000, current_date
 from (values (1), (2)) as n(i)
 cross join lateral (select * from app.donations
-  where institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid limit 1) d;
+  where institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid
+    and cause_id is not null limit 1) d;
 insert into app.donations (institute_id, operation_id, bank_account_id, bank_reference, credited_on,
   amount_minor, amount_paisa, donation_type, donor_id, pledge_id, receipt_number, receipt_locale, recorded_by)
 select p.institute_id, gen_random_uuid(), ('14000000-0000-4000-8000-00000000020' || n.i)::uuid,

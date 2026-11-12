@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { institute } from "@/institutes/markaz-al-azeem";
 import { receiptPattern } from "@/institutes/manual-donations";
 import { privateJson, tokenHash } from "./staff-invitations";
 import type { AuthQuery } from "./workspace-access";
@@ -14,6 +15,13 @@ type TrailRow = Cursor & {
   cause_title: LocalizedText | null;
   bank_reference_tail: string | null;
   public_ref?: string;
+  donor_name: string | null;
+  issuer_name: LocalizedText | null;
+  issuer_address: LocalizedText | null;
+  issuer_slug: string;
+  issuer_logo_key: string | null;
+  replaces_donation: boolean;
+  replaces_receipt: string | null;
   status: "recorded" | "reversed";
   reversal_reason: string | null;
   events: {
@@ -100,10 +108,25 @@ export async function readTrailQuery(request: Request) {
   return { hash: await tokenHash(fields.token), cursor };
 }
 
+function receiptLogo(slug: string, storageKey: string | null) {
+  const parts = storageKey?.split("/");
+  if (
+    parts?.length &&
+    parts.every((part) => part && part !== "." && part !== "..")
+  )
+    return `https://media.azeem-lateef.com/${parts.map(encodeURIComponent).join("/")}`;
+  return slug === "markaz-al-azeem" ? institute.logo.small : null;
+}
+
 function trailPage(rows: TrailRow[]) {
   const tail = rows[pageSize - 1];
   return privateJson({
-    donations: rows.slice(0, pageSize),
+    donations: rows
+      .slice(0, pageSize)
+      .map(({ issuer_slug, issuer_logo_key, ...donation }) => ({
+        ...donation,
+        issuer_logo: receiptLogo(issuer_slug, issuer_logo_key),
+      })),
     nextCursor:
       rows.length > pageSize
         ? { recorded_at: tail.recorded_at, id: tail.id }
@@ -117,7 +140,8 @@ export async function readDonorTrail(
 ) {
   const { rows } = await tx.execute<TrailRow>(sql`
     select id, receipt_number, receipt_locale, credited_on, amount_paisa,
-      donation_type, status, recorded_at, events, reversal_reason, cause_title, bank_reference_tail
+      donation_type, status, recorded_at, events, reversal_reason, cause_title, bank_reference_tail,
+      donor_name, issuer_name, issuer_address, issuer_slug, issuer_logo_key, replaces_donation, replaces_receipt
     from identity.read_guest_trail(
       ${query.hash}, ${query.cursor?.recorded_at ?? null}::timestamptz, ${query.cursor?.id ?? null}::uuid
     )
@@ -144,7 +168,8 @@ export async function readAccountTrail(
 
   const { rows } = await tx.execute<TrailRow>(sql`
     select id, receipt_number, receipt_locale, credited_on, amount_paisa,
-      donation_type, status, recorded_at, events, reversal_reason, cause_title, bank_reference_tail, public_ref
+      donation_type, status, recorded_at, events, reversal_reason, cause_title, bank_reference_tail, public_ref,
+      donor_name, issuer_name, issuer_address, issuer_slug, issuer_logo_key, replaces_donation, replaces_receipt
     from identity.read_account_trail(${sessionId}::uuid, ${cursor?.recorded_at ?? null}::timestamptz,
       ${cursor?.id ?? null}::uuid, ${ref ?? null}::text)
   `);

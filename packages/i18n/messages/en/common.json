@@ -131,6 +131,7 @@
     "bank": "Bank account",
     "selectBank": "Select the credited account",
     "reference": "Bank statement reference",
+    "replacesReceipt": "Cancelled receipt number (optional)",
     "cause": "Giving cause",
     "allNeeds": "All needs",
     "email": "Donor email (optional)",
@@ -155,7 +156,8 @@
       "large_confirmation_required": "The amount exceeds Rs 1,000,000. Verify it against the bank statement before confirming.",
       "similar_confirmation_required": "A similar transfer is already recorded. Confirm only if this is a separate credit.",
       "operation_conflict": "This request was already used with different details. Check the recent transfers before recording again.",
-      "bank_reference_conflict": "This bank reference already belongs to a recorded transfer. Check the statement and recent transfers."
+      "bank_reference_conflict": "This bank reference already belongs to a recorded transfer. Check the statement and recent transfers.",
+      "replacement_unavailable": "Enter a cancelled transfer receipt that has not already been replaced."
     }
   },
   "giving": {
