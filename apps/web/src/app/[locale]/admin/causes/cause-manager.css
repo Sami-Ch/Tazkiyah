@@ -1,0 +1,48 @@
+.cause-field-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+
+.sign-in-form .cause-zakat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cause-zakat input {
+  inline-size: 1.25rem;
+  min-block-size: 1.25rem;
+  accent-color: var(--navy);
+}
+
+.admin-cause-list {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-cause {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  overflow-wrap: anywhere;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.admin-cause p {
+  margin-block: 0.25rem;
+  color: var(--muted);
+}
+
+.admin-cause-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

@@ -36,7 +36,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-TRL-011 A spending entry records amount, date, description and an optional receipt or photo. MUST → 06 §9
 - [ ] REQ-TRL-012 Admin can publish a daily or weekly report that groups spending entries. SHOULD → 06 §9
 - [ ] REQ-TRL-013 Admin can see the unspent balance of each cause. MUST → 06 §9
-- [ ] REQ-TRL-014 The allocation model can record a future transfer from a platform fund to an institute without a schema change. MUST → 04 §9
+- [x] REQ-TRL-014 The allocation model can record a future transfer from a platform fund to an institute without a schema change. MUST → 04 §9
 
 ## Donor profiles
 
@@ -186,7 +186,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 - [ ] REQ-MIR-001 Institute name, logo, theme colours, domain, contact details, bank details and enabled modules are stored as institute settings. MUST → 04 §5
 - [ ] REQ-MIR-002 The request's domain selects the institute. MUST → 03 §4
-- [ ] REQ-MIR-003 Adding a second institute needs no schema change. MUST → 04 §5
+- [x] REQ-MIR-003 Adding a second institute needs no schema change. MUST → 04 §5
 - [ ] REQ-MIR-004 The post scope field can hold a future community value without a schema change. SHOULD → 04 §11
 - [ ] REQ-MIR-005 Theme colours come from institute settings, not from code. MUST → 02 §5
 

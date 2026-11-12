@@ -59,7 +59,7 @@ These are this document's proposals. Each needs a `D-` entry in [08](08-decision
 | ID | Decision | Options considered | Reason |
 | --- | --- | --- | --- |
 | AR-01 | Run Next.js on **Cloudflare Workers with the OpenNext adapter** (`@opennextjs/cloudflare`). | OpenNext; vinext (Cloudflare's Vite-based re-implementation); the old `next-on-pages`. | OpenNext supports Next.js 16 and the features we need (App Router, Server Actions, middleware, ISR). vinext is still marked beta as of 2026-11-05, although Cloudflare now recommends it for new apps. We revisit vinext when it leaves beta. |
-| AR-02 | Connect through **Cloudflare Hyperdrive with node-postgres (`pg`)**, one explicit transaction per request, with transaction-local settings for RLS. Fallback: Neon serverless driver over WebSockets. | Hyperdrive + `pg`; Neon serverless driver (HTTP or WebSocket); direct TCP. | Hyperdrive pools connections near the database and supports normal interactive transactions. The fallback is ready if the P0 test (P0-E1-T05) shows a problem. |
+| AR-02 | Use **Drizzle with node-postgres (`pg`) through Cloudflare Hyperdrive**. Run each tenant-scoped request in one explicit transaction with transaction-local settings for RLS. Fall back to the Neon serverless driver over WebSockets if needed. | Hyperdrive with `pg`, the Neon serverless driver, or direct TCP. | Hyperdrive pools connections near the database and supports normal interactive transactions. P0-E1-T05 tests the connection. |
 | AR-03 | Use **Better Auth**, self-hosted in our own Postgres, with its username and two-factor plugins. | Better Auth; Auth.js; a hosted service (Clerk, Neon Auth). | User data stays in our database under RLS. It has TOTP two-factor, backup codes and username sign-in for students who have no email. It runs on Workers. No per-user cost. |
 | AR-04 | Use **next-intl** for routing and translations. | next-intl; hand-rolled dictionaries; i18next. | It handles `/[locale]` routing, detection, ICU messages and typed keys with little code. |
 | AR-05 | Store media in **Cloudflare R2**, two buckets (public and private). Compress and resize images **in the browser before upload**. No dependency on paid image transformations. | R2 with client resizing; R2 with Cloudflare Images transformations; Neon storage. | R2 has no egress fees. Client resizing keeps slow uploads small and avoids the 5,000-per-month transformation cap. |
@@ -83,7 +83,7 @@ These are this document's proposals. Each needs a `D-` entry in [08](08-decision
 | i18n | next-intl (AR-04) | §7. |
 | Media | Cloudflare R2 (AR-05) | §8. |
 | Jobs | Cron Triggers + Queues in a jobs Worker (AR-06) | §9. |
-| Email | Resend proposed, Q-06 open (AR-07) | §10. |
+| Email | Resend ([D-142](08-decision-log.md#d-142)) | §10. |
 | Bot checks | Cloudflare Turnstile | On public forms (§12). |
 | CI and backups | GitHub Actions | §5, §13. |
 
@@ -113,15 +113,15 @@ RLS only protects data if the app never connects as a role that skips it.
 
 | Postgres role | Used by | Rights |
 | --- | --- | --- |
-| `migrator` | CI migrations only | Owns the tables. Never used by running code. |
-| `app_user` | Web Worker and jobs Worker (through Hyperdrive) | `NOBYPASSRLS`, not a table owner. Read and write only through RLS policies. |
-| `backup_reader` | Nightly backup job | Read-only. Must be able to dump all rows, so it is the one role allowed `BYPASSRLS`. Its password exists only in GitHub Actions secrets. |
+| `tazkiyah_schema_owner` | CI migrations and ownership of schema objects | Owns tables, public views and definer functions. It has no login. The database administrator assumes it during migrations. |
+| `tazkiyah_app` | Web Worker and jobs Worker (through Hyperdrive) | Non-owner with `NOBYPASSRLS`. Policies and grants govern runtime reads and writes. |
+| `backup_reader` | Nightly backup job | Planned read-only credential. Prove it can dump all rows over a direct connection in P0-E1-T12. Keep it in GitHub Actions secrets. |
 
-Create `app_user` with SQL (`CREATE ROLE ... NOBYPASSRLS`), not in the Neon console. Roles made in the Neon console join `neon_superuser`, which we must check for row-security bypass rights in P0-E1-T04. Every table uses `FORCE ROW LEVEL SECURITY` so even the owner obeys policies outside migrations. Policy text belongs to [04 §6](04-database.md).
+Create `tazkiyah_app` through SQL so it starts without `neon_superuser` membership. Use a direct connection for migrations and backups. The [schema plan](04-database.md#42-schemas-and-database-roles) enables RLS on every app table and defines explicit tenant checks for owner-backed public views and definer functions. See [D-109](08-decision-log.md#d-109) and [Neon's database access documentation](https://neon.com/docs/manage/database-access).
 
 ### 4.4 Getting the institute and user into each database session
 
-Every database call goes through one wrapper in `packages/core`, called `withInstituteTx`. No other code may open a database client. A lint rule bans importing `pg` outside the wrapper.
+Tenant-scoped calls go through `withInstituteTx` in `packages/core`. It sets tenant context and hands the caller a Drizzle transaction on the same connection. The core database module also owns the narrow lookups in §4.5 that run before the institute context exists. Limit application `pg` imports to that module.
 
 What the wrapper does for every request or job step:
 
@@ -129,13 +129,14 @@ What the wrapper does for every request or job step:
 BEGIN;
 SELECT set_config('app.institute_id', $1, true);   -- uuid from the host lookup
 SELECT set_config('app.user_id',      $2, true);   -- '' for visitors
-SELECT set_config('app.roles',        $3, true);   -- e.g. 'admin,teacher' or ''
+SELECT set_config('app.request_id',   $3, true);   -- for audit correlation
 -- ... the route's queries ...
 COMMIT;
 ```
 
 - The third argument `true` makes each setting **local to the transaction**. It disappears at `COMMIT`, so a pooled connection can never carry one institute's setting into another request.
 - The values come only from the server (host lookup and session), never from the browser.
+- RLS checks `user_roles` for the current institute and user. Jobs set `app.actor_kind` to `job` in their transaction ([04 §6.1](04-database.md#61-how-the-session-supplies-institute-and-user)).
 - RLS policies in [04 §6](04-database.md) read them with `current_setting('app.institute_id', true)`. If the setting is missing, policies return no rows. 04 must use these exact setting names.
 - Hyperdrive does not support changes to per-session state, so we never use plain `SET` or session-level settings. Transaction-local `set_config` inside an explicit transaction is expected to work, because the pooled connection stays with us for the whole transaction. **This is not yet proven.** P0-E1-T05 tests it. If it fails, we switch to the Neon serverless driver with a WebSocket `Pool` created per request, which gives a normal session.
 - Hyperdrive also does not support SQL `PREPARE` or session-level advisory locks. Use transaction-level advisory locks if FIFO matching needs a lock ([06 §8](06-donations-and-trail.md)).
@@ -145,7 +146,7 @@ COMMIT;
 REQ-MIR-002. Each institute's domain is stored as data in institute settings ([04 §5](04-database.md)).
 
 1. Middleware reads the `Host` header, lowercases it, removes the port and a leading `www.`.
-2. It calls a `SECURITY DEFINER` function `resolve_institute(host)` that returns only `institute_id`, `status` and default locale. This is the one lookup that runs before `app.institute_id` is set, so it cannot go through normal RLS. It returns no other data.
+2. It calls `app.resolve_institute(host)`. This definer function returns the active institute's ID or null before `app.institute_id` is set.
 3. The result is cached in memory in the Worker isolate for 5 minutes.
 4. No match: return a plain 404 page "No institute at this address" in English and Urdu. Never fall back to the first institute.
 5. Extra hosts per environment are stored as aliases in settings:
@@ -190,7 +191,7 @@ merge to main ─► migrate preview branch ─► deploy preview Workers
 tag vX.Y.Z    ─► migrate main branch    ─► deploy production Workers
 ```
 
-- Migrations run before the deploy, as `migrator`. Each migration must be backward compatible with the code already running (add first, remove later). Migration tooling and naming belong to [04 §13](04-database.md).
+- Migrations run before the deploy as `tazkiyah_schema_owner`. Each migration must be backward compatible with the code already running (add first, remove later). Migration tooling and naming belong to [04 §13](04-database.md).
 - Rollback: redeploy the previous tag with Wrangler's version rollback. Database rollbacks are new forward migrations, never edits to applied ones.
 - The P0 phase test's cross-institute check runs in CI on every pull request (REQ-SEC-002).
 
@@ -212,12 +213,13 @@ tag vX.Y.Z    ─► migrate main branch    ─► deploy production Workers
 
 ### 6.1 Library and storage
 
-Better Auth (AR-03) stores users and sessions in Postgres through `app_user`, so its rows obey RLS like everything else.
+The Next.js app hosts Better Auth (AR-03). Better Auth uses the restricted `tazkiyah_auth` database role and runs in a Drizzle transaction scoped to the institute resolved from the request host.
 
 - Its user model maps onto our `users` table, with `institute_id` added as a required field.
-- Its own tables (session, account, verification, two-factor) each get `institute_id` and RLS too. [04 §7](04-database.md) defines them.
+- Sessions, credentials, verification, TOTP and rate limits live in the `identity` schema. Each table has `institute_id` and RLS. The application role has no access to that schema.
 - Cookies: `HttpOnly`, `Secure`, `SameSite=Lax`, host-only (no `Domain` attribute), so a session on one institute's domain never works on another's.
 - Passwords are hashed by the library (scrypt by default). We never log or email passwords.
+- In P0-E5-T01, prove that sign-in and session lookup can resolve the necessary auth row with only the host's institute context. Test two institutes with the same email and username, and confirm that public callers cannot retrieve credentials or session rows.
 
 ### 6.2 Who signs in and how
 
@@ -238,12 +240,12 @@ Better Auth (AR-03) stores users and sessions in Postgres through `app_user`, so
 
 ### 6.3 Roles and permission checks
 
-- Roles come from `user_roles` (`institute_id`, `user_id`, `role`, and an optional `class_id` for class-level teacher rights). The role list is visitor, donor, student, teacher, editor, finance officer and admin ([05 §6](05-public-pages-roles-admin.md)). A person can hold several roles.
+- Roles come from `user_roles` (`institute_id`, `user_id`, `role`). Class assignments come from `class_members`. The role list is visitor, donor, student, teacher, editor, finance officer and admin ([05 §6](05-public-pages-roles-admin.md)). A person can hold several roles.
 - One function `can(user, action, resource)` in `packages/core` answers every permission question. Its table is generated from the permission matrix in [05 §7](05-public-pages-roles-admin.md). Anything not in the matrix is denied.
 - Checks happen in three layers:
   1. Middleware blocks `/[locale]/admin/**` for anyone without a staff role.
   2. Every server action and route handler calls `can()` before doing anything.
-  3. RLS policies use `app.user_id` and `app.roles` as a last line of defence ([04 §6](04-database.md)).
+  3. RLS policies match `app.user_id` and `app.institute_id` against `user_roles` ([04 §6](04-database.md)).
 - Role changes end the user's other sessions, so new rights or removed rights apply at once.
 
 ### 6.4 Two-factor for admin and finance officer
@@ -291,14 +293,14 @@ REQ-LNG-004, REQ-LNG-005.
 | Order | Source | Rule |
 | --- | --- | --- |
 | 1 | The URL prefix | Always wins when present. |
-| 2 | `users.locale` | For a signed-in user. Updated when they use the language switch. |
+| 2 | `users.preferred_language` | For a signed-in user. Updated when they use the language switch. |
 | 3 | `NEXT_LOCALE` cookie | Set for one year whenever the visitor uses the switch. |
 | 4 | `Accept-Language` header | First supported language in the list: any `ur*` gives `ur`, any `en*` gives `en`. |
 | 5 | Default | `en` (D-007). |
 
 The institute's default locale in settings is **not** used for visitors, because D-007 says browser language first, then English.
 
-The language switch links to the same path in the other locale, sets the cookie, and saves `users.locale` if signed in (REQ-LNG-003).
+The language switch links to the same path in the other locale, sets the cookie, and saves `users.preferred_language` if signed in (REQ-LNG-003).
 
 ### 7.3 Translation files
 
@@ -337,7 +339,7 @@ Community posts are not translated. Each post stores its own `language` ([07 §6
 
 ### 7.6 Emails
 
-Email templates take a locale and use the `email` namespace. The recipient's language is `users.locale` for account holders, or the language stored with a guest donor ([06 §11](06-donations-and-trail.md)). See §10.
+Email templates take a locale and use the `email` namespace. The recipient's language is `users.preferred_language` for account holders, or the language stored with a guest donor ([06 §11](06-donations-and-trail.md)). See §10.
 
 ## 8. Media storage
 
@@ -490,7 +492,7 @@ Recurring card charges are normally run by the gateway's own subscription featur
 | Cloudflare Email Service | Sending to any address is **not available on Workers Free**. Workers Paid includes 3,000 a month, then $0.35 per 1,000. | Good if we move to Workers Paid anyway (§14). |
 | Brevo | Not verified in this session. | Check before deciding. |
 
-The final pick is **open question Q-06** (owner Sami, due P0). The code talks to one `EmailSender` interface in `packages/email` (`send(to, locale, template, data)`), so switching services means writing one adapter.
+Sami selected Resend for account emails and donor receipts on 2026-11-12 ([D-142](08-decision-log.md#d-142)). Both use the `EmailSender` interface in `packages/email`.
 
 ### 10.2 Domain setup
 
@@ -583,7 +585,7 @@ payment_failed       → no trail event; recorded for reconciliation (06 §15)
 
 | Threat | Control | Requirement |
 | --- | --- | --- |
-| One institute reads another's data | RLS on every table, transaction-local `app.institute_id`, `app_user` without bypass, CI test with two institutes (§4.3, §4.4, §5.3) | REQ-SEC-001, REQ-SEC-002 |
+| One institute reads another's data | RLS on every table, transaction-local `app.institute_id`, `tazkiyah_app` without bypass, CI test with two institutes (§4.3, §4.4, §5.3) | REQ-SEC-001, REQ-SEC-002 |
 | Wrong institute from the domain | Exact host match, no fallback institute, host-only cookies, cache keys include host (§4.5, §5.5, §6.1) | REQ-MIR-002 |
 | Personal data in URLs | Opaque IDs and slugs only. Search and filter forms use POST. Emails, names and phone numbers never appear in paths or query strings. Media keys use IDs (§8.1). | REQ-SEC-005 |
 | Guest trail token leaks | 32 random bytes, base64url; only a SHA-256 hash stored; admin can revoke ([04 §8](04-database.md)). The link `/{locale}/t/{token}` swaps the token for a short-lived `HttpOnly` cookie and redirects to a clean URL, so the token does not stay in history or `Referer`. `Referrer-Policy: no-referrer` on trail pages. Tokens are redacted from logs. | REQ-SEC-004 |
@@ -769,13 +771,13 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E1-T01 | Create the monorepo (`apps/web`, `apps/jobs`, `packages/core`, `packages/i18n`, `packages/email`), TypeScript strict, ESLint, Prettier, Vitest, README linking the plan | todo | – | – |
-| P0-E1-T02 | Spike: deploy a Next.js page through OpenNext to `workers.dev`; record bundle size (compressed and not), start-up time and CPU ms for one dynamic and one cached page; decide on trigger T-1 | todo | P0-E1-T01 | REQ-PRF-005 |
-| P0-E1-T03 | Move `azeem-lateef.com` DNS to Cloudflare after copying every record; confirm the existing mailbox still sends and receives | todo | – | – |
-| P0-E1-T04 | Create the Neon project in the nearest region; branches `main`, `preview`, `dev`; roles `migrator`, `app_user` (no RLS bypass, made by SQL) and `backup_reader`; check `neon_superuser` rights | todo | – | REQ-SEC-001 |
-| P0-E1-T05 | Spike: Hyperdrive to Neon; prove transaction-local `set_config` is seen by an RLS policy and does not leak to the next request; check Neon still scales to zero; confirm AR-02 or switch to the fallback | todo | P0-E1-T02, P0-E1-T04 | REQ-SEC-001, REQ-PRF-005 |
-| P0-E1-T06 | Wrangler config for web and jobs Workers in preview and production: bindings (Hyperdrive, R2, Queues, KV), secrets, typed env check at start-up; protect preview | todo | P0-E1-T05 | REQ-PRF-005 |
-| P0-E1-T07 | CI in GitHub Actions: lint, typecheck, unit tests, missing-translation check, migrations and RLS tests on a short-lived Neon branch | todo | P0-E1-T04, P0-E1-T06 | REQ-SEC-002 |
+| P0-E1-T01 | Create the monorepo (`apps/web`, `apps/jobs`, `packages/core`, `packages/i18n`, `packages/email`) with strict TypeScript, ESLint, Prettier, Vitest and a bilingual local smoke page for the deployment spike | done | – | – |
+| P0-E1-T02 | Spike: deploy a Next.js page through OpenNext to `workers.dev`; record bundle size (compressed and not), start-up time and CPU ms for one dynamic and one cached page; decide on trigger T-1 | blocked | P0-E1-T01 | REQ-PRF-005 |
+| P0-E1-T03 | Move `azeem-lateef.com` DNS to Cloudflare after copying every record; confirm the existing mailbox still sends and receives | blocked | – | – |
+| P0-E1-T04 | Set up the Neon project and `main`, `preview`, `dev` branches. Check `neon_superuser` privileges for P0-E2-T01 and confirm the backup credential options for P0-E1-T12 | done | – | REQ-SEC-001 |
+| P0-E1-T05 | Spike: Hyperdrive to Neon; prove transaction-local `set_config` is seen by an RLS policy and does not leak to the next request; check Neon still scales to zero; confirm AR-02 or switch to the fallback | blocked | P0-E1-T02, P0-E1-T04 | REQ-SEC-001, REQ-PRF-005 |
+| P0-E1-T06 | Wrangler config for web and jobs Workers in preview and production: bindings (Hyperdrive, R2, Queues, KV), secrets, typed env check at start-up; protect preview; verify Better Auth sign-in on the hosted preview through `AUTH_HYPERDRIVE` | todo | P0-E1-T05 | REQ-PRF-005 |
+| P0-E1-T07 | CI in GitHub Actions: lint, typecheck, unit tests, missing-translation check, migrations and RLS tests on a short-lived Neon branch | todo | P0-E1-T04, P0-E1-T06, P0-E2-T14 | REQ-SEC-002 |
 | P0-E1-T08 | CD: deploy preview on merge to `main`, production on a version tag, migrations before deploy, rollback steps in README | todo | P0-E1-T07 | – |
 | P0-E1-T09 | Middleware: host to institute through `resolve_institute`, `www` stripping, alias hosts per environment, "no institute here" 404 | todo | P0-E1-T06, P0-E2-T31 | REQ-MIR-002 |
 | P0-E1-T10 | Go live on `azeem-lateef.com`: custom domain, `www` redirect, HTTPS only, HSTS, CSP and other security headers | todo | P0-E1-T03, P0-E1-T08, P0-E1-T09 | REQ-SEC-005 |
@@ -785,25 +787,33 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 | P0-E1-T14 | Caching: confirm cache keys include host and locale; cache rules for static assets and public pages; `no-store` for signed-in, admin and trail pages | todo | P0-E1-T09, P0-E3-T01 | REQ-MIR-002, REQ-PRF-001 |
 | P0-E1-T15 | Monitoring: uptime check on a cached page, hourly DB health check, provider usage alerts, monthly usage review checklist and `docs/ops/usage-log.md` | todo | P0-E1-T10 | REQ-PRF-005 |
 
+The first checkpoint uses npm workspaces, Next.js 16, next-intl and a local institute fixture. Lint, type checking and the translation-key test pass. The local OpenNext Worker serves both routes and remembers the visitor's language choice. The Wrangler dry run measured about 5,192 KiB uncompressed and 1,093 KiB gzipped. OpenNext flags Next.js Proxy support as experimental. The `workers.dev` run still needs to measure startup and CPU before P0-E1-T02 can close.
+
+The giving and staff build passed the local Worker checks for bilingual pages, Better Auth two-factor verification, cause editing and archival, opt-in bank publication, redacted audit activity, and manual transfer receipts and public totals. All six SQL suites passed locally and on the disposable Neon validation branch, where all 13 Drizzle entries matched the repository. The final Wrangler dry run measured 15,706.86 KiB uncompressed. The local startup profile sampled 25.1 ms of active CPU time. The protected hosted preview still needs its own startup and request CPU measurements. See the [hosted launch runbook](../docs/hosted-launch.md).
+
+2026-11-08 · The [Tazkiyah project](https://console.neon.tech/app/projects/calm-paper-68484751) is on Neon Free in Singapore with PostgreSQL 18. The isolation suite passed on `dev` and `preview`. The baseline on `main` has zero institute rows. `neon_superuser` has `BYPASSRLS` and `tazkiyah_app` does not. A rollback-only probe confirmed that the administrator can create a dedicated backup role with `BYPASSRLS`. Its dump and restore test is tracked in P0-E1-T12. The hosted Workers spike needs a Wrangler login.
+
+2026-11-09 · Blocked: P0-E1-T02 needs a Wrangler login to deploy to `workers.dev` and measure start-up and request CPU. P0-E1-T03 needs access to the Cloudflare account and the domain registrar. P0-E1-T05 needs Cloudflare Hyperdrive and a Neon branch.
+
 ### P0-E2 Database foundation (owned by 04; architecture tasks)
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E2-T30 | `withInstituteTx` wrapper: one transaction per unit of work, sets `app.institute_id`, `app.user_id`, `app.roles` locally; lint rule banning other DB clients | todo | P0-E1-T05, P0-E2-T07 | REQ-SEC-001 |
-| P0-E2-T31 | `SECURITY DEFINER` functions `resolve_institute(host)` and `list_active_institutes()`, returning IDs only; 5-minute isolate cache for the host lookup | todo | P0-E2-T30, P0-E2-T06 | REQ-MIR-002 |
-| P0-E2-T32 | Seed a "Test Institute" with its own host alias in preview and CI, and run 04's cross-institute tests as `app_user` through the real wrapper | todo | P0-E2-T31, P0-E1-T07 | REQ-SEC-002 |
+| P0-E2-T30 | `withInstituteTx` wrapper with transaction-local institute, user and request IDs and job actor kind. Limit DB clients to the core database module | todo | P0-E1-T05, P0-E2-T07 | REQ-SEC-001 |
+| P0-E2-T31 | Add `app.list_active_institutes()` and wire it and `app.resolve_institute(host)` through the pre-context lookup path. Cache host results for 5 minutes | todo | P0-E2-T30, P0-E2-T06 | REQ-MIR-002 |
+| P0-E2-T32 | Seed a "Test Institute" with its own host alias in preview and CI, and run 04's cross-institute tests as `tazkiyah_app` through the real wrapper | todo | P0-E2-T31, P0-E1-T07 | REQ-SEC-002 |
 
 ### P0-E3 Localization plumbing
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P0-E3-T01 | Add next-intl with `app/[locale]` routing for `ur` and `en`; redirect paths without a prefix | todo | P0-E1-T02 | REQ-LNG-008 |
-| P0-E3-T02 | Language choice order: URL, `users.locale`, cookie, `Accept-Language`, English; one-year `NEXT_LOCALE` cookie | todo | P0-E3-T01 | REQ-LNG-004, REQ-LNG-005 |
+| P0-E3-T02 | Language choice order: URL, `users.preferred_language`, cookie, `Accept-Language`, English; one-year `NEXT_LOCALE` cookie | todo | P0-E3-T01 | REQ-LNG-004, REQ-LNG-005 |
 | P0-E3-T03 | Translation files by namespace in both languages, typed keys, CI check for keys missing in one language, lint rule against literal interface text | todo | P0-E3-T01, P0-E1-T07 | REQ-LNG-001, REQ-LNG-002 |
 | P0-E3-T04 | Set `lang` and `dir` on `<html>` from the locale; expose direction to the design system; lint for physical CSS properties (with 02 §8) | todo | P0-E3-T01 | REQ-LNG-006 |
 | P0-E3-T05 | Formatting module for rupee amounts, numbers and dates per locale; check Urdu `Intl` data on Workers; fixed-pattern fallback if missing | todo | P0-E3-T01 | REQ-LNG-012 |
 | P0-E3-T06 | `pickLocalized` helper with `isFallback` flag and a notice component hook; per-block `lang` and `dir` for fallback text and posts | todo | P0-E3-T01, P0-E2-T03 | REQ-LNG-009, REQ-LNG-010 |
-| P0-E3-T07 | Language switch plumbing: same path in the other locale, sets the cookie, saves `users.locale` when signed in | todo | P0-E3-T02, P0-E5-T01 | REQ-LNG-003, REQ-LNG-004 |
+| P0-E3-T07 | Language switch plumbing: same path in the other locale, sets the cookie, saves `users.preferred_language` when signed in | todo | P0-E3-T02, P0-E5-T01 | REQ-LNG-003, REQ-LNG-004 |
 | P0-E3-T08 | `hreflang` alternates and a per-host `sitemap.xml` listing both languages | todo | P0-E3-T01, P0-E1-T09 | REQ-LNG-008 |
 | P0-E3-T09 | Bilingual skeleton page for the P0 test: logo and name from institute settings, Urdu page right to left | todo | P0-E3-T04, P0-E1-T09, P0-E4-T09 | REQ-PUB-007, REQ-LNG-006 |
 
@@ -811,24 +821,42 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E5-T01 | Set up Better Auth with the Postgres adapter through `withInstituteTx`; map to `users` with `institute_id`; host-only cookies | todo | P0-E2-T30, P0-E2-T08 | REQ-DPR-004 |
-| P0-E5-T02 | Email and password sign-in and sign-up for donors; email verification and password reset through the `EmailSender` interface (console adapter until P1-E3-T30) | todo | P0-E5-T01 | REQ-DPR-004 |
-| P0-E5-T03 | Username sign-in for students; block student and staff self-signup; server action for staff to create a student with a one-time password and forced change | todo | P0-E5-T01, P0-E5-T04 | REQ-STU-001 |
-| P0-E5-T04 | Roles from `user_roles`; `can(user, action, resource)` generated from the 05 §7 matrix, deny by default; tests per role | todo | P0-E5-T01 | REQ-ROL-001, REQ-ROL-002 |
-| P0-E5-T05 | Pass user id and roles into each transaction; middleware guard for `/[locale]/admin/**`; `can()` call required in every server action (lint or test) | todo | P0-E5-T04, P0-E2-T30 | REQ-SEC-001 |
-| P0-E5-T06 | TOTP two-factor for admin and finance officer: forced enrolment, 10 backup codes, no trusted devices, 5-try lockout | todo | P0-E5-T04 | REQ-SEC-003 |
-| P0-E5-T07 | Rate limits on sign-in, reset and two-factor; Turnstile after 3 failures and on sign-up and reset; neutral error messages in both languages | todo | P0-E5-T02 | REQ-SEC-010 (proposed) |
-| P0-E5-T08 | Bootstrap script for Moazam's first admin account; admin creates teacher, editor and finance officer accounts | todo | P0-E5-T04, P0-E5-T06 | REQ-ROL-004 |
-| P0-E5-T09 | Session rules per role (§6.5); sign out of all devices; end sessions on role change and password reset | todo | P0-E5-T04 | REQ-SEC-003 |
-| P0-E5-T10 | Write sign-in, failed two-factor, role change and account creation events to `audit_log` with IDs only | todo | P0-E5-T04, P0-E2-T11 | REQ-ROL-008 |
+| P0-E5-T01 | Host Better Auth in Next.js with Drizzle, a tenant-scoped auth transaction, the existing `users` table and host-only cookies | done | P0-E2-T08 | REQ-DPR-004 |
+| P0-E5-T02 | Email and password sign-in and sign-up for donors; email verification and password reset through the `EmailSender` interface (console adapter until P1-E3-T30) | done | P0-E5-T01 | REQ-DPR-004 |
+| P0-E5-T03 | Username sign-in for students; block student and staff self-signup; server action for staff to create a student with a one-time password and forced change | done | P0-E5-T01, P0-E5-T04 | REQ-STU-001 |
+| P0-E5-T04 | Roles from `user_roles`; `can(user, action, resource)` generated from the 05 §7 matrix, deny by default; tests per role | done | P0-E5-T01 | REQ-ROL-001, REQ-ROL-002 |
+| P0-E5-T05 | Pass the authenticated user ID into each transaction. Guard `/[locale]/admin/**` and check that every server action calls `can()` | in progress | P0-E5-T04, P0-E2-T30 | REQ-SEC-001 |
+| P0-E5-T06 | TOTP two-factor for admin and finance officer: forced enrolment, 10 backup codes, no trusted devices, 5-try lockout | done | P0-E5-T04 | REQ-SEC-003 |
+| P0-E5-T07 | Rate limits on sign-in, reset and two-factor; Turnstile after 3 failures and on sign-up and reset; neutral error messages in both languages | blocked | P0-E5-T02 | REQ-SEC-010 (proposed) |
+| P0-E5-T08 | Bootstrap script for Moazam's first admin account; admin creates teacher, editor and finance officer accounts | done | P0-E5-T04, P0-E5-T06 | REQ-ROL-004 |
+| P0-E5-T09 | Session rules per role (§6.5); sign out of all devices; end sessions on role change and password reset | done | P0-E5-T04 | REQ-SEC-003 |
+| P0-E5-T10 | Write sign-in, failed two-factor, role change and account creation events to `audit_log` with IDs only | done | P0-E5-T04, P0-E2-T11 | REQ-ROL-008 |
+
+The local Worker serves bilingual sign-in and staff pages. The server checks the user's role in the current institute. Admins and finance officers also need proof of two-factor verification for that session and are signed out after 30 minutes of inactivity. The first-admin command assigns the principal and writes an audit event. Admins can issue single-use setup links for teachers, editors, and finance officers, which they share privately while email delivery is pending. Changes to a user's roles, status, or two-factor setting revoke their sessions. Hosted verification needs the auth migrations, the `AUTH_HYPERDRIVE` binding, and the Better Auth secret on the preview Worker.
+
+2026-11-09 · P0-E5-T01 is done locally. [`auth_isolation.sql`](../db/test/auth_isolation.sql) now runs in `npm test`. It shows that the same email and username in two institutes stay separate, that credentials and sessions are hidden without the host's institute context, that no session can be made for another institute's user, and that `tazkiyah_app` has no access to the `identity` schema. The hosted sign-in check needs Cloudflare, so it moved to P0-E1-T06 ([D-116](08-decision-log.md#d-116)). P0-E5-T04: [`packages/core/src/permissions.ts`](../packages/core/src/permissions.ts) holds the 05 §7 matrix and `can(actor, action, facts)`. Everyone holds the visitor role, a user gets the union of their roles, and anything not granted is denied. Its test parses the 05 §7 tables and fails if any row or cell differs from the code. The staff workspace gate now reads the user's roles from `user_roles` and asks `can()`.
+
+2026-11-09 · P0-E5-T06: [`auth.test.ts`](../apps/web/src/server/auth.test.ts) runs the real Better Auth handler against the migrated schema in PGlite, connected as `tazkiyah_auth` through a local Postgres socket. It shows that an admin who has not enrolled can open nothing but enrolment, and that an editor is not asked for two-factor. Enrolment issues 10 backup codes and sets no trusted-device cookie, even when one is requested. Every later sign-in asks for a code, and 5 wrong codes lock the account for 15 minutes. Better Auth also allows only 3 two-factor requests per 10 seconds per IP. Writing two-factor failures to `audit_log` belongs to P0-E5-T10.
+
+2026-11-09 · P0-E5-T09: [`0016_session_rules.sql`](../db/drizzle/0016_session_rules.sql) adds `identity.session_limits()` for the §6.5 role groups, where the strictest group a user holds wins. A trigger caps each new session's lifetime by role. `identity.touch_session()` ends a session that is past its lifetime or idle too long, and otherwise records the activity. The auth handler runs it on every session lookup, including `/get-session`. `/revoke-sessions` signs a user out of all devices. Role changes already ended sessions through `revoke_sessions_on_role_change`. Better Auth's `revokeSessionsOnPasswordReset` is on, and it gets its end-to-end test with the reset flow in P0-E5-T02. The tests are in `auth.test.ts`.
+
+2026-11-09 · Blocked: P0-E5-T07 builds on proposed REQ-SEC-010, which waits for Sami's approval (Q-08), and it also needs Turnstile site keys.
+
+2026-11-09 · P0-E5-T10: [`0017_auth_audit.sql`](../db/drizzle/0017_auth_audit.sql) writes `auth.signed_in` when a session is created, `auth.two_factor_failed` when Better Auth counts a failed code, and `auth.account_created` when a credential is created. Each row holds the user ID, actor roles and request ID only. Staff role grants and removals and new accounts were already written by `app.audit_row_change`. [`auth_audit.sql`](../db/test/auth_audit.sql) checks all four, and also checks that no row holds an email, a token or a password hash. `auth.test.ts` checks the same events from real sign-ins.
+
+2026-11-09 · P0-E5-T02: donors sign up at Better Auth's `/sign-up/email` with name, email, password and language only. [`0019_donor_sign_up.sql`](../db/drizzle/0019_donor_sign_up.sql) makes every self-created user an active donor with an unverified email and gives it only the donor role, and a donor-only account cannot sign in until its email is confirmed ([D-118](08-decision-log.md#d-118)). A sign-up for a known email gets the same answer as a new one and creates no session. Verification and reset links last one hour and go through `EmailSender` with bilingual templates ([`packages/email/src/auth.ts`](../packages/email/src/auth.ts)) that never greet by name. The console adapter prints them on the local origin only; hosted sign-up and reset answer "Email is unavailable" until P1-E3-T30. Students never get a reset email. A reset signs the user out of every device and its token works once. The forms themselves are P1-E1-T11. Tests: `auth.test.ts` (end to end), `auth_isolation.sql` (database rules) and `packages/email/src/auth.test.ts`.
+
+2026-11-09 · P0-E5-T03: [`0020_student_accounts.sql`](../db/drizzle/0020_student_accounts.sql) adds `identity.create_student_account()`. Only a teacher or admin with a live staff session (two-factor verified for admins) can call it, through `/student-account`. It creates an active user with no email, a generated username such as `maa-2026-0001`, the `student` role and a starting password that is shown once ([D-119](08-decision-log.md#d-119)). Students sign in with `/sign-in/username`, and usernames ignore case. The session reports `mustChangePassword`, staff workspaces stay closed, and `/first-password` replaces the starting password once and ends the student's other sessions. Self sign-up cannot set a username or any role but donor (P0-E5-T02), and students never get a reset email. The class check and persona come with P3-E1-T41, and the staff form with P3-E1-T01. Tests are in `auth.test.ts`.
 
 ### P1-E3 Manual donation recording and guest donors (owned by 06; architecture tasks)
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E3-T30 | `EmailSender` adapter for the service chosen in Q-06; sending subdomain with SPF, DKIM, DMARC; bilingual layout; guest trail-link email through the queue | todo | P0-E1-T06, P0-E3-T03 | REQ-DPR-002, REQ-LNG-011 |
+| P1-E3-T30 | `EmailSender` adapter for the service chosen in Q-06; sending subdomain with SPF, DKIM, DMARC; bilingual layout; guest trail-link email through the queue | blocked | P0-E1-T06, P0-E3-T03 | REQ-DPR-002, REQ-LNG-011 |
 | P1-E3-T31 | `PaymentProvider` interface and `applyPaymentEvent`; `bank_transfer` provider used by the admin recording form; idempotency key on provider reference | todo | P0-E2-T30, P1-E3-T41, P1-E3-T42 | REQ-PAY-001, REQ-PAY-006 |
 | P1-E3-T32 | Guest trail tokens: 32 random bytes, hash stored, token-for-cookie exchange with clean redirect, `no-referrer`, log redaction | todo | P0-E1-T11, P1-E3-T40 | REQ-SEC-004, REQ-SEC-005 |
+
+2026-11-12 · The Resend adapters are wired for hosted account email and receipt jobs. Hosted delivery still needs a verified sending domain, runtime credentials, and a receipt job schedule. See the [Vercel handoff](../docs/vercel.md).
 
 ### P2-E1 Spending entries with receipts (owned by 06; architecture tasks)
 
@@ -854,7 +882,7 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 | P3-E4-T01 | Extend the upload flow to every media kind with the caps table (§8.3) and per-role limits from 07 §11 | todo | P2-E1-T30 | REQ-PRF-003 |
 | P3-E4-T02 | Responsive image serving: `srcset`, `sizes`, lazy loading, fixed dimensions, one-year immutable caching | todo | P2-E1-T31 | REQ-PRF-002 |
 | P3-E4-T03 | Private media route: `can()` and RLS check, 5-minute signed URL, `no-store` | todo | P2-E1-T30, P0-E5-T04 | REQ-CHS-001 |
-| P3-E4-T04 | Copy media to the public bucket when a post is approved public; delete and purge the public copy on takedown via `media.purge` | todo | P3-E4-T03, P2-E7-T01, P3-E5 | REQ-CHS-004, REQ-MOD-006 |
+| P3-E4-T04 | Copy media to the public bucket on approval. Delete and purge the public copy on takedown via `media.purge` | todo | P3-E4-T03, P2-E7-T01, P3-E5-T06, P3-E5-T08 | REQ-CHS-004, REQ-MOD-006 |
 | P3-E4-T05 | Audio upload: accepted formats, 10 MB cap, basic player with download fallback | todo | P3-E4-T01 | REQ-PRF-003 |
 | P3-E4-T06 | Slides as PDF: 10 MB and 60-page cap, open in the browser's viewer | todo | P3-E4-T01 | REQ-PRF-003 |
 | P3-E4-T07 | Short video upload: MP4, 25 MB and 90-second cap, with a prompt to use YouTube for longer videos | todo | P3-E4-T01 | REQ-PRF-003, REQ-PRF-004 |
@@ -908,9 +936,9 @@ Status for every task is `todo`. "04 …" in Depends on means the named task in 
 
 1. `https://azeem-lateef.com/ur` and `/en` load from the production Worker over HTTPS. `www` redirects to the apex. The existing mailbox still sends and receives after the DNS move.
 2. A request with an unknown `Host` gets the "no institute here" 404 and no institute data.
-3. The CI suite, running as `app_user` through `withInstituteTx`, shows the Test Institute cannot read or change any Markaz Al Azeem row, and that a request with no institute setting sees no rows.
+3. The CI suite runs as `tazkiyah_app` through `withInstituteTx`. It verifies that the Test Institute cannot read or change any Markaz Al Azeem row, and that a request with no institute setting sees no rows.
 4. A test sends two requests for different institutes over the same pooled connection and shows the second never sees the first's `app.institute_id`.
-5. `app_user` has no `BYPASSRLS` right and owns no table (checked by a query in CI).
+5. A CI query verifies that `tazkiyah_app` lacks `BYPASSRLS` and owns no table.
 6. A visitor whose browser sends `Accept-Language: ur` lands on `/ur`; with no header, on `/en`. After switching to Urdu, a new visit opens in Urdu. A signed-in user's choice follows them to another device.
 7. CI fails when a translation key exists in only one language, or when a JSX file contains literal interface text.
 8. A cause with only English text, viewed at `/ur/...`, shows the English text with a notice, and that block has `lang="en" dir="ltr"`.

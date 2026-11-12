@@ -1,6 +1,6 @@
 # Tazkiyah master plan
 
-**Status:** plan complete, awaiting review · **Last updated:** 2026-11-07 · **Owner:** Sami
+**Status:** Phase 0 in progress · **Last updated:** 2026-11-07 · **Owner:** Sami
 
 This is the source of truth for Tazkiyah. Every agent and developer reads it first. If two documents disagree, the master plan wins, and the specialist document is fixed.
 
@@ -170,7 +170,7 @@ Each phase ends in a test that a person can run by hand. Online payments come la
 | Q-03 | Who holds the editor and finance officer roles | Moazam | P1 |
 | Q-04 | Which scholar's name, if any, is shown as approving Zakat causes | Moazam | P2 |
 | Q-05 | When photos and videos of the madrasa will be available | Moazam | P1 |
-| Q-06 | Which email sending service fits the free tier | Sami (03) | P0 |
+| Q-06 | Resend selected for account emails and donor receipts ([D-142](08-decision-log.md#d-142)) | Sami (03) | Resolved |
 | Q-07 | Confirm the proposed performance and takedown targets ([D-026](08-decision-log.md#d-026), [D-027](08-decision-log.md#d-027)) | Sami | P0 |
 | Q-08 | Approve or reject the proposed requirements in [01](01-requirements-checklist.md#proposed-awaiting-approval) | Sami | Before the phase of each one |
 | Q-09 | Approve or reject the proposed decisions from the specialist documents ([08](08-decision-log.md#proposed-decisions-from-the-specialist-documents)) | Sami | P0 |
@@ -189,7 +189,7 @@ Each phase ends in a test that a person can run by hand. Online payments come la
 
 ## 7. Task index
 
-Compiled in the consistency check on 2026-11-07: **327 tasks**, all `todo` (P0 76, P1 67, P2 51, P3 95, P4 26, P5 12). Every requirement in [01](01-requirements-checklist.md) is covered by at least one task, every task-level dependency points to a task that exists, and there are no dependency loops. A dependency on a whole epic means every task in that epic must be done.
+The 2026-11-07 consistency check counted **327 tasks** (P0 76, P1 67, P2 51, P3 95, P4 26, P5 12). Every approved requirement in [01](01-requirements-checklist.md) maps to at least one task. See each owner document for current statuses. A dependency on a whole epic means every task in that epic must be done.
 
 | Epic | Tasks by document | Count |
 | --- | --- | --- |

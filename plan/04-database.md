@@ -62,7 +62,7 @@ New decisions made in this document. They are **not yet in [08](08-decision-log.
 | 04-D7 | **Users are per institute.** The same email at two institutes is two user rows. | One global user table | Keeps the rule "every table has `institute_id`" with no exception. A future shared identity can be a new table that links user rows, with no change to these tables. |
 | 04-D8 | **State fields are `text` with a `CHECK` list**, not Postgres enum types. | Native enums | Easier to read and to change in a migration. Values reserved for the future (`community`, `to_institute`) are in the list now but blocked by a rule, so enabling them is not a schema change. |
 | 04-D9 | **New donations default to anonymous** (`is_anonymous = true`) and trails default to private. The donor chooses to show their name. | Default to showing names | Agent rule 8: privacy wins over convenience. See proposed REQ-DPR-012 at the end. |
-| 04-D10 | **FIFO order is the donation's `received_at`, then `id`.** All-needs money allocated to a cause later keeps its original received date. | Order by allocation date | Matches the glossary: the oldest donations pay first. 06 §8 may confirm or change this; the data supports both. |
+| 04-D10 | **Replaced by 06-P02 ([D-125](08-decision-log.md#d-125)).** It was: FIFO order is the donation's `credited_on` (named `received_at` before D-120), then `id`, and all-needs money allocated to a cause later keeps its original received date. | Order by allocation date | Matches the glossary: the oldest donations pay first. 06 §8 may confirm or change this; the data supports both. |
 | 04-D11 | **Admins and finance officers can see who gave an anonymous donation**, because they record bank transfers, send receipts and reconcile. Every other path (public views, editor and teacher screens, exports for others, logs, the audit log) never contains the name. | Hide the name from admins too | Manual bank recording (D-008) needs the payer's name. This is how this document reads REQ-DPR-009. See the conflict note under Requirements covered. |
 
 ## 4. Entity overview and ER diagram
@@ -86,8 +86,8 @@ New decisions made in this document. They are **not yet in [08](08-decision-log.
 | --- | --- | --- |
 | `app` | schema | All tables, helper functions and triggers. |
 | `public_api` | schema | Read-only views for visitors (donor wall, cause totals, public trails, public posts). They expose only safe columns. |
-| `tazkiyah_owner` | login role | Owns every table and view. Used only by migrations and to own `SECURITY DEFINER` helper functions. The app never connects as it. |
-| `tazkiyah_app` | login role | The web app and background jobs. Not the owner, no `BYPASSRLS`. RLS applies to it on every table. |
+| `tazkiyah_schema_owner` | ownership role | Owns every app table, view and definer function. The administrator assumes it for migrations. |
+| `tazkiyah_app` | runtime role | The web app and background jobs. RLS applies to it on every table. Enable its login when provisioning the runtime connection. |
 
 Tables use `ENABLE ROW LEVEL SECURITY`. The owner skips RLS, which is why the app must never use the owner role. A test checks this (§6.6).
 
@@ -128,7 +128,7 @@ erDiagram
         bigint amount_minor
         text currency
         bigint amount_paisa
-        timestamptz received_at
+        date credited_on
         bool is_anonymous
         bool trail_public
         text receipt_number
@@ -235,16 +235,9 @@ All institute details live in data, not code (REQ-MIR-001). Adding a second inst
 
 ### 5.1 `localized_text` domain
 
-```sql
-create domain app.localized_text as jsonb
-  check (jsonb_typeof(value) = 'object'
-     and value <> '{}'::jsonb
-     and not exists (select 1 from jsonb_each_text(value) e
-                     where e.key !~ '^[a-z]{2,3}$' or btrim(e.value) = ''));
--- example: {"ur": "گندم کا ذخیرہ", "en": "Wheat stock"}
-```
+The domain accepts a nonempty JSON object of language codes and nonblank strings, such as `{"ur":"گندم کا ذخیرہ","en":"Wheat stock"}`. Its check calls an immutable validator because Postgres check constraints cannot contain subqueries directly. [Drizzle baseline](../db/drizzle/0000_baseline.sql)
 
-Helper `app.localize(v localized_text, lang text) returns (text_value text, is_fallback bool)`: returns `v->>lang`; if missing, returns the other language and `is_fallback = true` so the page shows the small notice (REQ-LNG-009, [03 §7](03-architecture.md)). Fallback order comes from `institute_settings.languages`.
+`app.localize(document, requested_language, fallback_languages)` returns the first available translation and flags a fallback. Pass `institute_settings.languages` for the institute's fallback order. [03 §7](03-architecture.md#7-localization-plumbing)
 
 ### 5.2 `institutes`
 
@@ -264,10 +257,10 @@ Helper `app.localize(v localized_text, lang text) returns (text_value text, is_f
 | `name` | `localized_text not null` | `{"ur":"مرکز العظیم","en":"Markaz Al Azeem"}` (REQ-PUB-007). |
 | `short_name` | `localized_text null` | For small screens. |
 | `parent_body` | `localized_text null` | `Jama Masjid Al-Azeem`. |
-| `logo_media_id` | `uuid null` FK `media_assets` | The round emblem (D-022). |
-| `theme` | `jsonb not null` | Colour tokens defined in [02 §5](02-design-ui-ux.md), for example `{"primary":"#…","surface":"#…"}`. A check allows only token names listed by 02 and values matching `^#[0-9a-fA-F]{6}$` (REQ-MIR-005). |
+| `logo_media_id` | `uuid null` FK `media_assets` | The selected Markaz Al Azeem Emblem ([D-108](08-decision-log.md#d-108)). |
+| `theme` | `jsonb not null` | The theme object defined in [02 §5](02-design-ui-ux.md): `{"version":1,"direction":…,"color":{"primary":"#…",…},"font":{…},"radius":{…}}`. `app.valid_theme()` allows only the names listed by 02, colours matching `^#[0-9a-fA-F]{6}$`, hosted fonts and whole-number radii. `{}` means the platform default (REQ-MIR-005, [D-117](08-decision-log.md#d-117)). |
 | `languages` | `text[] not null default '{ur,en}'` | Supported content languages, in fallback order. |
-| `default_language` | `text not null default 'en'` | Used when the browser sends no preference (D-007). |
+| `default_language` | `text not null default 'en'` | Content default. Visitor language follows [03 §7](03-architecture.md#72-choosing-the-language). |
 | `timezone` | `text not null default 'Asia/Karachi'` | |
 | `base_currency` | `char(3) not null default 'PKR'` | Ledger currency. |
 | `address` | `localized_text not null` | `92/6-R Road, Sahiwal, Punjab, Pakistan` (REQ-PUB-006). |
@@ -275,7 +268,7 @@ Helper `app.localize(v localized_text, lang text) returns (text_value text, is_f
 | `founded_year` | `smallint null` | 2019. |
 | `enabled_modules` | `text[] not null default '{}'` | Values from the module list: `student_hub`, `teacher_hub`, `new_projects` (REQ-ROL-010). Unknown values are rejected by a trigger that reads the module list kept in the migration. |
 | `principal_user_id` | `uuid null` FK `users` | The principal, who gives the first sign-off on orphan consent (§10). |
-| `receipt_prefix` | `text not null` | `MAA`. Receipt numbers look like `MAA-2026-000001`. |
+| `receipt_prefix` | `text not null` | `MAA`. Receipt numbers look like `MAA-2026-00042`. |
 | `community_enabled` | `bool not null default false` | Reserved. While false, no post can take `scope = 'community'` (§11). |
 | `updated_at`, `updated_by` | | Audited. |
 
@@ -287,10 +280,10 @@ Helper: `app.module_enabled(name text) returns bool` reads the current institute
 | --- | --- | --- |
 | `id` | `uuid` PK | |
 | `institute_id` | `uuid not null` | |
-| `domain` | `text not null` | Lowercase host, no port. Unique across all institutes: `unique (lower(domain))`. Rows: `azeem-lateef.com`, `www.azeem-lateef.com`. |
+| `domain` | `text not null` | Unique lowercase host without a port or `www.` prefix. The lookup normalizes `www.azeem-lateef.com` to `azeem-lateef.com`. |
 | `is_primary` | `bool not null default false` | One primary per institute (partial unique index). Used in email links. |
 
-`app.resolve_institute(host text) returns uuid` is a `SECURITY DEFINER` function owned by `tazkiyah_owner`. It returns only the institute id, or null. It runs before any session context exists, so it cannot rely on RLS (REQ-MIR-002, [03 §4](03-architecture.md)).
+`app.resolve_institute(host text) returns uuid` is a `SECURITY DEFINER` function owned by `tazkiyah_schema_owner`. It returns the active institute's ID or null. It runs before the session context exists (REQ-MIR-002, [03 §4](03-architecture.md)).
 
 ### 5.5 `institute_bank_accounts`
 
@@ -314,11 +307,13 @@ Fixed admin content for about, facilities, daily life and contact text (REQ-PUB-
 | Column | Type | Rule |
 | --- | --- | --- |
 | `id`, `institute_id` | | |
-| `slug` | `text not null` | `about`, `facilities`, `daily-life`, `contact`. `unique (institute_id, slug)`. |
+| `slug` | `text not null` | `home`, `about`, `facilities`, `daily-life`, `contact`. `unique (institute_id, slug)`. |
 | `title`, `body` | `localized_text not null` | `body` holds the rich-text format chosen in [03 §7](03-architecture.md). |
 | `cover_media_id` | `uuid null` | |
 | `status` | `text not null default 'draft'` | `draft`, `published`, `archived`. |
 | `published_at` | `timestamptz null` | |
+
+The editor stages changes in `site_page_drafts`, with one draft per institute and page. It checks the revision on save and publish. Publication copies the saved title and body to `site_pages` in the same transaction. The home introduction can also carry the three homepage figures and their bilingual labels in `facts`. The public view reads the published version.
 
 ## 6. Row-level security
 
@@ -344,14 +339,14 @@ The database trusts the app server to set `app.user_id` only after login. It nev
 
 ### 6.2 Helper functions
 
-All are `stable`, live in schema `app`, and set `search_path = app, pg_temp`. The ones marked *definer* are `SECURITY DEFINER`, owned by `tazkiyah_owner`, and always filter by `app.current_institute_id()` themselves.
+All are `stable`, live in schema `app`, and set `search_path = app, pg_temp`. The ones marked *definer* are `SECURITY DEFINER`, owned by `tazkiyah_schema_owner`, and always filter by `app.current_institute_id()` themselves.
 
 | Function | Returns | Notes |
 | --- | --- | --- |
 | `app.current_institute_id()` | `uuid` or null | `nullif(current_setting('app.institute_id', true), '')::uuid`. Null makes every policy false. |
 | `app.current_user_id()` | `uuid` or null | Same pattern for `app.user_id`. |
 | `app.current_trail_donor_id()` | `uuid` or null | Set only by `app.use_trail_token()`. |
-| `app.has_role(r text)` | `bool` | *Definer.* True if `user_roles` has `(current institute, current user, r)` and the user's status is not `suspended`. |
+| `app.has_role(r text)` | `bool` | *Definer.* True for a role held by an active or departed user in the current active institute. |
 | `app.is_member()` | `bool` | Holds any of `student`, `teacher`, `editor`, `finance_officer`, `admin`. "Madrasa" scope means members. |
 | `app.is_staff()` | `bool` | Holds `teacher`, `editor`, `finance_officer` or `admin`. |
 | `app.is_class_member(class_id)` | `bool` | *Definer.* Current user has an active `class_members` row. |
@@ -401,7 +396,7 @@ Shorthand: **A** admin, **F** finance officer, **E** editor, **T** teacher (of t
 | `users` | self; A; T (their students); M (staff public fields via view) | A; T (students, fn) | self (language, password); A | – |
 | `user_roles` | self, A | A; T (`student` only, fn) | A | A |
 | `classes` | class members, A | T, A | class teacher, A | – |
-| `class_members` | S (own rows), class teacher, A | class teacher, A | class teacher, A | – |
+| `class_members` | S (own rows), class teacher, A | class teacher (students only), A ([D-129](08-decision-log.md#d-129)) | class teacher (students only), A | – |
 | `personas` | M; P via view | fn (with account) | S (own), T, A | – |
 | `persona_links` | S (own), T, A | fn (with account) | – | – |
 | `donors` | D, A, F | A, F; fn (guest giving) | D (profile fields), A, F | – |
@@ -430,7 +425,7 @@ Shorthand: **A** admin, **F** finance officer, **E** editor, **T** teacher (of t
 
 ### 6.5 Public views
 
-Visitors never read tables directly. They read views in `public_api`, owned by `tazkiyah_owner`, created `with (security_barrier = true)`. Because the owner skips RLS, **every view must filter `institute_id = app.current_institute_id()` itself**, and the isolation test (§6.6) runs against every view. `tazkiyah_app` gets `select` on these views only.
+Visitors never read tables directly. They read views in `public_api`, owned by `tazkiyah_schema_owner`, created `with (security_barrier = true)`. Because the owner skips RLS, **every view must filter `institute_id = app.current_institute_id()` itself**, and the isolation test (§6.6) runs against every view. `tazkiyah_app` gets `select` on these views only.
 
 | View | Shows | Never shows |
 | --- | --- | --- |
@@ -483,8 +478,8 @@ One row per login: staff, students and account donors. There are no guardian log
 | Column | Type | Rule |
 | --- | --- | --- |
 | `id`, `institute_id` | | |
-| `email` | `citext null` | `unique (institute_id, email)`. Students may have none. |
-| `username` | `citext null` | For student login. `unique (institute_id, username)`. Check: `email` or `username` is not null. |
+| `email` | `text null` | Unique on `(institute_id, lower(email))`. Students may have none. |
+| `username` | `text null` | For student login. Unique on `(institute_id, lower(username))`. At least one identifier is required. |
 | `full_name` | `text not null` | Real name. **Private**: readable only by self, admins and the student's teachers. Never shown publicly for students (REQ-CHS-001). |
 | `public_name` | `text null` | Staff real name shown on teacher work (REQ-TCH-001). Null for students. |
 | `public_bio` | `localized_text null` | Teacher's short profile. |
@@ -492,9 +487,9 @@ One row per login: staff, students and account donors. There are no guardian log
 | `date_of_birth` | `date null` | Students. Used to show an age in years to a sponsor (REQ-ORP-002). |
 | `is_orphan` | `bool not null default false` | Students. Read only by admins and the student's teachers. |
 | `preferred_language` | `text not null default 'en'` | REQ-LNG-004, REQ-LNG-011. |
-| `status` | `text not null default 'active'` | `invited`, `active`, `left`, `suspended`. `left` keeps the login and persona working (D-028, REQ-STU-009). |
+| `status` | `text not null default 'invited'` | `active` and `left` accounts can exercise their roles. `left` keeps the login and persona working (D-028, REQ-STU-009). |
 | `left_at` | `date null` | Set when a student leaves. Changes nothing about access. |
-| `must_change_password` | `bool not null default true` for students | First-login flow ([02 §13](02-design-ui-ux.md)). |
+| `must_change_password` | `bool not null default true` | First-login flow ([02 §13](02-design-ui-ux.md)). |
 | `onboarded_at` | `timestamptz null` | Walkthrough finished (REQ-STU-010). |
 | `last_login_at` | `timestamptz null` | |
 
@@ -534,7 +529,7 @@ Unique: one open membership per `(class_id, user_id, member_role)` where `ended_
 | `id`, `institute_id` | | |
 | `display_name` | `text not null` | `unique (institute_id, lower(display_name))`. Starts as a generated name; the student changes it (REQ-STU-002, REQ-STU-003). A check blocks digits-only names and anything that looks like a phone number or email (REQ-CHS-002). |
 | `avatar_media_id` | `uuid null` | An illustrated avatar, not a face photo, by default. |
-| `bio` | `text null` | Max 280 characters, same contact-detail check. |
+| `bio` | `text null` | Max 160 characters (07 §4.2, [D-130](08-decision-log.md#d-130)), same contact-detail check. |
 | `bio_language` | `text null` | |
 | `show_real_name` | `bool not null default false` | The student's choice (REQ-STU-004). It takes effect only while an active `real_name` consent record exists (§10). Views compute this at read time. |
 | `is_active` | `bool not null default true` | Stays true after the student leaves (D-028). Set false only by an admin for safety. |
@@ -583,6 +578,8 @@ Business rules are in [06](06-donations-and-trail.md). This section gives the fi
 | `body` | `localized_text null` | |
 | `cover_media_id` | `uuid null` | |
 | `target_paisa` | `bigint null` | `> 0` (REQ-DON-007). Required when `cause_type = 'campaign'`. |
+| `target_period` | `text null` | `monthly` or `yearly`, required for an `ongoing` cause and null otherwise ([06 §5.1](06-donations-and-trail.md#51-the-three-types)). |
+| `stock_year_start_month` | `smallint null` | 1 to 12, required for a `yearly_stock` cause and null otherwise (06 §5.1). |
 | `starts_on`, `ends_on` | `date null` | `ends_on` required for a campaign, and `ends_on >= starts_on` (REQ-DON-006). |
 | `accepts_zakat` | `bool not null default false` | Admin-set (D-011, REQ-ROL-005). |
 | `zakat_approved_by` | `localized_text null` | Optional scholar name (Q-04). Allowed only when `accepts_zakat`. |
@@ -590,6 +587,10 @@ Business rules are in [06](06-donations-and-trail.md). This section gives the fi
 | `listed_as_project` | `bool not null default false` | Shown on the new projects page when that module is on, for example future tech costs (REQ-DON-013, [05 §10](05-public-pages-roles-admin.md)). |
 | `category` | `text null` | Free label such as `kitchen`, `clinic`, `tech`. The clinic is only a cause and stores no patient data (REQ-DON-014). |
 | `display_order` | `smallint not null default 0` | |
+| `revision` | `uuid not null` | Changes on every save, so an edit based on an old copy is refused. |
+| `created_at` | `timestamptz not null` | |
+
+A campaign has no `target_period` or `stock_year_start_month`, and only a campaign has `ends_on` (`causes_type_rules_check`). The public view `public_api.causes` shows a campaign past its end date as `closed`.
 
 There is no "all needs" cause row. All needs is `donations.cause_id is null` (D-012).
 
@@ -602,7 +603,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `id`, `institute_id` | | |
 | `kind` | `text not null default 'person'` | `person`, `organisation`, `institute`. `institute` is reserved for the future platform fund acting as a donor (§9.5). |
 | `user_id` | `uuid null` | Set when the donor has or claims an account. `unique (institute_id, user_id)`. |
-| `email` | `citext null` | `unique (institute_id, email)`. Required for donors who give online as guests (REQ-DPR-001). May be null for a bank transfer the admin records without an email. |
+| `email` | `text null` | Stored lower-case and trimmed (a check keeps it case-blind, so no `citext` extension is needed). `unique (institute_id, email)`. Required for donors who give online as guests (REQ-DPR-001). May be null for a bank transfer the admin records without an email. |
 | `email_verified_at` | `timestamptz null` | Claiming needs a verified email. |
 | `legal_name` | `text null` | Payer name from the bank or the donor. **Private**: A, F and the donor only. Used on receipts. |
 | `phone` | `text null` | Private, optional, for reconciliation only. |
@@ -616,7 +617,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `claimed_at` | `timestamptz null` | When a guest donor was linked to an account. |
 | `erased_at` | `timestamptz null` | Personal fields wiped on request (§13.4). |
 
-**Claiming (REQ-DPR-003).** `app.claim_donor_records()` (definer) runs after an account donor verifies their email. It sets `user_id` on the donor row in the same institute with that email and `user_id is null`, sets `claimed_at` and writes the audit log. Past donations need no change, because they already point at the donor row. Existing trail links keep working until revoked.
+**Claiming (REQ-DPR-003).** `app.claim_donor_records()` (definer) runs after an account donor verifies their email. It sets `user_id` on the donor row in the same institute with that email and `user_id is null`, sets `claimed_at` and writes the audit log. Past donations need no change, because they already point at the donor row. Its live trail links are revoked, because the account replaces them (06 §11.3, [D-127](08-decision-log.md#d-127)).
 
 ### 8.3 `donations`
 
@@ -626,7 +627,7 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `public_ref` | `text not null` | 10-character random base32 string, for donor wall and public trail URLs. `unique (institute_id, public_ref)`. Not the receipt number and not guessable. |
 | `donor_id` | `uuid not null` | |
 | `cause_id` | `uuid null` | Null means all needs (REQ-DON-001, REQ-DON-002). |
-| `sponsorship_id` | `uuid null` | Set for sponsorship gifts. These follow the same trail (REQ-ORP-009). |
+| `sponsorship_id` | `uuid null` | Set for sponsorship gifts. These follow the same trail (REQ-ORP-009). Added with its foreign key by P4-E1-T40, when `sponsorships` exists. |
 | `donation_type` | `text not null` | `zakat`, `sadaqah`, `general` (REQ-DON-004). |
 | `currency` | `char(3) not null default 'PKR'` | As given by the donor. |
 | `amount_minor` | `bigint not null` | `> 0`, in `currency`'s minor unit. |
@@ -639,24 +640,25 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `bank_reference` | `text null` | REQ-DON-008. Partial unique index on `(institute_id, bank_account_id, bank_reference)` where `status = 'recorded'`, so the same transfer is not recorded twice. |
 | `gateway_payment_id` | `text null` | P5. `unique (institute_id, gateway_payment_id)` (REQ-PAY-006). |
 | `source_allocation_id` | `uuid null` | Reserved for platform-fund transfers (§9.5). Single-column FK on purpose. |
-| `received_at` | `timestamptz not null` | When the money arrived. FIFO order key (04-D10). |
+| `credited_on` | `date not null` | When the money arrived: the bank statement's credit date. FIFO order key (04-D10), with `id` breaking ties. Named `received_at` before [D-120](08-decision-log.md#d-120). |
 | `recorded_at`, `recorded_by` | | |
-| `is_anonymous` | `bool not null default true` | REQ-DPR-006, 04-D9. Donor or admin can change it. |
+| `operation_id` | `uuid not null` | The recording form's idempotency key. `unique (institute_id, operation_id)`, so a retried submit returns the first donation. |
+| `is_anonymous` | `bool not null default true` | REQ-DPR-006, 04-D9. Donor or admin can change it. Until the anonymity read layer (P1-E3-T06) and the donor's switch (P2-E5-T03) exist, a check keeps it `true`. |
 | `trail_public` | `bool not null default false` | REQ-TRL-008, REQ-TRL-009. Donor can change it. |
 | `receipt_number` | `text not null` | `{prefix}-{year}-{5-digit sequence}`, for example `MAA-2026-00042` (06 §14), `unique (institute_id, receipt_number)` (REQ-DON-010). |
-| `receipt_language` | `text not null` | Copied from the donor at recording time. |
+| `receipt_locale` | `text not null` | `en` or `ur`, copied from the donor at recording time. Named `receipt_language` before D-120. |
 | `status` | `text not null default 'recorded'` | `recorded`, `reversed`. Changed only by the reversal function. |
 | `private_note` | `text null` | Staff only. Must not hold an anonymous donor's name (reviewed in the admin form, [05 §8](05-public-pages-roles-admin.md)). |
 
 **Data-level rules (triggers):**
 
 - After insert, only `is_anonymous`, `trail_public` and (through the reversal function) `status` may change. Any other column change is rejected. Corrections are reversals plus a new donation (REQ-DON-012).
-- `cause_id`, when set, must point at a cause with `status = 'active'`. For a campaign, `received_at::date <= ends_on` (REQ-DON-006). An admin recording a late bank transfer for a closed campaign records it as all needs; 06 §5 owns that rule.
+- `cause_id`, when set, must point at a cause with `status = 'active'`. For a campaign, `credited_on <= ends_on` (REQ-DON-006). An admin recording a late bank transfer for a closed campaign records it as all needs; 06 §5 owns that rule.
 - If `donation_type = 'zakat'` and `cause_id` is set, the cause must have `accepts_zakat` (§9.4).
 
 **Receipt numbers.** `receipt_counters (institute_id, year smallint, last_number int)`, primary key `(institute_id, year)`. `app.next_receipt_number()` does `update … set last_number = last_number + 1 returning` inside the recording transaction. The row lock makes numbers unique and gap-free per year.
 
-**Recording.** `app.record_donation(...)` (definer, checks A or F) inserts the donation, the `received` trail event and, when a cause is given, the `to_cause` allocation and its `allocated` event, all in one transaction. This is the Phase 1 test path ([00 §5](00-MASTER-PLAN.md#5-roadmap)).
+**Recording.** `app.record_donation(...)` (definer, checks A or F) inserts the donation, the `received` trail event and, when a cause is given, the `to_cause` allocation and its `allocated` event, all in one transaction. This is the Phase 1 test path ([00 §5](00-MASTER-PLAN.md#5-roadmap)). It is not granted to the runtime roles: the manual recording form (`identity.record_manual_donation`, which also checks a fresh two-factor session) and the transfer-notice confirmation call it.
 
 ### 8.4 Who sees donor identity
 
@@ -675,11 +677,10 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 create view public_api.donor_wall with (security_barrier = true) as
 select d.public_ref,
        d.amount_minor, d.currency, d.amount_paisa,
-       d.received_at::date                as given_on,
+       d.credited_on                      as given_on,
        d.cause_id,                         -- null = all needs
        case when d.is_anonymous then null  -- page shows "Anonymous" from translations
-            when dn.profile_public then dn.display_name
-            else null end                  as donor_label
+            else dn.display_name end       as donor_label  -- per donation, apart from the profile (D-128)
 from app.donations d
 left join app.donors dn
        on dn.institute_id = d.institute_id
@@ -697,8 +698,8 @@ Covers REQ-DPR-007 and REQ-DPR-008. Tests for REQ-DPR-009: for an anonymous dona
 | --- | --- | --- |
 | `id`, `institute_id` | | |
 | `donor_id` | `uuid not null` | One link shows all of that donor's donations. |
-| `token_hash` | `bytea not null unique` | SHA-256 of the token. The raw token is never stored. |
-| `token_hint` | `text not null` | Last 4 characters, so staff can tell links apart. |
+| `token_hash` | `text not null unique` | SHA-256 of the token as 64 lower-case hex characters (the same bytes as a `bytea`, in the form the app already sends). The raw token is never stored. |
+| `token_hint` | `text null` | Last 4 characters, so staff can tell links apart. Null only for links issued before P1-E3-T44. |
 | `created_at`, `created_by` | | |
 | `expires_at` | `timestamptz null` | Null means no expiry. 06 §11 decides. |
 | `revoked_at`, `revoked_by`, `revoke_reason` | | Set once, never cleared (REQ-SEC-004). |
@@ -706,7 +707,7 @@ Covers REQ-DPR-007 and REQ-DPR-008. Tests for REQ-DPR-009: for an anonymous dona
 
 The token is 32 random bytes from a secure generator, written as base64url (43 characters). It carries no personal data (REQ-SEC-005). It is sent only by email.
 
-`app.use_trail_token(token text)` (definer) hashes the token, looks for a row in the current institute that is not revoked or expired, and if found sets `app.trail_donor_id` for the transaction. Otherwise it returns null. Tokens from another institute never match (§6.6, test 8). Admins, finance officers and the donor can revoke a link and issue a new one.
+`app.use_trail_token(token text)` (definer) hashes the token, looks for a row in the current institute that is not revoked or expired, and if found sets `app.trail_donor_id` for the transaction. Otherwise it returns null. Tokens from another institute never match (§6.6, test 8). Who can revoke a link and issue a new one is open: 05 §7.1 says admins and finance officers, 06 §11.2 says a two-factor verified admin for the first release, and this section said the donor too. Until Sami decides, the built rule is the narrowest, admin only ([D-121](08-decision-log.md#d-121)).
 
 ### 8.7 `transfer_notices`: donations waiting for confirmation
 
@@ -742,7 +743,8 @@ Added in the consistency check (D-030). Until card payments arrive, "monthly" or
 | `cause_id` | `uuid null` | Null means all needs. |
 | `donation_type` | `text not null` | As in `donations`. |
 | `frequency` | `text not null` | `monthly`, `yearly` (REQ-DON-003). |
-| `amount_paisa` | `bigint not null` | `> 0`. The amount promised each period. |
+| `amount_paisa` | `bigint not null` | `> 0`, whole rupees. The amount promised each period. |
+| `is_anonymous` | `bool not null default true` | The donor's name choice, copied onto each payment ([06 §13.1](06-donations-and-trail.md#131-pledges-until-p5)). |
 | `starts_on` | `date not null` | |
 | `status` | `text not null default 'active'` | `active`, `lapsed`, `cancelled`. Lapses after 3 missed periods (06 §13). |
 | `missed_periods` | `smallint not null default 0` | Set by the monthly job. |
@@ -791,6 +793,8 @@ Both are append-only. The definer functions that write allocations always write 
 - Effective `to_spending` total per source allocation ≤ that allocation's amount.
 - Effective `to_spending` total per spending entry ≤ `spending_entries.amount_paisa`.
 
+The per-spending-entry check and the `spending_entry_id` foreign key arrive with `spending_entries` (P2-E1-T40). A reversed `to_cause` row counts as zero, so it cannot be reversed while money spent from it remains.
+
 "Effective" means original rows minus rows that have a reversal. View `app.allocations_effective` gives these, and `app.allocation_balances` gives the unspent amount of each `to_cause` row. Partial reversal is not allowed: reverse the whole row and allocate again.
 
 ### 9.3 FIFO matching
@@ -798,7 +802,7 @@ Both are append-only. The definer functions that write allocations always write 
 `app.match_spending(spending_entry_id)` (definer, A or F):
 
 1. Lock the cause: `select … from app.causes where id = $cause for update`. Two spends in one cause cannot match at the same time.
-2. Read `to_cause` allocations in the cause with an unspent balance, ordered by the donation's `received_at`, then `donation_id` (04-D10).
+2. Read `to_cause` allocations in the cause with an unspent balance, ordered by the date the money entered the cause (the `occurred_on` of its `allocated` event: the credit date for a gift to the cause, the split date for an all-needs piece), then the donation's receipt number, then the order of recording (06-P02, [D-125](08-decision-log.md#d-125)).
 3. Walk the list. Take `least(balance, still_needed)` from each, and insert a `to_spending` allocation plus a `spent` trail event for that donation.
 4. Stop when the spending amount is covered or the list ends. If the list ends first, the entry is left partly matched (`matched_paisa < amount_paisa`). [06 §9](06-donations-and-trail.md) decides whether the admin form blocks this or lets later money cover it.
 
@@ -887,13 +891,13 @@ From there, FIFO in the madrasa works as for any donation. Turning this on needs
 | `institute_id` | `uuid not null` | `unique (institute_id, id)`. |
 | `donation_id` | `uuid not null` | |
 | `event_type` | `text not null` | `received`, `allocated`, `spent`, `reported`, `reversal` (REQ-TRL-001). |
-| `occurred_at` | `timestamptz not null` | When it happened (bank date, spending date). |
+| `occurred_on` | `date not null` | When it happened: the bank credit date or the spending date ([D-120](08-decision-log.md#d-120)). |
 | `recorded_at`, `recorded_by` | | When it was entered. |
 | `amount_paisa` | `bigint not null` | `> 0`. |
 | `cause_id` | `uuid null` | For `allocated` and `spent`. |
 | `allocation_id` | `uuid null` | For `allocated` and `spent`. |
-| `spending_entry_id` | `uuid null` | For `spent`. |
-| `spending_report_id` | `uuid null` | For `reported`. |
+| `spending_entry_id` | `uuid null` | For `spent`. Its foreign key comes with `spending_entries` (P2-E1-T40). |
+| `spending_report_id` | `uuid null` | For `reported`. Its foreign key comes with `spending_reports` (P2-E1-T40). |
 | `reverses_event_id` | `bigint null` | Required when `event_type = 'reversal'`, null otherwise. `unique`: an event is reversed once. Must point at an event of the same donation that is not itself a reversal. |
 | `reason` | `text null` | Required for reversals. |
 | `details` | `jsonb not null default '{}'` | Extra display data, for example `{"report_period":"2026-W45"}`. Never names. |
@@ -917,7 +921,7 @@ create trigger trail_events_no_truncate
 revoke update, delete, truncate on app.trail_events from tazkiyah_app;
 ```
 
-The same guard is on `allocations` and `audit_log`. Append-only test kit: as `tazkiyah_app`, try `update`, `delete` and `truncate` on each and expect errors. As `tazkiyah_owner`, try the same and expect the trigger to fire, so a careless migration cannot quietly edit history.
+The same guard is on `allocations` and `audit_log`. Append-only test kit: as `tazkiyah_app`, try `update`, `delete` and `truncate` on each and expect errors. As `tazkiyah_schema_owner`, try the same and expect the trigger to fire, so a careless migration cannot quietly edit history.
 
 **Donor view.** `app.donor_trail` gives each donor (account or token) their donations with events, cause titles, spending descriptions and their share of each spend (REQ-TRL-007, REQ-DPR-010). It is a `security_invoker` view, so the donor's own RLS applies.
 
@@ -929,20 +933,20 @@ The same guard is on `allocations` and `audit_log`. Append-only test kit: as `ta
 | --- | --- | --- |
 | `id`, `institute_id` | | |
 | `cause_id` | `uuid not null` | |
-| `amount_paisa` | `bigint not null` | `> 0` (REQ-TRL-011). |
+| `amount_paisa` | `bigint not null` | `> 0`, whole rupees (REQ-TRL-011, 06 §9.1). |
 | `spent_on` | `date not null` | |
 | `description` | `localized_text not null` | One language is enough; the other falls back. |
-| `receipt_media_id` | `uuid null` | Receipt or photo (REQ-ROL-007). |
+| `receipt_media_id` | `uuid null` | Receipt or photo (REQ-ROL-007): a `media_assets` row with purpose `receipt`. One per entry for now ([D-124](08-decision-log.md#d-124)). |
 | `receipt_public` | `bool not null default true` | Admin can hide a receipt that shows a person. |
-| `report_id` | `uuid null` | |
-| `status` | `text not null default 'recorded'` | `recorded`, `reversed`. |
+| `report_id` | `uuid null` | Set only on a recorded or reversed entry. Fixed once the report is published. |
+| `status` | `text not null default 'draft'` | `draft`, `recorded`, `reversed` (06 §9.2). *Reported* is not a status: it is a recorded entry in a published report ([D-124](08-decision-log.md#d-124)). |
 | `recorded_by`, `created_at` | | |
 
-After the first allocation, only `description`, `receipt_media_id`, `receipt_public` and `report_id` may change. Amount, cause and date changes are reversals.
+A draft can change freely or be deleted, and is never matched. From `recorded` on ("Record batch"), only `description`, `receipt_media_id`, `receipt_public` and `report_id` may change, status moves only from `recorded` to `reversed`, and the row cannot be deleted. Amount, cause and date changes are reversals. Only a recorded entry of an active or closed cause can be matched, and its effective matches never exceed its amount.
 
 `spending_reports` groups entries into the daily or weekly report (D-013, REQ-TRL-012): `id`, `institute_id`, `period_kind` (`daily`, `weekly`, `custom`), `period_start date`, `period_end date`, `title localized_text`, `notes localized_text null`, `status` (`draft`, `published`), `published_at`, `published_by`. Publishing writes one `reported` trail event per donation touched by the report's entries.
 
-Balance views for the admin (REQ-TRL-013): `app.cause_balances` (raised, allocated, spent, unspent per cause and per donation type) and `app.unallocated_all_needs` (all-needs money not yet split, per donation).
+Balance views for the admin (REQ-TRL-013): `app.cause_balances` (raised, spent, unspent per cause and per donation type; raised is all money allocated into the cause, by gift or split, as in 06 §9.4, so it is also the allocated figure) and `app.unallocated_all_needs` (all-needs money not yet split, per donation).
 
 ## 10. Consent records
 
@@ -954,29 +958,30 @@ Rules and wording are in [07 §5](07-content-hub-student-teacher.md) and [06 §1
 | --- | --- | --- |
 | `id`, `institute_id` | | |
 | `student_user_id` | `uuid not null` | The child the consent is about. |
-| `kind` | `text not null` | `public_work` (the student's work may be public, REQ-CHS-005), `real_name` (the real name may be shown when the student chooses, REQ-STU-004), `orphan_full_profile` (one sponsor may see the full profile, REQ-ORP-003). 07 §5 may add kinds by migration. |
+| `kind` | `text not null` | `public_work` (the student's work may be public, REQ-CHS-005), `real_name` (the real name may be shown when the student chooses, REQ-STU-004), `face` (the student's face may appear in media, 07 §5.1), `orphan_full_profile` (one sponsor may see the full profile, REQ-ORP-003; added by P4-E2-T40). One row per covered item: the light form writes one row for each item ticked ([D-132](08-decision-log.md#d-132)). |
 | `sponsorship_id` | `uuid null` | Required for `orphan_full_profile`, null otherwise. Consent is for that one sponsor only (REQ-ORP-005). |
 | `guardian_name` | `text not null` | Private. Redacted in the audit log. For orphans, the guardian is the principal. |
 | `guardian_relation` | `text not null` | `father`, `mother`, `guardian`, `other`. |
 | `method` | `text not null` | `paper_form`, `in_person`, `phone`, `other`. |
+| `given_on` | `date not null` | The date the guardian gave consent (07 §5.1). Not in the future. |
 | `form_media_id` | `uuid null` | Optional scan of a paper form. Private. |
 | `notes` | `text null` | |
 | `recorded_by`, `recorded_at` | | Teacher or admin. |
-| `principal_signed_by`, `principal_signed_at` | `uuid null`, `timestamptz null` | Orphan kind only. Must equal `institute_settings.principal_user_id` at signing time. |
-| `second_signer_assigned`, `second_assigned_by`, `second_assigned_at` | | Orphan kind only. The principal chooses any teacher (REQ-ORP-004). Must hold `teacher` and differ from the principal. Can be changed only before the second sign-off. |
-| `second_signed_by`, `second_signed_at` | | Must equal `second_signer_assigned`. |
+| `principal_signed_by`, `principal_signed_at` | `uuid null`, `timestamptz null` | Any record of a student with `is_orphan = true` (00 §8 glossary, D-017, [D-132](08-decision-log.md#d-132)). Must equal `institute_settings.principal_user_id` at signing time. |
+| `second_signer_assigned`, `second_assigned_by`, `second_assigned_at` | | Orphans' records only. The principal chooses any teacher (REQ-ORP-004). Must hold `teacher` and differ from the principal. Can be changed only before the second sign-off. |
+| `second_signed_by`, `second_signed_at` | | Must equal `second_signer_assigned`, and only after the principal's sign-off (07 §5.4). |
 | `withdrawn_at`, `withdrawn_by`, `withdrawal_reason` | | Set once, never cleared. A new consent needs a new record. |
 
 **Status** is computed in `app.consent_status` (never stored):
 
 | Kind | `active` when |
 | --- | --- |
-| `public_work`, `real_name` | recorded and `withdrawn_at is null` |
+| `public_work`, `real_name`, `face` | recorded and `withdrawn_at is null`; for a student who is an orphan now, also both sign-offs set |
 | `orphan_full_profile` | both sign-offs set, `withdrawn_at is null`, and the sponsorship is `active` |
 
-Otherwise the status is `pending` (orphan kind, sign-offs missing) or `withdrawn`.
+Otherwise the status is `pending` (orphan kind, sign-offs missing) or `withdrawn`. For `orphan_full_profile`, a record withdrawn before both sign-offs reads `declined`, and a signed record whose sponsorship is paused or ended reads `paused` or `ended` (06 §12.4, [D-140](08-decision-log.md#d-140)).
 
-**Mutability trigger.** After insert, only the sign-off, assignment and withdrawal columns may change, each only from null to a value, and only through `app.sign_consent()`, `app.assign_second_signer()` and `app.withdraw_consent()`. Every change is audited. Any admin, or either signer, may record a withdrawal.
+**Mutability trigger.** After insert, only the sign-off, assignment and withdrawal columns may change, each only from null to a value, and only through `app.sign_consent()`, `app.assign_second_signer()` and `app.withdraw_consent()`. Every change is audited. Any admin, either signer or a teacher of the student may record a withdrawal ([D-132](08-decision-log.md#d-132)).
 
 **Immediate effect (REQ-ORP-006).** Nothing copies or caches the consent result in the database. The sponsor's full-profile view and the public post views check `app.consent_active(...)` on every read. Page caching rules for these private pages are in [03 §12](03-architecture.md).
 
@@ -1009,7 +1014,7 @@ Partial unique index: one `active` sponsorship per child persona, matching "a sp
 
 `sponsor_messages`: `id`, `institute_id`, `sponsorship_id`, `direction` (`to_madrasa`, `to_sponsor`), `body text not null`, `language`, `sender_donor_id null`, `sender_user_id null` (staff), `read_at null`, `created_at`. There is no column that can name a child as sender or recipient, and students have no policy on this table. Contact between sponsor and child is impossible in data (REQ-ORP-007).
 
-`app.sponsor_child_view` (definer, filtered to `app.my_donor_ids()`): returns for each of the sponsor's active sponsorships the persona display name, avatar, **age in whole years** from `date_of_birth`, and the updates (REQ-ORP-002). Only when `orphan_full_profile` consent is active for that sponsorship does it also return `full_name`, `photo_media_id` and the class name. 06 §12 lists the final fields.
+`app.sponsor_child_view()` (definer, filtered to the signed-in account's donor row, [D-138](08-decision-log.md#d-138)): returns for each of the sponsor's active sponsorships the persona display name, avatar, **age in whole years** from `date_of_birth`, and the updates (REQ-ORP-002). Only when `orphan_full_profile` consent is active for that sponsorship does it also return `full_name`, `photo_media_id` and the class name. 06 §12 lists the final fields.
 
 ## 11. Content
 
@@ -1051,14 +1056,16 @@ Rules are in [07 §6 to §12](07-content-hub-student-teacher.md). These tables h
 | `hidden_at`, `hidden_by`, `hidden_reason` | | Reversible hide by a teacher or admin in class or madrasa scope (REQ-MOD-002). |
 | `taken_down_at`, `taken_down_by`, `takedown_reason` | | REQ-CHS-004. |
 | `contact_flag` | `text null` | `phone`, `email`, `address` when the check in [07 §12](07-content-hub-student-teacher.md) finds contact details (REQ-CHS-002). A flagged post is hidden until a teacher clears it, or rejected outright, as 07 decides. |
-| `poll_closes_at` | `timestamptz null` | For `poll`. |
+| `poll_closes_at` | `timestamptz null` | For `poll`: 1 hour to 30 days after posting, 7 days if not given (07 §6.4). |
 | `poll_multiple` | `bool not null default false` | |
+| `poll_max_choices` | `smallint null` | For a multiple-choice poll: 2 to 6, at most the number of options (07 §6.4, [D-134](08-decision-log.md#d-134)). |
+| `poll_results` | `text null` | For `poll`: `after_voting` or `after_closing`, the creator's choice of when counts show (07 §6.4). |
 | `is_verified` | `bool not null default false` | Only for `article`. REQ-TCH-003. |
 | `verified_by`, `verified_at` | | Must hold `teacher` or `admin`. The verifier's `public_name` is shown. |
 | `source_thread_id` | `uuid null` | The thread an article was made from. |
 | `edited_at` | `timestamptz null` | |
 
-`post_media` joins posts to media: `id`, `institute_id`, `post_id`, `media_asset_id`, `position smallint`. Unique `(post_id, position)`.
+`post_media` joins posts to media: `id`, `institute_id`, `post_id`, `media_asset_id`, `position smallint` (1 to 20). Unique `(post_id, position)`. Only `post` uploads that are not rejected or deleted, never on a poll (07 §11.1). The author attaches their own uploads while the post is new or a draft; the post's teachers and admins remove media ([D-135](08-decision-log.md#d-135)).
 
 ### 11.3 Moderation states
 
@@ -1091,7 +1098,7 @@ A trigger allows only these transitions and checks who makes them:
 | `approved` → `published` with target `public`, student author | active `public_work` consent (§10.2) | REQ-CHS-005 |
 | any → `taken_down` | teacher (their classes or madrasa scope), admin | REQ-CHS-004, REQ-MOD-002 |
 
-Taken-down posts drop out of `public_api.public_posts` in the same transaction. The one-minute target (D-027) is about the page cache, in [03 §12](03-architecture.md).
+As built ([D-136](08-decision-log.md#d-136)): a rejected or withdrawn request returns the post to `published` if it was live, otherwise to `draft`; an admin restores a public post to `submitted` (fresh approval, 07 §8.2) and other posts to `published`; consent is checked when a student sends a public request and again on publishing; an approval publishes at once when the post is visible and consent holds, and otherwise waits as `approved`. Taken-down posts drop out of `public_api.public_posts` in the same transaction. The one-minute target (D-027) is about the page cache, in [03 §12](03-architecture.md).
 
 ### 11.4 Who can read posts
 
@@ -1110,9 +1117,9 @@ Inserts need `app.module_enabled('student_hub')` for student authors, and `app.m
 
 ### 11.5 Polls
 
-`poll_options`: `id`, `institute_id`, `post_id` (a `poll` post), `label text not null`, `position smallint`. Unique `(post_id, position)`. Two to ten options (trigger).
+`poll_options`: `id`, `institute_id`, `post_id` (a `poll` post), `label text not null` (1 to 80 characters), `position smallint` (1 to 6). Unique `(post_id, position)`. Two to six options, checked at commit (07 §6.4, [D-134](08-decision-log.md#d-134)). Options are added by the poll's author until the first vote and never changed.
 
-`poll_votes`: `id`, `institute_id`, `post_id`, `option_id`, `voter_user_id`, `created_at`. Unique `(post_id, voter_user_id)` unless the poll allows several choices, then unique `(option_id, voter_user_id)`. A voter can read only their own vote. Counts come from `public_api.poll_counts`. Votes are not allowed after `poll_closes_at` (REQ-STU-007).
+`poll_votes`: `id`, `institute_id`, `post_id`, `option_id`, `voter_user_id`, `created_at`. Unique `(option_id, voter_user_id)`, and a trigger allows one vote per voter on a single-choice poll and up to `poll_max_choices` on a multiple-choice one. A voter can read only their own vote; admins and the voter's teachers read who voted (07 §6.4). Changing a vote is taking it back and casting another while the poll is open. Students, teachers and admins who can see a live poll vote; editors do not (07 §4.6). `app.close_poll(post)` lets a teacher or admin close a poll early. Counts come from `public_api.poll_counts`. Votes are not allowed after `poll_closes_at` (REQ-STU-007).
 
 ### 11.6 `post_reports`
 
@@ -1121,7 +1128,7 @@ Inserts need `app.module_enabled('student_hub')` for student authors, and `app.m
 | `id`, `institute_id` | | |
 | `post_id` | `uuid not null` | |
 | `reporter_user_id` | `uuid null` | Null when a visitor reports a public post through `app.report_public_post()`. Never shown to the post's author. |
-| `reason` | `text not null` | `contact_details`, `unkind`, `unsafe`, `wrong_information`, `other` (final list in 07 §8). |
+| `reason` | `text not null` | 07 §8.5's final list: `personal_details`, `face_or_name`, `unkind`, `wrong_information`, `other` (with a note of up to 300 characters) ([D-137](08-decision-log.md#d-137)). |
 | `note` | `text null` | |
 | `status` | `text not null default 'open'` | `open`, `actioned`, `dismissed` (REQ-MOD-005, REQ-STU-011). |
 | `handled_by`, `handled_at`, `outcome_note` | | |
@@ -1144,7 +1151,7 @@ Storage, compression and caps are in [03 §8](03-architecture.md). This table ho
 | `alt_text` | `localized_text null` | REQ-ACC-003. |
 | `shows_face` | `bool not null default false` | Set by the uploader or a teacher. Student-related media with `shows_face = true` is never public without consent (REQ-CHS-001, 07 §11). |
 | `uploaded_by` | `uuid null` | Readable only by the uploader, admins and the uploader's teachers. It is never exposed in public views, because it would link a persona to a student. |
-| `status` | `text not null default 'processing'` | `processing`, `ready`, `rejected`, `deleted`. |
+| `status` | `text not null default 'pending'` | `pending`, `ready`, `rejected`, `deleted`. |
 | `deleted_at` | `timestamptz null` | Soft delete. The file is purged later (§13.4). |
 
 Private purposes (`receipt` when not public, `consent_form`) are served only through signed links checked against RLS, as in 03 §8.
@@ -1170,7 +1177,7 @@ REQ-ROL-008 and REQ-ROL-009. Screens are in [05 §9](05-public-pages-roles-admin
 
 **How rows are written.** A generic trigger `app.audit_row_change()` runs `after insert or update` on every table that staff change. It writes a row when the actor holds any staff role, or when the actor is a job. Student posting and voting are not audited as staff actions, but every moderation action on them is. Definer functions add semantic rows (for example one `spending.matched` row with the list of allocations).
 
-**Redaction list** (kept in one migration-managed function): `users.full_name`, `users.email`, `users.username`, `users.date_of_birth`, `donors.legal_name`, `donors.email`, `donors.phone`, `donors.display_name` when the donation is anonymous, `consent_records.guardian_name`, `trail_links.token_hash`, any password or two-factor field. Ids are kept, so an admin can still follow what happened (REQ-SEC-008, REQ-DPR-009).
+**Redaction.** The audit trigger keeps values only for approved fields such as status, role and language. Other changes keep the field name with a redaction marker. The event keeps IDs for tracing and excludes personal data, credentials and draft content (REQ-SEC-008, REQ-DPR-009). [Drizzle baseline](../db/drizzle/0000_baseline.sql)
 
 **Protection.** Same append-only guard and revoked grants as `trail_events` (§9.6). Only admins can read it.
 
@@ -1184,12 +1191,13 @@ Every table has its primary key and `unique (institute_id, id)`. Postgres does n
 | --- | --- | --- |
 | `institute_domains` | `unique (lower(domain))` | Domain lookup on every request |
 | `user_roles` | PK `(institute_id, user_id, role)` | `app.has_role()` in every policy |
+| `users` | `unique (institute_id, lower(email))`, `unique (institute_id, lower(username))`; `(institute_id, email)`, `(institute_id, username)` | Case-blind uniqueness; Better Auth sign-in looks up the stored lower-case value |
 | `class_members` | `(institute_id, user_id) where ended_at is null`; `(class_id, member_role)` | Teacher and member helpers |
 | `persona_links` | `unique (persona_id)`, `unique (user_id)` | Tracing, own persona |
 | `donors` | `unique (institute_id, email)`, `unique (institute_id, user_id)` | Guest reuse, claiming |
-| `donations` | `(institute_id, cause_id, received_at, id)` | FIFO walk |
-| `donations` | `(institute_id, donor_id, received_at desc)` | Donor's history |
-| `donations` | `(institute_id, received_at desc) where status = 'recorded'` | Donor wall |
+| `donations` | `(institute_id, cause_id, credited_on, id)` | FIFO walk |
+| `donations` | `(institute_id, donor_id, credited_on desc)` | Donor's history |
+| `donations` | `(institute_id, credited_on desc) where status = 'recorded'` | Donor wall |
 | `donations` | `unique (institute_id, receipt_number)`; partial unique on bank reference; `unique (institute_id, gateway_payment_id)` | Receipts, double-entry guard |
 | `allocations` | `(institute_id, cause_id, kind)`; `(from_allocation_id)`; `(spending_entry_id)`; `(donation_id)`; `unique (reverses_allocation_id)` | Balances, FIFO, reversal |
 | `trail_events` | `(institute_id, donation_id, id)`; `unique (reverses_event_id)` | Donor trail |
@@ -1205,12 +1213,12 @@ Every table has its primary key and `unique (institute_id, id)`. Postgres does n
 | `media_assets` | `(institute_id, status, deleted_at)` | Purge job |
 | `audit_log` | `(institute_id, occurred_at desc)`; `(institute_id, entity_table, entity_id)`; `(institute_id, actor_user_id, occurred_at desc)` | Admin filters |
 
-Helper functions used in policies are `stable` and small, so Postgres can cache them within a statement. A P0 task (P0-E2-T19) checks query plans with seeded data.
+Helper functions used in policies are `stable` and small, so Postgres can cache them within a statement. A P0 task (P0-E2-T19) checks query plans with seeded data. The catalog test fails when a composite foreign key has no index led by its columns; a partial index on `column is not null` counts.
 
 ### 13.2 Migrations
 
-- **Plain SQL files, forward only.** Files live in `db/migrations/NNNN_short_name.sql` (four-digit number). The runner is the one chosen in [03 §4](03-architecture.md). An applied migration is never edited.
-- **Everything in migrations:** tables, constraints, RLS policies, grants, triggers, helper functions and views. App code never creates or changes database objects.
+- **One forward-only Drizzle history.** The TypeScript schema in `packages/core/src/db/schema.ts` defines tables, constraints and RLS policies. Generate changes with `npm run db:generate -- --name describe_change`. Use custom migrations in the same `db/drizzle` journal for roles, grants, domains, triggers, functions and security-barrier views.
+- **One apply command.** Run `npm run db:migrate` with a direct administrative connection. It holds an advisory lock, checks applied hashes and runs Drizzle migrations. Application DDL runs as `tazkiyah_schema_owner`.
 - **New-table checklist**, enforced by the catalog test (§6.6): `institute_id`, `unique (institute_id, id)`, composite foreign keys, `enable row level security`, the `iso` policy, role policies, grants to `tazkiyah_app`, audit trigger if staff change it, append-only guard if it is history.
 - **Branch first.** Each change is applied to a Neon branch, the full test suite runs (isolation, append-only, Zakat, anonymity, persona, consent), and only then is it applied to the main branch. Deployment order is in [03 §5](03-architecture.md).
 - **Breaking changes use expand and contract:** add the new column, backfill, switch the code, then drop the old column in a later migration.
@@ -1278,64 +1286,144 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P0-E2-T01 | Create database roles `tazkiyah_owner` and `tazkiyah_app`, schemas `app` and `public_api`, and baseline grants on Neon | todo | P0-E1-T04 | REQ-SEC-001 |
-| P0-E2-T02 | Set up the migration folder, naming rule and the apply-on-Neon-branch-then-main flow | todo | P0-E2-T01, P0-E1-T04 | REQ-MIR-003 |
-| P0-E2-T03 | Add the `localized_text` domain, `app.localize()` with fallback flag, and the shared `updated_at` and `forbid_change` trigger functions | todo | P0-E2-T02 | REQ-LNG-009, REQ-TRL-002 |
-| P0-E2-T04 | Create `institutes`, `institute_settings`, `institute_domains` and `institute_bank_accounts` with composite keys and checks | todo | P0-E2-T03 | REQ-MIR-001, REQ-MIR-003 |
-| P0-E2-T05 | Write the session context functions (`current_institute_id`, `current_user_id`, `current_trail_donor_id`) and document the per-request transaction contract with 03 §6 | todo | P0-E2-T04 | REQ-SEC-001 |
-| P0-E2-T06 | Write `app.resolve_institute(host)` and its tests (known domain, `www`, unknown domain, uppercase host) | todo | P0-E2-T05 | REQ-MIR-002 |
-| P0-E2-T07 | Apply the restrictive isolation policy and role policies to the institute tables; create `public_api.institute_public` | todo | P0-E2-T05 | REQ-SEC-001, REQ-PUB-006, REQ-PUB-007, REQ-PUB-008, REQ-MIR-005 |
-| P0-E2-T08 | Create `users` and `user_roles`, the `has_role`, `is_member` and `is_staff` helpers, and their RLS | todo | P0-E2-T07 | REQ-ROL-001, REQ-ROL-003, REQ-SEC-001 |
-| P0-E2-T09 | Create `media_assets` with RLS and size-cap checks read from the 03 §8 limits | todo | P0-E2-T08 | REQ-PRF-003, REQ-PUB-007 |
-| P0-E2-T10 | Create `site_pages` with bilingual title and body, status and RLS | todo | P0-E2-T07 | REQ-PUB-001, REQ-LNG-009 |
-| P0-E2-T11 | Create `audit_log`, the generic `audit_row_change` trigger and the redaction list; attach it to the P0 tables | todo | P0-E2-T08 | REQ-ROL-008, REQ-SEC-008 |
-| P0-E2-T12 | Add module validation on `enabled_modules` and `app.module_enabled()` | todo | P0-E2-T04, P0-E2-T05 | REQ-ROL-010 |
-| P0-E2-T13 | Write the catalog meta-test (institute id, composite unique, RLS, `iso` policy, grants, owner and `BYPASSRLS` checks, view filters) | todo | P0-E2-T07 | REQ-SEC-001 |
-| P0-E2-T14 | Build the isolation test harness: seed test institute B and generate the eight behaviour tests per table and view | todo | P0-E2-T13, P0-E2-T09, P0-E2-T10, P0-E2-T11 | REQ-SEC-002 |
-| P0-E2-T15 | Write the production seed: Markaz Al Azeem settings in Urdu and English, domains, logo asset, theme tokens and the first admin account | todo | P0-E2-T04, P0-E2-T08, P0-E2-T09, P0-E4-T01, P0-E4-T09 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-007 |
-| P0-E2-T16 | Build the append-only test kit (update, delete, truncate as app and as owner) and apply it to `audit_log` | todo | P0-E2-T11 | REQ-TRL-002 |
-| P0-E2-T17 | Write `app.run_retention()` with a per-table rule list (empty rules until tables exist) and its audit row | todo | P0-E2-T11 | REQ-SEC-001 |
-| P0-E2-T18 | Restore drill: restore a Neon branch from point in time and rerun the catalog and isolation tests on it | todo | P0-E2-T14, P0-E1-T04 | REQ-SEC-002, REQ-SEC-006 |
-| P0-E2-T19 | Check query plans of policy helpers with seeded volume (5,000 donations, 20,000 posts) and add missing indexes | todo | P0-E2-T14 | REQ-SEC-001, REQ-PRF-005 |
+| P0-E2-T01 | Create database roles `tazkiyah_schema_owner` and `tazkiyah_app`, schemas `app` and `public_api`, and baseline grants on Neon | done | P0-E1-T04 | REQ-SEC-001 |
+| P0-E2-T02 | Set up the migration folder, naming rule and the apply-on-Neon-branch-then-main flow | done | P0-E2-T01, P0-E1-T04 | REQ-MIR-003 |
+| P0-E2-T03 | Add the `localized_text` domain, `app.localize()` with fallback flag, and the shared `updated_at` and `forbid_change` trigger functions | done | P0-E2-T02 | REQ-LNG-009, REQ-TRL-002 |
+| P0-E2-T04 | Create `institutes`, `institute_settings`, `institute_domains` and `institute_bank_accounts` with composite keys and checks | done | P0-E2-T03 | REQ-MIR-001, REQ-MIR-003 |
+| P0-E2-T05 | Write the session context functions (`current_institute_id`, `current_user_id`, `current_trail_donor_id`) and document the per-request transaction contract with 03 §6 | done | P0-E2-T04 | REQ-SEC-001 |
+| P0-E2-T06 | Write `app.resolve_institute(host)` and its tests (known domain, `www`, unknown domain, uppercase host) | done | P0-E2-T05 | REQ-MIR-002 |
+| P0-E2-T07 | Apply restrictive tenant isolation and expose safe institute fields through `public_api.institute_public` | done | P0-E2-T05 | REQ-SEC-001, REQ-PUB-006, REQ-PUB-007, REQ-PUB-008, REQ-MIR-005 |
+| P0-E2-T08 | Create `users` and `user_roles` with role helpers and RLS. Add institute settings user references and staff policies | done | P0-E2-T07 | REQ-ROL-001, REQ-ROL-003, REQ-SEC-001 |
+| P0-E2-T09 | Create `media_assets` with RLS and size caps from 03 §8. Add the institute logo reference and public logo view | done | P0-E2-T08 | REQ-PRF-003, REQ-PUB-007 |
+| P0-E2-T10 | Create `site_pages` with bilingual title and body, status and RLS | done | P0-E2-T07 | REQ-PUB-001, REQ-LNG-009 |
+| P0-E2-T11 | Create `audit_log`, the generic `audit_row_change` trigger and the redaction list; attach it to the P0 tables | done | P0-E2-T08 | REQ-ROL-008, REQ-SEC-008 |
+| P0-E2-T12 | Add module validation on `enabled_modules` and `app.module_enabled()` | done | P0-E2-T04, P0-E2-T05 | REQ-ROL-010 |
+| P0-E2-T13 | Write the catalog meta-test (institute id, composite unique, RLS, `iso` policy, grants, owner and `BYPASSRLS` checks, view filters) | done | P0-E2-T07 | REQ-SEC-001 |
+| P0-E2-T14 | Build the isolation test harness: seed test institute B and generate the eight behaviour tests per table and view | done | P0-E2-T13, P0-E2-T09, P0-E2-T10, P0-E2-T11 | REQ-SEC-002 |
+| P0-E2-T15 | Write the production seed: Markaz Al Azeem settings in Urdu and English, domains, logo asset, theme tokens and the first admin account | in progress | P0-E2-T04, P0-E2-T08, P0-E2-T09, P0-E4-T01, P0-E4-T09 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-007 |
+| P0-E2-T16 | Verify the runtime grants and owner guards for audit updates, deletes and truncation | done | P0-E2-T11 | REQ-TRL-002 |
+| P0-E2-T17 | Write `app.run_retention()` with a per-table rule list (empty rules until tables exist) and its audit row | done | P0-E2-T11 | REQ-SEC-001 |
+| P0-E2-T18 | Restore drill: restore a Neon branch from point in time and rerun the catalog and isolation tests on it | blocked | P0-E2-T14, P0-E1-T04 | REQ-SEC-002, REQ-SEC-006 |
+| P0-E2-T19 | Check query plans of policy helpers with seeded volume (5,000 donations, 20,000 posts) and add missing indexes | done | P0-E2-T14 | REQ-SEC-001, REQ-PRF-005 |
+
+2026-11-09 · P0-E2-T19 (donations and auth part done; the posts part waits for the `posts` table of P3-E3-T40): [`db/test/query_plans.sql`](../db/test/query_plans.sql) records 5,000 donations in one institute and 1,000 in another through `identity.record_manual_donation`, with 500 guest donors, 500 trail links and 2,000 user accounts. Every lookup of a few rows must use a named index: the recent donations list, receipt lookup, guest trail page and token, donor history, allocations and trail events of one donation, guest donor by email and donations of one cause. Under RLS as `tazkiyah_auth`, the session, user, credential and verification lookups must use their indexes, and the policy's institute check runs once per statement (an `InitPlan`). The check found two gaps, fixed in [`0021_lookup_indexes.sql`](../db/drizzle/0021_lookup_indexes.sql). First, Better Auth looks users up by `email = ` and `username = `, which the `lower()` unique indexes cannot serve, so sign-in read every user in the institute. Second, 15 composite foreign keys had no index, among them `donations.cause_id` and `allocations.donation_id`. The catalog test now enforces the rule. Dropping either new index makes the suite fail. One cause's public totals read all the institute's donations through a hash join; fixed in P1-E3-T47.
+
+2026-11-10 · P0-E2-T19 (posts part, done): the same suite now adds 20 classes with a teacher and 10 students each, a persona per student, 1,500 class threads, 500 madrasa threads and 20,000 posts. As the owner, the lookups inside `app.is_class_member`, `app.is_teacher_of` and `app.current_persona_id` use the class membership and persona link indexes. Under RLS as `tazkiyah_app`, for a student and for a class teacher, the posts of one thread, a class's thread list, the madrasa thread list, one persona's posts, replies to a post and the approval queue each use their §13.1 index, and the role checks run once per statement (an `InitPlan`); the per-row class checks run only on the rows the index returns. No index was missing. Dropping `threads_class_recent` makes the suite fail.
+
+2026-11-09 · Blocked: P0-E2-T18 needs a live Neon branch for the point-in-time restore. The suites it reruns now run locally with `npm test`.
+
+2026-11-09 · P0-E2-T17: [`0015_retention.sql`](../db/drizzle/0015_retention.sql) adds `app.retention_rules()`, which is empty because the §13.4 periods wait on REQ-SEC-011, and `app.run_retention()`. The runner works only when `app.actor_kind` is `job` and an institute is set. It refuses rules on financial tables and the audit log, and writes one `retention.run` audit row with counts. Tested in [`db/test/retention.sql`](../db/test/retention.sql).
+
+2026-11-09 · P0-E2-T14: [`db/test/isolation_harness.sql`](../db/test/isolation_harness.sql) seeds fixture institutes A and B through the real definer functions, with `ZZA-` and `ZZB-` markers in their text. It fails if any `app` or `identity` table lacks rows for both institutes, or if a composite foreign key has no fixture row that sets it. Then it reads the catalog and runs behaviour tests 1 to 7 on every table and `public_api` view, for both runtime roles, `tazkiyah_app` and `tazkiyah_auth`. Test 8 uses `identity.read_guest_trail`, which is the token lookup that is built today, in place of the planned `app.use_trail_token`. `npm test` runs the migrations and every SQL suite in PGlite ([D-115](08-decision-log.md#d-115)). Dropping one `iso` policy makes the harness fail. The Neon branch run belongs to P0-E1-T07.
+
+2026-11-08 · The user, role, media, page and audit migrations passed on `dev` and `preview`, then went to `main`. The bilingual settings seed is in `dev` and `preview`. The production seed awaits the logo storage and admin provisioning steps. [Database commands](../README.md#run-database-migrations)
 
 ### Schema tasks inside other epics
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E1-T40 | Create `public_api.cause_summary` (target, raised, spent, unspent, Zakat flag; no donor fields) | todo | P1-E2-T40, P1-E3-T43 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
-| P1-E2-T40 | Create `causes` with type, campaign dates, target, `accepts_zakat`, scholar name, status, project flag, bilingual fields, RLS and audit | todo | P0-E2-T07, P0-E2-T09, P0-E2-T11 | REQ-DON-005, REQ-DON-006, REQ-DON-007, REQ-DON-009, REQ-DON-013, REQ-DON-014, REQ-ROL-005 |
-| P1-E3-T40 | Create `donors` with guest fields, private and public profile fields, RLS and audit redaction | todo | P0-E2-T08, P0-E2-T11 | REQ-DPR-001, REQ-DPR-009 |
-| P1-E3-T41 | Create `donations` and `receipt_counters`, `app.next_receipt_number()`, the column-lock trigger, campaign end-date check and bank-reference guard | todo | P1-E3-T40, P1-E2-T40 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-006, REQ-DON-008, REQ-DON-010, REQ-PAY-001 |
-| P1-E3-T42 | Create `allocations` and `trail_events` with shape checks, deferred sum checks, reversal uniqueness and append-only guards; run the test kit on both | todo | P1-E3-T41, P0-E2-T16 | REQ-TRL-001, REQ-TRL-002, REQ-TRL-003, REQ-TRL-014 |
-| P1-E3-T43 | Write `app.record_donation()`: donation, received event, cause allocation and allocated event in one transaction | todo | P1-E3-T42 | REQ-DON-008, REQ-TRL-001, REQ-PAY-001 |
-| P1-E3-T44 | Create `trail_links` and the issue, `use_trail_token` and revoke functions, with RLS through the trail donor | todo | P1-E3-T40, P0-E2-T05 | REQ-SEC-004, REQ-DPR-002, REQ-SEC-005 |
-| P1-E3-T45 | Write the donation reversal function (reversal events and allocation reversals; refuse while spent allocations remain) | todo | P1-E3-T43 | REQ-DON-012, REQ-TRL-003 |
-| P1-E3-T46 | Create `transfer_notices` with RLS, the Zakat check, 30-day expiry and the confirm path into `app.record_donation()` (§8.7) | todo | P1-E3-T43, P1-E3-T44 | REQ-DPR-001, REQ-DON-015 (proposed), REQ-PAY-001 |
-| P1-E3-T47 | Create `recurring_pledges` and add `donations.pledge_id` (§8.8) | todo | P1-E3-T41 | REQ-DON-003 |
-| P1-E4-T40 | Create the `app.donor_trail` view for account and token donors, with share-per-spend columns | todo | P1-E3-T43, P1-E3-T44 | REQ-TRL-007, REQ-DPR-010 |
-| P1-E5-T40 | Add the audit log filter indexes and an admin read view with actor names resolved and redaction kept | todo | P0-E2-T11 | REQ-ROL-009, REQ-SEC-008 |
-| P2-E1-T40 | Create `spending_entries` and `spending_reports` with receipt link, column lock after matching, RLS and audit | todo | P1-E2-T40, P0-E2-T09 | REQ-TRL-011, REQ-TRL-012, REQ-ROL-007 |
-| P2-E2-T40 | Write `app.match_spending()` with the per-cause lock and FIFO walk; test it with the §9.3 worked example | todo | P2-E1-T40, P1-E3-T42 | REQ-TRL-004, REQ-TRL-005, REQ-TRL-007 |
-| P2-E2-T41 | Write spending reversal and re-match, and the `reported` events written when a report is published | todo | P2-E2-T40 | REQ-TRL-003, REQ-TRL-012 |
-| P2-E2-T42 | Create `allocations_effective`, `allocation_balances` and `cause_balances` views and the nightly allocation-to-event reconciliation query | todo | P2-E2-T40 | REQ-TRL-013 |
-| P2-E3-T40 | Add the three Zakat triggers (donation, allocation, `accepts_zakat` switch-off) and their tests | todo | P1-E3-T42, P2-E2-T42 | REQ-TRL-006, REQ-ROL-005 |
-| P2-E4-T40 | Write the all-needs split function and the `unallocated_all_needs` view | todo | P1-E3-T43 | REQ-DON-002, REQ-ROL-006 |
-| P2-E5-T40 | Write `app.claim_donor_records()` and the donor's own profile update policy | todo | P1-E3-T40, P0-E2-T08 | REQ-DPR-003, REQ-DPR-004, REQ-DPR-005 |
-| P2-E5-T41 | Create `public_api.donor_wall` and the anonymity tests across views, audit log and export queries | todo | P2-E5-T40, P1-E3-T41 | REQ-DPR-006, REQ-DPR-007, REQ-DPR-008, REQ-DPR-009 |
-| P2-E6-T40 | Create `public_api.public_trails` and `public_api.cause_spending` | todo | P2-E2-T40 | REQ-TRL-009, REQ-TRL-010, REQ-PUB-003 |
-| P3-E1-T40 | Create `classes` and `class_members` and the class and teacher helper functions | todo | P0-E2-T08 | REQ-TCH-005, REQ-CHS-003 |
-| P3-E1-T41 | Create `personas` and `persona_links` with RLS, `app.create_student_account()` and the §7.5 privacy tests | todo | P3-E1-T40 | REQ-STU-001, REQ-STU-002, REQ-STU-003, REQ-STU-009, REQ-TCH-006, REQ-SEC-007 |
-| P3-E2-T40 | Create `consent_records` for `public_work` and `real_name`, the mutability trigger and `app.consent_active()` | todo | P3-E1-T41 | REQ-CHS-005, REQ-CHS-006, REQ-STU-004 |
-| P3-E3-T40 | Create `threads` and `posts` with type, language, scope (including reserved `community`), state, author rules and scope-based read policies | todo | P3-E1-T41, P0-E2-T12 | REQ-STU-005, REQ-STU-006, REQ-STU-008, REQ-LNG-010, REQ-MIR-004, REQ-MOD-001 |
-| P3-E3-T41 | Create `poll_options` and `poll_votes` and `public_api.poll_counts` | todo | P3-E3-T40 | REQ-STU-007 |
-| P3-E4-T40 | Create `post_media`, add the `youtube` kind and face flag rules on `media_assets` | todo | P3-E3-T40, P0-E2-T09 | REQ-PRF-004, REQ-CHS-001 |
-| P3-E5-T40 | Write the moderation transition trigger with approver and consent checks, hide and takedown fields | todo | P3-E3-T40, P3-E2-T40 | REQ-MOD-002, REQ-MOD-003, REQ-MOD-004, REQ-MOD-007, REQ-CHS-004, REQ-CHS-005, REQ-TCH-004 |
-| P3-E5-T41 | Create `post_reports`, `app.report_public_post()` and the moderation queue view; add content retention rules | todo | P3-E3-T40, P0-E2-T17 | REQ-STU-011, REQ-MOD-005 |
-| P3-E6-T40 | Add the verified article fields and `app.make_verified_article(thread_id)` | todo | P3-E5-T40 | REQ-TCH-002, REQ-TCH-003 |
-| P3-E8-T40 | Create `public_api.public_posts` and `public_api.public_teachers` | todo | P3-E5-T40, P3-E6-T40 | REQ-PUB-004, REQ-PUB-005 |
-| P4-E1-T40 | Create `sponsorships` and `sponsorship_updates` and `app.sponsor_child_view` (persona, age, updates) | todo | P3-E1-T41, P1-E3-T41 | REQ-ORP-001, REQ-ORP-002, REQ-ORP-008, REQ-ORP-009 |
-| P4-E2-T40 | Add the `orphan_full_profile` sign-off, assignment and withdrawal functions and full-profile gating in the sponsor view | todo | P4-E1-T40, P3-E2-T40 | REQ-ORP-003, REQ-ORP-004, REQ-ORP-005, REQ-ORP-006 |
-| P4-E3-T40 | Create `sponsor_messages` with RLS and no child-facing path | todo | P4-E1-T40 | REQ-ORP-007 |
+| P1-E1-T40 | Create `public_api.cause_summary` (target, raised, spent, unspent, Zakat flag; no donor fields) | done | P1-E2-T40, P1-E3-T43 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
+| P1-E2-T40 | Create `causes` with type, campaign dates, target, `accepts_zakat`, scholar name, status, project flag, bilingual fields, RLS and audit | done | P0-E2-T07, P0-E2-T09, P0-E2-T11 | REQ-DON-005, REQ-DON-006, REQ-DON-007, REQ-DON-009, REQ-DON-013, REQ-DON-014, REQ-ROL-005 |
+| P1-E3-T40 | Create `donors` with guest fields, private and public profile fields, RLS and audit redaction | done | P0-E2-T08, P0-E2-T11 | REQ-DPR-001, REQ-DPR-009 |
+| P1-E3-T41 | Create `donations` and `receipt_counters`, `app.next_receipt_number()`, the column-lock trigger, campaign end-date check and bank-reference guard | done | P1-E3-T40, P1-E2-T40 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-006, REQ-DON-008, REQ-DON-010, REQ-PAY-001 |
+| P1-E3-T42 | Create `allocations` and `trail_events` with shape checks, deferred sum checks, reversal uniqueness and append-only guards; run the test kit on both | done | P1-E3-T41, P0-E2-T16 | REQ-TRL-001, REQ-TRL-002, REQ-TRL-003, REQ-TRL-014 |
+| P1-E3-T43 | Write `app.record_donation()`: donation, received event, cause allocation and allocated event in one transaction | done | P1-E3-T42 | REQ-DON-008, REQ-TRL-001, REQ-PAY-001 |
+| P1-E3-T44 | Create `trail_links` and the issue, `use_trail_token` and revoke functions, with RLS through the trail donor | done | P1-E3-T40, P0-E2-T05 | REQ-SEC-004, REQ-DPR-002, REQ-SEC-005 |
+| P1-E3-T45 | Write the donation reversal function (reversal events and allocation reversals; refuse while spent allocations remain) | done | P1-E3-T43 | REQ-DON-012, REQ-TRL-003 |
+| P1-E3-T46 | Create `transfer_notices` with RLS, the Zakat check, 30-day expiry and the confirm path into `app.record_donation()` (§8.7) | blocked | P1-E3-T43, P1-E3-T44 | REQ-DPR-001, REQ-DON-015 (proposed), REQ-PAY-001 |
+| P1-E3-T47 | Create `recurring_pledges` and add `donations.pledge_id` (§8.8) | done | P1-E3-T41 | REQ-DON-003 |
+| P1-E4-T40 | Create the `app.donor_trail` view for account and token donors, with share-per-spend columns | done | P1-E3-T43, P1-E3-T44 | REQ-TRL-007, REQ-DPR-010 |
+| P1-E5-T40 | Add the audit log filter indexes and an admin read view with actor names resolved and redaction kept | done | P0-E2-T11 | REQ-ROL-009, REQ-SEC-008 |
+| P2-E1-T40 | Create `spending_entries` and `spending_reports` with receipt link, column lock after matching, RLS and audit | done | P1-E2-T40, P0-E2-T09 | REQ-TRL-011, REQ-TRL-012, REQ-ROL-007 |
+| P2-E2-T40 | Write `app.match_spending()` with the per-cause lock and FIFO walk; test it with the §9.3 worked example | done | P2-E1-T40, P1-E3-T42 | REQ-TRL-004, REQ-TRL-005, REQ-TRL-007 |
+| P2-E2-T41 | Write spending reversal and re-match, and the `reported` events written when a report is published | done | P2-E2-T40 | REQ-TRL-003, REQ-TRL-012 |
+| P2-E2-T42 | Create `allocations_effective`, `allocation_balances` and `cause_balances` views and the nightly allocation-to-event reconciliation query | done | P2-E2-T40 | REQ-TRL-013 |
+| P2-E3-T40 | Add the three Zakat triggers (donation, allocation, `accepts_zakat` switch-off) and their tests | blocked | P1-E3-T42, P2-E2-T42 | REQ-TRL-006, REQ-ROL-005 |
+| P2-E4-T40 | Write the all-needs split function and the `unallocated_all_needs` view | done | P1-E3-T43 | REQ-DON-002, REQ-ROL-006 |
+| P2-E5-T40 | Write `app.claim_donor_records()` and the donor's own profile update policy | done | P1-E3-T40, P0-E2-T08 | REQ-DPR-003, REQ-DPR-004, REQ-DPR-005 |
+| P2-E5-T41 | Create `public_api.donor_wall` and the anonymity tests across views, audit log and export queries | done | P2-E5-T40, P1-E3-T41 | REQ-DPR-006, REQ-DPR-007, REQ-DPR-008, REQ-DPR-009 |
+| P2-E6-T40 | Create `public_api.public_trails` and `public_api.cause_spending` | done | P2-E2-T40 | REQ-TRL-009, REQ-TRL-010, REQ-PUB-003 |
+| P3-E1-T40 | Create `classes` and `class_members` and the class and teacher helper functions | done | P0-E2-T08 | REQ-TCH-005, REQ-CHS-003 |
+| P3-E1-T41 | Create `personas` and `persona_links` with RLS, `app.create_student_account()` and the §7.5 privacy tests | done | P3-E1-T40 | REQ-STU-001, REQ-STU-002, REQ-STU-003, REQ-STU-009, REQ-TCH-006, REQ-SEC-007 |
+| P3-E2-T40 | Create `consent_records` for `public_work` and `real_name`, the mutability trigger and `app.consent_active()` | done | P3-E1-T41 | REQ-CHS-005, REQ-CHS-006, REQ-STU-004 |
+| P3-E3-T40 | Create `threads` and `posts` with type, language, scope (including reserved `community`), state, author rules and scope-based read policies | done | P3-E1-T41, P0-E2-T12 | REQ-STU-005, REQ-STU-006, REQ-STU-008, REQ-LNG-010, REQ-MIR-004, REQ-MOD-001 |
+| P3-E3-T41 | Create `poll_options` and `poll_votes` and `public_api.poll_counts` | done | P3-E3-T40 | REQ-STU-007 |
+| P3-E4-T40 | Create `post_media`, add the `youtube` kind and face flag rules on `media_assets` | done | P3-E3-T40, P0-E2-T09 | REQ-PRF-004, REQ-CHS-001 |
+| P3-E5-T40 | Write the moderation transition trigger with approver and consent checks, hide and takedown fields | done | P3-E3-T40, P3-E2-T40 | REQ-MOD-002, REQ-MOD-003, REQ-MOD-004, REQ-MOD-007, REQ-CHS-004, REQ-CHS-005, REQ-TCH-004 |
+| P3-E5-T41 | Create `post_reports`, `app.report_public_post()` and the moderation queue view; add content retention rules | blocked (visitor reports wait for proposed REQ-MOD-008 and retention periods for proposed REQ-SEC-011, Q-08) | P3-E3-T40, P0-E2-T17 | REQ-STU-011, REQ-MOD-005 |
+| P3-E6-T40 | Add the verified article fields and `app.make_verified_article(thread_id)` | done | P3-E5-T40 | REQ-TCH-002, REQ-TCH-003 |
+| P3-E8-T40 | Create `public_api.public_posts` and `public_api.public_teachers` | done | P3-E5-T40, P3-E6-T40 | REQ-PUB-004, REQ-PUB-005 |
+| P4-E1-T40 | Create `sponsorships` and `sponsorship_updates` and `app.sponsor_child_view` (persona, age, updates) | done | P3-E1-T41, P1-E3-T41 | REQ-ORP-001, REQ-ORP-002, REQ-ORP-008, REQ-ORP-009 |
+| P4-E2-T40 | Add the `orphan_full_profile` sign-off, assignment and withdrawal functions and full-profile gating in the sponsor view | done | P4-E1-T40, P3-E2-T40 | REQ-ORP-003, REQ-ORP-004, REQ-ORP-005, REQ-ORP-006 |
+| P4-E3-T40 | Create `sponsor_messages` with RLS and no child-facing path | done | P4-E1-T40 | REQ-ORP-007 |
+
+2026-11-10 · P3-E1-T40: [`0042_classes.sql`](../db/drizzle/0042_classes.sql) creates `classes` (bilingual name, optional year label, creator, `archived_at`) and `class_members` (`student` or `teacher`, `joined_at`, `ended_at`, `added_by`) with composite keys and one open membership per class, user and role. Both have the restrictive `iso` policy for `tazkiyah_app` and the audit trigger. The definer helpers are `app.is_class_member(class)`, `app.is_class_teacher(class)` (an open teacher membership while the user holds the teacher role) and `app.is_teacher_of(student)` (an open teacher membership in any class the student is or was in). Policies follow §6.4: members, the creator and admins read a class, teachers and admins create one, and class teachers and admins rename or archive it. Students read their own memberships, and class teachers and admins read all. The creator joins their class as its teacher by trigger (REQ-TCH-005). Class teachers add and end *student* memberships, and only admins add or end teacher memberships ([D-129](08-decision-log.md#d-129)). A trigger requires the member to hold the role, and allows a membership only to be ended, once. Nothing is deleted. Tests: [`db/test/classes.sql`](../db/test/classes.sql), run as `tazkiyah_app`: an editor refused, the creator becoming teacher, a teacher refused when adding a teacher, role and duplicate checks, other teachers seeing nothing, a student seeing only their own row, a past student still traceable, and an ended teacher no longer traceable. The isolation harness has a class and its teacher in each institute. Making a past student untraceable makes the suite fail. Persona links that use `is_teacher_of` arrive with P3-E1-T41.
+
+2026-11-10 · P3-E1-T41: [`0043_personas.sql`](../db/drizzle/0043_personas.sql) creates `personas` and `persona_links` with the `iso` policy, composite keys and audit triggers. Members read personas; the student, the student's teachers and admins change the name, avatar and bio; only an admin switches a persona off; nobody may set `show_real_name` until the consent check of P3-E1-T13. The display name and bio checks follow 07 §4.2 and §12.2 (`app.persona_name_ok`, `app.has_contact_details`): 3 to 24 letters, digits, spaces and hyphens, not digits only, a bio of up to 160 characters ([D-130](08-decision-log.md#d-130)), and no phone number, email address or contact link. An avatar must be an `avatar` image with no face. `persona_links` follows §7.4 exactly (student, admin, `is_teacher_of`), has no write grant, and a trigger requires the student role. New helpers: `app.current_persona_id()` and `app.can_trace_persona()`. A new `users_teacher_read` policy lets a student's teachers read the student's user row (§6.4, REQ-TCH-006). `app.create_student_account(full_name, username, class_id, is_orphan)` makes the user, role, membership, persona with a generated name (a word that is in no real name in the institute, plus a number) and link; the auth function `identity.create_student_account` now requires the class and calls it ([D-131](08-decision-log.md#d-131)). Tests: [`db/test/personas.sql`](../db/test/personas.sql) runs the five §7.5 privacy tests plus creation rights (own open class only, no editors), the name and bio rules in Urdu and English, avatar, real-name and switch-off rights, a leaver keeping the persona and staying traceable, and no audit row holding the real name. The isolation harness makes a student per institute through the auth function, and `auth.test.ts` checks the route creates the persona and membership. Breaking the link policy, the phone check or the avatar check makes the suite fail. The name history and 30-day limit (P3-E1-T09), the real-name match and block list (P3-E1-T03) and the "who is this?" audit entry (P3-E1-T08) are left to those tasks.
+
+2026-11-10 · P3-E2-T40: [`0044_consent_records.sql`](../db/drizzle/0044_consent_records.sql) creates `consent_records` as §10.1 describes, one row per covered item (`public_work`, `real_name`, `face`), with the `given_on` date of 07 §5.1 ([D-132](08-decision-log.md#d-132)). A teacher of the student or an admin records consent with themself as recorder; the same people, and the teacher assigned to sign an orphan's record, read it. Students, editors, finance officers and other teachers see nothing. There is no update or delete grant. The mutability trigger refuses a new record with a sign-off or withdrawal, a future date, a form scan that is not a private `consent_form` upload, or a non-student; afterwards it lets only the sign-offs, the assignment (until the second sign-off) and the withdrawal change, each once, and nothing after a withdrawal. It runs for the owner too. `app.sign_consent()` takes the principal's sign-off first, then the assigned teacher's; `app.assign_second_signer()` lets the principal choose any other active teacher; `app.withdraw_consent()` records a reason; each returns an outcome code. `app.consent_status(id)` (`active`, `pending`, `withdrawn`, null for anyone who may not read the record) and `app.consent_active(student, kind)` compute status live, so a student marked as an orphan later needs both sign-offs on records they already have. `consent_active` is granted to no runtime role yet; the views and triggers of P3-E1-T13 and P3-E5-T40 call it. Every step is audited with the guardian's name and the reason redacted. Tests: [`db/test/consent.sql`](../db/test/consent.sql) (recording rights, refused records, no direct edits, hidden from the student and others, the full orphan sign-off order with a reassignment, withdrawal once, mutability as owner, the late orphan flag, and audit redaction); the isolation harness has a signed and withdrawn record in each institute. Making `consent_active` skip the sign-offs, letting any admin sign for the principal, or opening the read policy each makes the suite fail. The light form (P3-E2-T01), its sign-off screens (P3-E2-T02) and the take-down on withdrawal (P3-E2-T04) remain.
+
+2026-11-10 · P3-E3-T40: [`0045_threads_and_posts.sql`](../db/drizzle/0045_threads_and_posts.sql) creates `threads` and `posts` with the §13.1 indexes, the nine post types (REQ-STU-005), a language code per post (REQ-LNG-010), the four scopes, the five moderation states, exactly one author (persona or user) and the poll fields. A post takes its thread's scope and class on insert, a reply's parent is in the same thread, and an answer replies to a question (REQ-STU-006). Threads and posts start only in `class` or `madrasa` scope (REQ-STU-008), as `published` (live at once, REQ-MOD-001) or `draft`. `community` is refused by trigger while `community_enabled` is false, for the owner too (REQ-MIR-004). Students write only as their own active persona, with the student hub on, in a class they belong to or the madrasa scope; teachers write under their name in classes they teach and, with the teacher hub on, in the madrasa scope; admins anywhere; editors and finance officers not at all (07 §4.6). Archived classes and locked threads take no student posts. Reads follow §11.4: admins; authors (not after a take-down); class teachers for everything in their classes; every teacher for posts outside a class (07 §12.3); members of the class for live class posts; every member for live madrasa and public posts; visitors nothing. The thread keeps its first post, last activity and count of live replies. Nobody updates or deletes threads or posts yet ([D-133](08-decision-log.md#d-133)). Not built here: the hide and take-down columns and transition trigger (P3-E5-T40), `contact_flag` (P3-E3-T12), verified-article columns and `article_post_id` (P3-E6-T40), `post_media` (P3-E4-T40) and polls (P3-E3-T41). Tests: [`db/test/hub_posts.sql`](../db/test/hub_posts.sql) covers a student's question seen at once by a classmate and the teacher, an answer and its rules, every post type, persona impersonation, public and community refused, drafts, no edits or deletes, nothing leaking to another class, madrasa reading by every member, editors refused, visitors seeing nothing, the module switch, a locked thread, a switched-off persona, a taken-down post and a student who left. The isolation harness has class and madrasa threads, a question and a teacher's answer in each institute. Opening class posts to every member, letting a reply keep its own scope, or dropping the module check each makes the suite fail.
+
+2026-11-10 · P3-E3-T41: [`0046_polls.sql`](../db/drizzle/0046_polls.sql) creates `poll_options` and `poll_votes` and adds `poll_max_choices` and `poll_results` to `posts` (07 §6.4, [D-134](08-decision-log.md#d-134)). A poll needs its results setting and closing date (7 days by default, 1 hour to 30 days allowed) and, if multiple choice, a maximum of 2 to 6. A deferred trigger checks at commit that a poll has 2 to 6 options and no more choices than options. Options are 1 to 80 characters, added only by the poll's author, only to an open poll and only before the first vote; nobody updates or deletes them (as for posts, D-133). Votes need a live, open poll the voter can see, from a student (student hub on), teacher or admin voting for themselves, and never in an archived class. A trigger allows one vote on a single-choice poll and up to the maximum on a multiple-choice one, serialised per voter and poll. Voters take a vote back while the poll is open. Voters read their own votes; admins and the voter's teachers read who voted. `app.close_poll(post)` closes a poll early: admins any, teachers those of classes they teach and those outside a class. `public_api.poll_counts` gives votes per option and the number of voters, never who: to members who can see a live poll once it closes or, when the creator chose so, after they vote, and to visitors only the final counts of a closed public poll while its module is on. It asks the posts read policy through `app.can_see_post`, which runs as the caller. Tests: [`db/test/polls.sql`](../db/test/polls.sql); the isolation harness has a poll with two options and a vote in each institute. Allowing a second single-choice vote, opening the voter list, or dropping the visibility check from the counts view each makes the suite fail.
+
+2026-11-10 · P3-E4-T40: [`0047_post_media.sql`](../db/drizzle/0047_post_media.sql) creates `post_media` with the `iso` policy and composite keys to the post and the upload. It is read with its post (the posts read policy decides). The post's author attaches their own `post` uploads (pending or ready) in the transaction that creates the post, or to a draft; never to a poll or a taken-down post. Class teachers (any teacher outside a class) and admins remove media; the author does not ([D-135](08-decision-log.md#d-135)). The `youtube` kind, its 11-character id and the null storage key were already in `media_assets` (P0-E2-T09). Face rules: `app.media_students` gives the students a piece of media is about (a student uploader, and the student behind every persona post it is attached to). A trigger on `media_assets`, for the owner too, refuses making media with `shows_face` public unless `app.consent_active(student, 'face')` holds for each of them, and raising the flag on public media without that consent makes it private instead. Attaching public face media to a student's post needs the same consent. `app.set_media_shows_face(media, value)` lets the uploader, the uploader's teachers and admins raise the flag; only staff clear it. Classmates still cannot read another student's `media_assets` row: serving through the parent post is the private media route (P3-E4-T03), and the teacher's media check waits for Q-12 (P3-E4-T72). Q-13 (faces inside a class without consent) is still open, so only the public rule is built. Tests: [`db/test/post_media.sql`](../db/test/post_media.sql); the isolation harness has a student's photo on the question in each institute. Dropping the consent check, letting the author remove media, or letting a student clear the flag each makes the suite fail.
+
+2026-11-10 · P3-E5-T40: [`0048_post_moderation.sql`](../db/drizzle/0048_post_moderation.sql) adds the §11.2 moderation columns to `posts` (`target_scope`, `submitted_at`, `approved_by`, `approved_at`, `hidden_at`, `hidden_by`, `hidden_reason`, `taken_down_at`, `taken_down_by`, `takedown_reason`) with a check that keeps them consistent with the state, and indexes for the three user keys. `tazkiyah_app` gets update on the state, requested scope, hide time and the two reasons only; content edits still wait for P3-E3-T11. The `posts_moderation` trigger runs for the owner too and fills who and when itself. It allows only the §11.3 steps: the author posts a draft, or asks for a wider scope (consent checked for a student's public request, the module on, `community` refused); approval by the right person (`app.may_approve_post`): to the madrasa an admin or a teacher with `can_widen_scope` (new helper `app.can_widen_scope()`), to the public an admin or a class teacher of the post's class (for a post outside a class, a teacher of any class of the student), and for staff work an editor or admin, never the author. Approval publishes at once (scope becomes the target) when the post is visible and, for a student's public work, `app.consent_active(student, 'public_work')` holds; otherwise it waits as approved. Rejection or withdrawal returns the post to where it was. Takedown needs a reason, hides the post and is open to admins, class teachers and any teacher for madrasa scope; only an admin restores. Hiding is for the same teachers and admins; showing again for the class teacher or an admin. A step with no user (a system job) may only hide or take down. Scope never changes directly. Reads: classmates no longer see hidden posts; editors see staff requests to go public; teachers with `can_widen_scope` see requests to widen to the madrasa; every teacher sees madrasa-scope posts, also widened class posts, since every teacher moderates them ([D-136](08-decision-log.md#d-136)). Not built here: the open-report check before publishing (with `post_reports`, P3-E5-T41), cleared student media (P3-E4-T72), author edits returning a post to `submitted` (P3-E5-T09), the inside state `removed` (proposed PD-07-02) and the audit entries and history (P3-E5-T11). Tests: [`db/test/moderation.sql`](../db/test/moderation.sql); the isolation harness has an approved, hidden and taken-down post in each institute. Skipping the consent check on publishing, letting any teacher approve a student's public work, or letting any teacher widen scope each makes the suite fail.
+
+2026-11-10 · P3-E5-T41 (blocked; members' reports, closing and the queue done): [`0049_post_reports.sql`](../db/drizzle/0049_post_reports.sql) creates `post_reports` with 07 §8.5's reasons ([D-137](08-decision-log.md#d-137)), the §13.1 open-queue index, one open report per post and reporter, and keys for the post, reporter and handler. Students, teachers, editors and admins report a post they can see, for themselves; the row always opens as `open`. The reporter reads their own reports; `app.moderates_post(post)` (an admin, the class teacher of a class post, any teacher for madrasa scope or no class) decides who else reads and closes them, so the post's author never learns who reported it. Closing sets `actioned` or `dismissed` once, with an optional outcome note; the trigger fills who and when and keeps the reported fields fixed. `app.moderation_queue` (security invoker, teachers, editors and admins only) lists open reports per post with count, reasons and 07 §8.5's priority (personal details and faces first), public and madrasa requests, approved posts still waiting and taken-down posts; reporters are never listed. `app.posts_moderation` now keeps an approved request waiting while the post has an open report (07 §8.2). Not built: `app.report_public_post()` for visitors, because visitor reports are proposed REQ-MOD-008 (with the rate limit of proposed REQ-SEC-010), and the content retention rules of §13.4, whose periods are proposed REQ-SEC-011; both wait for Q-08. Report thresholds are P3-E5-T10. Tests: [`db/test/post_reports.sql`](../db/test/post_reports.sql); the isolation harness has a closed report in each institute. Dropping the open-report hold or opening the read policy makes the suite fail.
+
+2026-11-10 · P3-E6-T40: [`0050_verified_articles.sql`](../db/drizzle/0050_verified_articles.sql) adds `is_verified`, `verified_by` and `verified_at` to `posts` (only on an `article` by a user, all three set together) and `article_post_id` to `threads` (unique, composite key). `app.make_verified_article(thread, title, body, language)` takes the article text the teacher writes (07 §9.1), so it has more arguments than §11.1 listed. A teacher of the thread's class, any teacher for a madrasa thread (with the teacher hub on, as for every staff post outside a class) or an admin gets a new `article` post under their name in the thread's scope, published at once, with the verified mark, and the thread links it; one article per thread. It returns null for anyone else. A guard trigger refuses the mark or the thread link on any direct insert by `tazkiyah_app`, and there is no update grant on them, so only the function sets them. The article goes public as teacher work through the moderation trigger (editor or admin, REQ-TCH-004). 07 §9.1's summary and references have no columns in §11.2, so they stay in the body for now; quoted posts are part of the body text (P3-E6-T04). Removing the mark with a note is P3-E6-T05, and the quoted students' consent check is P3-E6-T06. Tests: [`db/test/verified_articles.sql`](../db/test/verified_articles.sql); the isolation harness has a verified article linked from the class thread in each institute. Letting any teacher make an article, or dropping the guard, makes the suite fail.
+
+2026-11-11 · P3-E8-T40: [`0052_public_posts.sql`](../db/drizzle/0052_public_posts.sql) creates `public_api.public_posts` and `public_api.public_teachers` (§6.5). `public_posts` lists posts with `scope = 'public'`, `published` and not hidden, each post on its own, so a thread shows only the posts that went public (05 §5.12). A student's post shows the persona's display name and an illustrated avatar (a ready, public `avatar` image with no face), only while the student hub is on, the persona is active and `app.persona_work_may_show(persona)` is true: that definer function answers yes or no from `app.consent_active(student, 'public_work')`, so the view never exposes persona links (§7.5 test 5) and a withdrawal hides the work at once (§10.2). Staff work shows the author's `public_name` while the teacher hub is on, and verified articles carry the verifier's public name (REQ-TCH-003). The view shows a staff author's user id so the teacher work item can show the short profile from `public_teachers` (05 §5.13); a student post has no user author, so no student id appears ([D-139](08-decision-log.md#d-139)). Real names never show: `show_real_name` cannot be set until P3-E1-T13. Post media joins later, with public copies (P3-E4-T04). `public_teachers` lists active teachers with a public name while the teacher hub is on: public name, short profile and a ready public `staff_photo`; never email, username or full name. The persona privacy test exempts that view's `photo_media_id`, since students cannot hold a staff role. Tests: [`db/test/public_posts.sql`](../db/test/public_posts.sql) covers consented, unconsented and unsigned-orphan student work, hidden, taken-down and class posts, no real name, username or student id in any row, the teacher's public details only, members seeing the same, another institute seeing nothing, withdrawal hiding work at once and each module switch. The isolation harness has a public thread with a teacher's article and a teacher with a public name in each institute. Dropping the institute filter or the consent check makes the suites fail.
+
+2026-11-11 · P4-E2-T40: [`0053_orphan_full_profile.sql`](../db/drizzle/0053_orphan_full_profile.sql) adds the `orphan_full_profile` kind and `consent_records.sponsorship_id` (composite key, index; required for that kind and null for the others). The rules trigger lets only the principal (`institute_settings.principal_user_id`) open full-profile consent, for an active sponsorship whose child persona is linked to that orphan student (06 §12.4, P4-E2-T01); the sponsorship never changes afterwards. `app.sign_consent` and `app.assign_second_signer` always apply to this kind, and its two sign-offs come in either order (06 §12.4); other kinds keep the principal first (07 §5.4). `app.consent_status` reads `pending`, `active`, `declined`, `withdrawn`, `paused` or `ended` for it, and `app.consent_active` needs both sign-offs and an active sponsorship ([D-140](08-decision-log.md#d-140)). The new owner-only `app.full_profile_active(sponsorship)` is checked on every call of `app.sponsor_child_view()`, which now also returns `full_profile`, and, only while that is true, `full_name`, the student's `photo_media_id` and the current class names (§10.3, REQ-ORP-003, REQ-ORP-005); a withdrawal or an ended sponsorship hides them at once (REQ-ORP-006), and a new sponsor of the same child starts from the default view. Withdrawal uses the existing `app.withdraw_consent`; either signer declining uses it too. Not built: 12-month expiry and its reminder (proposed REQ-ORP-010, P4-E2-T03), the short life story and study progress (06 §12.4 has no columns for them in §10), private signed image addresses (P4-E2-T02), and faces in update photos while consent is active, which stay refused. Tests: [`db/test/full_profile.sql`](../db/test/full_profile.sql) covers who opens the record, wrong child, missing sponsorship, assignment rules, teacher-first and principal-second signing, the matched sponsor seeing the full profile and nobody else, no consent rows for the sponsor, pause and resume, withdrawal, declining, ending and a new sponsor; `consent.sql` was updated for the new kind. The isolation harness has a full-profile record per institute. Ignoring withdrawal, sponsorship status, the principal check or the child check each makes the suite fail.
+
+2026-11-11 · P4-E3-T40: [`0054_sponsor_messages.sql`](../db/drizzle/0054_sponsor_messages.sql) creates `sponsor_messages` with the §10.3 columns, the `iso` policy, composite keys to the sponsorship, donor and user, and the audit trigger (the body is redacted there). `to_madrasa` needs `sender_donor_id` only and `to_sponsor` needs `sender_user_id` only; the body is 1 to 2,000 characters and `language` a language code. The sponsor of an active sponsorship writes to the madrasa as their own account donor; an admin replies under their own name while the sponsorship has not ended, so a pause can still be explained ([D-141](08-decision-log.md#d-141)). The sponsor reads every message of their own sponsorships, history included, and admins read all; nobody else, so students and the child's teachers have no policy (REQ-ORP-007). Afterwards only `read_at` is set, once, by the receiving side; no edits or deletes, truncate included. A catalog check proves no column or key can name a child, persona or student. Not built: contact-detail screening and blocking staff replies (P4-E3-T02), the teachers the admin chooses to read the inbox (D-141), and email notice of replies. Tests: [`db/test/sponsor_messages.sql`](../db/test/sponsor_messages.sql); the isolation harness has a message and a reply per institute. Letting staff read, letting any sponsor write on a sponsorship, or allowing replies after the end each makes the suite fail.
+
+2026-11-10 · P4-E1-T40: [`0051_sponsorships.sql`](../db/drizzle/0051_sponsorships.sql) creates `sponsorships` and `sponsorship_updates` as §10.3 describes, with the `iso` policy, composite keys and audit triggers, and adds `donations.sponsorship_id` with its key and partial index. Only an admin matches: the child's student must be an orphan and the sponsor an account donor; `matched_by` is the admin; one sponsorship per child that has not ended (active or paused, [D-138](08-decision-log.md#d-138)). Afterwards only the status changes; ended is final and dated. The sponsor, the child's teachers (`app.teaches_persona`) and admins read a sponsorship; the child never does. Updates are about a sponsored-orphan persona and written by an admin or a teacher of the child; an admin's update is published at once, a teacher's waits for an admin, and only an admin publishes or hides (06 §12.3, 06-P18). The author edits only before publishing. A photo must be a `sponsorship_update` image with no face, since full-profile consent is P4-E2-T40. Active sponsors read published, unhidden updates of their child. A sponsorship gift must come from the sponsor to the sponsorship's cause (REQ-ORP-009); the donation lock keeps the link. `app.sponsor_child_view()` (definer, for the signed-in account donor only, `app.my_account_donor_id()`) returns per active sponsorship the persona name, illustrated avatar, age in whole years and the published updates, newest first, as JSON (REQ-ORP-002); never the real name, date of birth or class. Not built: the full-profile fields (P4-E2-T40), the contact-detail flag on update text (06 §12.3, with P3-E3-T12) and `sponsor_messages` (P4-E3-T40). Tests: [`db/test/sponsorships.sql`](../db/test/sponsorships.sql); the isolation harness has a sponsorship, a linked gift and an update with a photo in each institute. Publishing a teacher's update without the admin, opening the sponsor view, or sponsoring a child who is not an orphan each makes the suite fail.
+
+2026-11-10 · P2-E5-T41: [`0041_donor_wall.sql`](../db/drizzle/0041_donor_wall.sql) creates `public_api.donor_wall` as in §8.5. It lists every recorded donation to a visible cause or to all needs, with `public_ref`, amount, currency, date and cause, and `donor_label`. The label is the donor's public display name only when the donation is set to show a name ([D-128](08-decision-log.md#d-128)), and never the legal name. An anonymous donation cannot join its donor. The view never shows the donor id, email, receipt number or donation type. `public_api.public_trails` now labels donors the same way. Tests: [`db/test/anonymity.sql`](../db/test/anonymity.sql). The wall shows both recorded donations (not the reversed one) with no label. The donor has every personal field set and a public profile. A loop over every `public_api` view in the catalog, now and later, finds none of their personal values, bank reference or donation type in any column value. The audit rows from recording, reversing, matching, publishing and a profile change hold none of them either. A named donation is still refused by `donations_anonymity_check`, which stays until named giving arrives with donor accounts. Exports do not exist yet, so their anonymity test belongs with the export task. Leaking the display name of an anonymous donation into the wall makes the suite fail.
+
+2026-11-10 · P2-E5-T40: [`0040_claim_donor_records.sql`](../db/drizzle/0040_claim_donor_records.sql) adds `app.claim_donor_records()`, a definer function for a signed-in account with the donor role, not granted to the runtime roles (the sign-up and account pages call it in P2-E5-T01). It answers `unverified` until `users.email_verified` is set. Otherwise it locks the guest donor row of the institute whose email equals the account's email, trimmed and lower-case, sets `user_id`, `claimed_at` and `email_verified_at`, revokes its live trail links with the reason "Claimed into an account" ([D-127](08-decision-log.md#d-127)), writes a `donors.claimed` audit row and answers `claimed`. It answers `none` when nothing matches, and `conflict` when the account already has a donor row, because merging is not offered (06 §11.3). Two new policies on `donors` for `tazkiyah_app`: `donors_own_read` (`id in app.my_donor_ids()`, for account and trail-link donors) and `donors_own_update` (account donors only). The grants are `select`, and `update` only on `display_name`, `photo_media_id`, `profile_links`, `profile_public`, `preferred_language`, `reminder_opt_in` and `reminder_opt_in_at`. Email, legal name, phone, account and claim fields stay with staff functions. A trigger requires a profile photo to be a `donor_photo` image. Staff still read donors through their definer functions. Tests: [`db/test/claim_donor.sql`](../db/test/claim_donor.sql) (role and verification refusals, a case-blind match, link revocation, audit, `none`, `conflict`, own-row read and update, private fields and other donors refused, nothing when signed out). [`db/test/donors.sql`](../db/test/donors.sql) now checks the column grants, and the isolation harness gives each donor a real `donor_photo`.
+
+2026-11-10 · P2-E2-T41: [`0039_spending_reversal.sql`](../db/drizzle/0039_spending_reversal.sql) adds three definer functions for admins and finance officers, none granted to the runtime roles. `app.publish_spending_report(report)` refuses a published or empty report, sets who and when, and writes one `reported` event per donation for its effective matched total over the report's entries, dated the publishing day ([D-126](08-decision-log.md#d-126)). `app.reverse_spending(entry, category, note)` locks the cause, then the recorded entry. It writes a mirror allocation and a reversal of the `spent` event for every effective match, with the category on both, marks the entry `reversed`, and puts the note only in the audit row. Reported events stay as history, and the next report lists the entry under "Corrections" (06 §15.3). The corrected purchase is a new entry, matched with `app.match_spending()` (the §9.3 "Correction"). `app.reverse_donation()` no longer refuses spent money: it reverses the donation's matches and its reported events, then its cause allocations and received event as before, and then re-matches each recorded entry it had paid for from other unspent money in the cause, oldest entry first (06 §15.3). `app.match_spending()` now also writes a `reported` event when the entry's report is already published (06 §8.1). Sending money freed by a spending reversal on to other entries' shortfalls is the need queue of P2-E2-T02 (proposed REQ-TRL-016), so it is not built. Tests: [`db/test/spending_reversal.sql`](../db/test/spending_reversal.sql) runs the §9.3 example through publishing (D2: received, allocated, spent 200,000, spent 300,000, reported 500,000), reversing S2, re-matching S2′, a late match into a published report, and reversing a spent donation with re-matching. Removing the re-match makes it fail. [`db/test/reverse_donation.sql`](../db/test/reverse_donation.sql) no longer expects a refusal.
+
+2026-11-10 · P2-E6-T40: [`0038_public_trails.sql`](../db/drizzle/0038_public_trails.sql) adds two security-barrier views, filtered on `app.current_institute_id()` and granted to both runtime roles. `public_api.cause_spending` lists the entries of causes visible in `public_api.causes`, only once they are in a published report (06 §9.2, §9.4, [D-124](08-decision-log.md#d-124)). Reversed ones stay listed with their status. Each row has the date, amount, description, report period and title, `matched_paisa` and `uncovered_paisa` (totals over all donors), and the receipt only when the entry's receipt is public and the upload is a ready public receipt image. It never shows who recorded the entry or any donor share (REQ-TRL-010). `public_api.public_trails` gives one row per event of each donation with `trail_public`, keyed by `public_ref`. It labels the donor as the donor wall does (§8.5, so an anonymous donation cannot join its donor). A spent event carries its entry's description, amount and public receipt, and a reversal carries its category only if it is one of the fixed 06 §15.2 values, never free text. It never shows the donation type (06-P06), donor id, receipt number, bank fields or staff ids. Every donation is anonymous until donor accounts arrive (`donations_anonymity_check`), so the label is always null for now. Tests: [`db/test/public_trails.sql`](../db/test/public_trails.sql), run as `tazkiyah_app`: unpublished and draft entries hidden, a private receipt hidden, a private trail hidden, the event order, the reversal category, no secret, type or staff name in any column, and no forbidden column. The isolation harness now gives its fixture donations public trails, so the new view has rows in both institutes. Removing either filter makes a suite fail. Left for Sami: `public_api.cause_summary.spent_paisa` (P1-E1-T40) counts every recorded match, while 06 §9.4 says the public figure counts reported entries only, so until a report is published the cause page's spent figure can be more than its listed entries.
+
+2026-11-10 · P2-E4-T40: [`0037_all_needs_split.sql`](../db/drizzle/0037_all_needs_split.sql) adds `app.unallocated_all_needs`, an owner view with its own institute filter that is not granted to the runtime roles. It gives one row per recorded all-needs donation with money left: `pool` (`zakat`, or `general` for Sadaqah and general, 06 §7.1), credit date, receipt number, amount and `unallocated_paisa`. `app.split_all_needs(pool, parts)` is a definer function for admins only (D-012), not granted to the runtime roles. `parts` is an ordered array of `{"cause_id","amount_paisa"}`. It checks whole rupees, active or closed causes, Zakat causes for the Zakat pool, and a total within the pool. It locks the pool for the run, then fills the causes in the given order, taking money oldest donation first (credit date, then receipt number) and using part of a donation where that is enough. Each piece gets a `to_cause` allocation and an `allocated` event dated the split day, which is its FIFO date in the cause (06-P02). The rest stays in the pool. It writes one `donations.split` audit row per donation, with the pool and amount. Running FIFO for the receiving causes afterwards is the automatic shortfall fill (P2-E2-T02, proposed REQ-TRL-016), so it is not done here. Tests: [`db/test/all_needs_split.sql`](../db/test/all_needs_split.sql) runs the 06 §7.3 Farah and Kamran example and checks pool separation, a reversed gift leaving the pool, the refusals and the reconciliation.
+
+2026-11-10 · Blocked: P2-E3-T40 has two of its three triggers. The third, refusing to switch `accepts_zakat` off while the cause holds unspent Zakat (§9.4 rule 3), is proposed REQ-TRL-015 and waits for Sami (Q-08). Built: rule 1 came with P1-E3-T41 (`donations_cause_rules`). Rule 2 is in [`0036_zakat_allocations.sql`](../db/drizzle/0036_zakat_allocations.sql): `allocations_rules` refuses a Zakat `to_cause` or `to_spending` row unless its cause accepts Zakat at that moment, and lets reversals through. Until REQ-TRL-015 is decided, `identity.edit_cause` already refuses to change the Zakat setting once a cause holds recorded money, which is stricter. Tests: [`db/test/zakat.sql`](../db/test/zakat.sql) (a donation, an all-needs split and a match refused; a reversal allowed; the match passes once the flag is back on). The §9.3 worked example with Zakat D2 passes in [`db/test/match_spending.sql`](../db/test/match_spending.sql). Disabling rule 2 makes the suite fail.
+
+2026-11-10 · P2-E2-T42: [`0035_balance_views.sql`](../db/drizzle/0035_balance_views.sql) adds four owner views, each with a security barrier and its own `app.current_institute_id()` filter, granted to neither runtime role (admin screens will read them through definer functions). `app.allocations_effective` gives allocations that are not reversals and have not been reversed. `app.allocation_balances` gives each effective `to_cause` row with `spent_paisa` and `unspent_paisa`. `app.cause_balances` gives one row per cause and donation type with `raised_paisa`, `spent_paisa` and `unspent_paisa` (REQ-TRL-013). §9.7 listed "allocated" next to "raised", but 06 §9.4 defines raised as all money allocated into the cause, so it is one column. `app.allocation_event_gaps` is the §9.1 reconciliation query: each row is an allocation without exactly one event of its own kind (`allocated`, `spent` or `reversal`). The unique `(institute_id, allocation_id)` on `trail_events` already rules out two events. Scheduling it nightly belongs to the jobs Worker. Tests: [`db/test/balances.sql`](../db/test/balances.sql) (Zakat and general balances after a match, a reversed gift counting as nothing, another institute hidden, a stray allocation reported until its event is written). [`db/test/match_spending.sql`](../db/test/match_spending.sql) also ends with the reconciliation.
+
+2026-11-10 · P2-E2-T40: [`0034_match_spending.sql`](../db/drizzle/0034_match_spending.sql) adds `app.match_spending(spending_entry_id)` (definer, admin or finance officer, not granted to the runtime roles; "Record batch" in P2-E1-T03 calls it). It locks the cause row, then the entry, which must be `recorded`. It walks the cause's effective `to_cause` allocations with money left, in the 06-P02 order ([D-125](08-decision-log.md#d-125)). For each one it writes a `to_spending` allocation for `least(balance, still needed)` and a `spent` event. The event's date is the purchase date, or the day the money entered the cause if that came later. It stops when the entry is covered or the money ends, and returns `matched_paisa` and `unmatched_paisa`. A partly matched entry stays so, and a rerun only adds what is still missing. One `spending_entries.matched` audit row (ids only) is written when anything was matched. Out of scope here: filling shortfalls automatically when money arrives (P2-E2-T02, proposed REQ-TRL-016), *reported* events for matches into an already published report (P2-E2-T41), and the Zakat match trigger (P2-E3-T40). Tests: [`db/test/match_spending.sql`](../db/test/match_spending.sql) runs the §9.3 worked example (S1 and S2, D2's trail, 200,000 left in Wheat stock), the tie-break by receipt number, a partial match, a rerun, a draft and an editor refused, and a case where 06-P02 and 04-D10 disagree. Switching the order back to the credit date makes that case fail.
+
+2026-11-10 · P2-E1-T40: [`0033_spending_entries.sql`](../db/drizzle/0033_spending_entries.sql) creates `spending_entries` and `spending_reports` with the §9.7 fields, composite keys to causes, receipts, reports and users, and an index on each. Entries are `draft`, `recorded` or `reversed`, following 06 §9.2 ([D-124](08-decision-log.md#d-124)): a draft can change or be deleted, while from `recorded` on only the text, receipt and report may change, and status only moves to `reversed`. An entry needs an active or closed cause, its photo must be a `receipt` upload, and a published report gains or loses no entries. Reports are `daily` (one date), `weekly` or `custom`. Publishing needs who and when, and after that the report cannot change or be deleted. `allocations_rules` now ties a spend to a recorded entry of the same cause, and the deferred sum check keeps an entry's effective matches within its amount. Both tables have the restrictive `iso` policy and a read policy for admins and finance officers on `tazkiyah_app`, with no write grants: writes go through the definer functions of P2-E1 and P2-E2. `audit_row_change` is attached to both. The donor trail's spending descriptions and the cause page's shortfalls need a donor-safe view of entries, which is `public_api.cause_spending` (P2-E6-T40), not this table. Tests: [`db/test/spending.sql`](../db/test/spending.sql); the isolation harness has a receipt, a published report and a recorded entry per institute, and the ledger fixtures now use real entries.
+
+2026-11-10 · P1-E5-T40: [`0031_audit_reader_view.sql`](../db/drizzle/0031_audit_reader_view.sql) adds the §13.1 indexes `audit_log_entity (institute_id, entity_table, entity_id)` and `audit_log_actor (institute_id, actor_user_id, occurred_at desc)`. `app.audit_entries` (security barrier, admin only, not granted to the runtime roles) resolves the actor's name only when the actor acted under a staff role, so a donor's name or a student's real name never appears (05 §9.2). It keeps the reader's redaction from [`0008_audit_reader.sql`](../db/drizzle/0008_audit_reader.sql): values only for approved fields, other changed fields counted as hidden. `identity.read_audit_log` reads from it, adds actor and record filters, and returns `actor_name` and `has_reason`. It never returns the reason text, because free text could hold a name ([D-123](08-decision-log.md#d-123)). Reversal categories (06 §15.2) are now an approved field, so the screen can say why a donation was reversed. Tests: [`db/test/audit_reader.sql`](../db/test/audit_reader.sql), including plan checks for both filters.
+
+2026-11-10 · P1-E1-T40: [`0030_cause_summary.sql`](../db/drizzle/0030_cause_summary.sql) adds `public_api.cause_summary`. It takes the cause text, type, target, period fields, status (an ended campaign shows `closed`), Zakat flag, scholar name, `raised_paisa` for the current period and `lifetime_raised_paisa` from `public_api.causes`, and adds `spent_paisa` (effective `to_spending` total) and `unspent_paisa`. It is built only from allocation sums, so no donor column or value can appear (REQ-TRL-010). It is granted to both runtime roles, and the isolation harness covers it with every other `public_api` view. Shortfalls arrive with `spending_entries` (P2-E1-T40). Tests: [`db/test/cause_summary.sql`](../db/test/cause_summary.sql).
+
+2026-11-10 · P1-E4-T40: [`0029_donor_trail.sql`](../db/drizzle/0029_donor_trail.sql) adds the donor's own read policies on `donations` and `trail_events` (`donor_id in app.my_donor_ids()`, for account and token donors), with column grants to `tazkiyah_app` that leave out the staff note, bank account and reference, operation id, gateway fields and staff ids. `app.donor_trail` (`security_invoker`) gives one row per event of each own donation: the donation fields, event type, date, amount, cause and its title from `public_api.causes`, the spending entry and report ids, `share_paisa` for *spent* events, the reversal link and reason category, and `is_reversed`. It repeats the donor filter, so a later staff policy cannot widen it. Spending descriptions and entry totals join it in P2-E1-T40. The guest trail page still uses `identity.read_guest_trail`; moving it onto this view is page work (P1-E4). Tests: [`db/test/donor_trail.sql`](../db/test/donor_trail.sql).
+
+2026-11-10 · P1-E3-T47: [`0028_recurring_pledges.sql`](../db/drizzle/0028_recurring_pledges.sql) creates `recurring_pledges` with the §8.8 fields plus `is_anonymous`, which 06 §13.1 lists and §8.8 had left out. Checks cover type, frequency, whole-rupee amount, status with `cancelled_at`, and missed periods. A trigger keeps the promise fixed (only status, missed periods and cancellation change; cancelled is final) and refuses a Zakat pledge to a cause that does not accept Zakat. RLS is restrictive only and no runtime grants are given: the expected-payments list, the donor's trail page and the monthly job will read it through definer functions. The audit trigger is attached. `donations.pledge_id` is a composite foreign key with a partial index, locked after insert, and a trigger requires the payment's donor to be the pledge's donor. The same migration rewrites the public cause totals to read each allocation's donation date by key, instead of joining every donation of the institute (the P0-E2-T19 note above). Tests: [`db/test/recurring_pledges.sql`](../db/test/recurring_pledges.sql); the isolation harness has a pledge and a linked payment per institute.
+
+2026-11-10 · Blocked: P1-E3-T46 builds the transfer notice, which is proposed REQ-DON-015 (with proposed D-030). It waits for Sami's approval (Q-08). `app.record_donation()` is ready for its confirm path.
+
+2026-11-10 · P1-E3-T45: [`0027_reverse_donation.sql`](../db/drizzle/0027_reverse_donation.sql) adds `app.reverse_donation(donation_id, category, note)` (definer, admin or finance officer, not granted to the runtime roles; the admin screen's wrapper belongs to P1-E3-T09). It locks the donation and refuses one that is already reversed or has an effective `to_spending` allocation. Re-matching after reversing spent money comes with FIFO (06 §15.3, P2-E2-T41). Otherwise every effective `to_cause` or `to_institute` allocation gets its mirror reversal and a `reversal` event pointing at its `allocated` event, the `received` event gets a `reversal` event, and the donation becomes `reversed`, which frees its bank reference. The reason category from 06 §15.2 (`recorded_twice`, `wrong_details`, `wrong_type`, `wrong_donor`, `transfer_returned`, `refund_to_donor`, `moved_to_another_cause`, `other`) goes on the allocations and events, because the donor sees it. The optional note, required for `other`, goes only into the `donations.reversed` audit row's `reason`. Tests: [`db/test/reverse_donation.sql`](../db/test/reverse_donation.sql).
+
+2026-11-10 · P1-E3-T44: `trail_links` and the admin issue and revoke functions came from P1-E3-T04 ([`0013_guest_trail.sql`](../db/drizzle/0013_guest_trail.sql)). [`0026_trail_links_spec.sql`](../db/drizzle/0026_trail_links_spec.sql) adds `token_hint`, `expires_at` (always null for now, 06-P10), `revoke_reason` and `last_used_at`. A guard trigger lets a link change only by one revocation and by its last use moving forward. `app.use_trail_token(token)` hashes the token, finds a live link in the current institute, writes `last_used_at` at most once an hour, and sets `app.trail_donor_id` for the transaction, or clears it and returns null. `app.my_donor_ids()` returns the user's donor rows plus the token donor, but only while that donor holds a live link, so a revoked link stops working in the same transaction and a forged setting gives nothing. `tazkiyah_app` may read link metadata (not the hash, created-by or revoked-by) through the new `trail_links_own_read` policy: the donor their own links, admins and finance officers all. Issuing now needs the hint and marks the replaced link "Replaced by a new link". Revoking takes an optional reason. Both keep the admin-only check (D-121). The guest trail page still reads through `identity.read_guest_trail` by hash; moving it onto `use_trail_token` and the donor policies belongs to `app.donor_trail` (P1-E4-T40). Tests: [`db/test/trail_links.sql`](../db/test/trail_links.sql).
+
+2026-11-10 · P1-E3-T43: [`0025_record_donation.sql`](../db/drizzle/0025_record_donation.sql) adds `app.record_donation()` (definer, admin or finance officer). It draws the receipt number and writes the donation, the `received` event, and for a cause the `to_cause` allocation and `allocated` event, then the `donations.recorded` audit row. Any failure undoes everything, including the receipt counter. `identity.record_manual_donation` keeps its session check, idempotency and answers, and now records through it. Tests: [`db/test/record_donation.sql`](../db/test/record_donation.sql) (both roles, cause and all needs, a refused donation leaves no row and no receipt-number gap).
+
+2026-11-10 · P1-E3-T42: [`0024_ledger_shapes.sql`](../db/drizzle/0024_ledger_shapes.sql) gives `allocations` all three kinds with one shape check, `from_allocation_id`, `spending_entry_id`, `target_institute_id` (single-column), `is_reversal`, `reverses_allocation_id` (unique) and `reason`. A row trigger keeps the type equal to the donation's, makes a reversal mirror its original, ties a spend to a `to_cause` row of the same donation and cause, and allows `to_institute` only from a `platform_fund` institute to another institute (REQ-TRL-014). The deferred sum check locks the donation row and caps effective `to_cause` and `to_institute` money per donation and effective spends per source allocation. `trail_events` gets all five event types with one shape check, `spending_entry_id`, `spending_report_id`, `reverses_event_id` (unique), `reason` and `details`, and `credited_on` becomes `occurred_on`. A row trigger checks each event against its allocation (same donation, cause, amount and matching kind), a `received` event against the donation amount, and a reversal against an earlier non-reversal event of the same donation. The append-only triggers were already on both tables. The public cause totals and the guest trail now leave out reversed rows. Tests: [`db/test/ledger.sql`](../db/test/ledger.sql), which includes the append-only kit for both runtime roles and the owner; the isolation harness has a spend and its reversal per institute.
+
+2026-11-10 · P1-E3-T41: `donations`, `receipt_counters` and the bank-reference index came from the manual recording work ([`0009_manual_donations.sql`](../db/drizzle/0009_manual_donations.sql)). [`0023_donations_spec.sql`](../db/drizzle/0023_donations_spec.sql) closes the gaps against §8.3: `public_ref` (10 random base32 characters from `app.new_public_ref()`), `amount_minor`, `currency char(3)`, `fx_rate`, `gateway_payment_id` (unique), `source_allocation_id` (single-column foreign key, exempt in the catalog test), `trail_public` and `private_note`. `donor_id` is now required: a transfer with no known donor gets its own donor row with no email, and the migration backfills one per existing unknown donation. `bank_account_id` and `bank_reference` may be null for future methods, but a check requires both for a bank transfer. Triggers: the column lock (only `is_anonymous`, `trail_public` and `status` from `recorded` to `reversed` may change; no delete or truncate), and the cause rules on every insert (active cause, campaign `credited_on <= ends_on`, Zakat only to `accepts_zakat`). `app.next_receipt_number(year)` draws gap-free numbers per institute and year, and only definer functions can call it; `identity.record_manual_donation` now uses it. The built column names `credited_on` and `receipt_locale` stay ([D-120](08-decision-log.md#d-120)). `sponsorship_id` comes with `sponsorships` in P4-E1-T40, and `pledge_id` with P1-E3-T47. Tests: [`db/test/donations.sql`](../db/test/donations.sql).
+
+2026-11-09 · P1-E3-T40: `app.donors` started with only an email and a language (P1-E3 manual recording). [`0022_donor_profile.sql`](../db/drizzle/0022_donor_profile.sql) adds the rest of §8.2: `kind`, `user_id` (unique per institute), `email_verified_at`, the private `legal_name` and `phone`, the public `display_name`, `photo_media_id`, `profile_links` and `profile_public`, reminder opt-in with its time, `claimed_at` and `erased_at`. `email` may now be null. Checks: at most five https profile links shaped `{"label","url"}` (`app.valid_profile_links`), an opt-in needs its time, a claim needs an account, and an erased row holds no personal field. `audit_row_change` is now attached, and it redacts every personal field. RLS stays restrictive-only, so neither runtime role can read donors directly (§8.4). The donor's own read and update policy belongs to P2-E5-T40. Tests: [`db/test/donors.sql`](../db/test/donors.sql), and the isolation harness now sets every donor field with its institute marker.
+
+2026-11-09 · P1-E2-T40: reviewed `app.causes` ([`0007_causes.sql`](../db/drizzle/0007_causes.sql)) against §8.1. Every column and rule is there: type, campaign target and end date, `ends_on >= starts_on`, `accepts_zakat` with the scholar name allowed only when it is set, the four states, `listed_as_project`, `category` and the bilingual fields. RLS has the restrictive `iso` policy, and there is no permissive policy, so the runtime roles read causes only through `public_api.causes` and change them only through the admin definer functions. `audit_row_change` is attached. §8.1 now also lists `target_period`, `stock_year_start_month` (from 06 §5.1), `revision` and `created_at`, which the table already had. Tests: [`db/test/causes.sql`](../db/test/causes.sql) and the isolation harness. The receipt-photo default on a cause belongs to P1-E2-T03.
 
 ## Acceptance criteria
 
@@ -1343,7 +1431,7 @@ REQ-TRL-002 (§9.6), REQ-TRL-003 (§9.2, §9.3, §9.6), REQ-TRL-014 (§9.5), REQ
 2. The isolation suite passes for every table and `public_api` view: with institute A's context, no row of test institute B can be read, inserted, updated, deleted or linked to, and with no context every table returns zero rows (REQ-SEC-001, REQ-SEC-002).
 3. Adding test institute B needs only seed inserts, no migration (REQ-MIR-003).
 4. `public_api.institute_public` returns Markaz Al Azeem's name in Urdu and English, logo, theme colours, address, contact details, bank accounts and enabled modules from data (REQ-MIR-001).
-5. `update`, `delete` and `truncate` on `trail_events`, `allocations` and `audit_log` fail for `tazkiyah_app` and are caught by the trigger for `tazkiyah_owner` (REQ-TRL-002).
+5. `update`, `delete` and `truncate` on `trail_events`, `allocations` and `audit_log` fail for `tazkiyah_app` and are caught by the trigger for `tazkiyah_schema_owner` (REQ-TRL-002).
 6. A reversal inserts a new `reversal` event pointing at the original; reversing the same event twice fails (REQ-TRL-003).
 7. The §9.3 worked example, run as a test, produces exactly allocations A1 to A8 and leaves 200,000 paisa unspent in Wheat stock and 1,200,000 in Kitchen gas.
 8. Allocating Zakat money to a cause with `accepts_zakat = false`, and switching off `accepts_zakat` on a cause holding unspent Zakat, both fail.

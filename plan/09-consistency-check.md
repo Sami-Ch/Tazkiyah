@@ -1,11 +1,11 @@
 # Consistency check
 
-**Run:** 2026-11-07, step 4 of [the brief](../docs/agent-prompt.md), by the main agent after the six specialist documents were written. Rerun it after any large change.
+**Initial run:** 2026-11-07, step 4 of [the brief](../docs/agent-prompt.md), after the six specialist documents were written. Rerun it after any large change.
 
-## Result
+## Initial result
 
 - **327 tasks** across documents 02 to 07. All are `todo`.
-- **No duplicate task IDs** and **no dependency loops**. Every task-level dependency points to a task that exists.
+- **No duplicate task IDs**. Every explicit task-level dependency points to a task that exists.
 - **All 138 approved requirements** are covered by at least one task.
 - The **25 proposed requirements** are listed in [01](01-requirements-checklist.md#proposed-awaiting-approval). Most have no task yet, because they must not be built until Sami approves them (Q-08).
 - Every specialist document uses the required headings from [00 §2](00-MASTER-PLAN.md#required-sections-in-specialist-documents).
@@ -26,6 +26,12 @@
 | 9 | The glossary had no reversal event, transfer notice, pledge or principal. | 00 | Added to 00 §8. |
 | 10 | About 77 decisions made inside the specialist documents were not in the decision log. | 08 | Numbered D-032 to D-107 as proposed, awaiting Sami (Q-09). |
 | 11 | Open questions were raised inside 07, 06, 03 and 02. | 00 | Moved to 00 §6 as Q-08 to Q-21. |
+
+## Implementation review
+
+- Updated the logo source to Sami's selected emblem. [D-108](08-decision-log.md#d-108)
+- Aligned the architecture with the database plan on role names, RLS and the host lookup. Added the isolation suite as a CI prerequisite. [D-109](08-decision-log.md#d-109)
+- Expanded every whole-epic dependency and found five tasks that depended on their own epic. Replaced those dependencies with direct prerequisites. All 327 tasks now resolve without loops, and all 138 approved requirements still map to tasks. [D-110](08-decision-log.md#d-110)
 
 ## Left for Sami and Moazam
 

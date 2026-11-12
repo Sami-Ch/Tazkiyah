@@ -332,7 +332,7 @@ The trail is an append-only list of events for each donation (REQ-TRL-001, REQ-T
 | **received** | The donation is confirmed (§4.4) | Full donation amount | donation | yes | yes, with name or "Anonymous" |
 | **allocated** | Money enters a cause: at recording for a gift to a cause, or at a split for all needs | The piece that entered | donation, allocation (to cause), cause | yes | yes |
 | **spent** | FIFO matches part of the donation to a spending entry | The matched piece | donation, allocation (to spending entry), spending entry | yes, with description, date, the donor's share and the receipt photo if public | yes, without the receipt photo if it is private |
-| **reported** | A spending entry that this donation paid for appears in a published report (§9). If the entry was already reported when the match was made, *spent* and *reported* are written together. | Same piece as the *spent* event | spending entry, report | yes | yes |
+| **reported** | A spending entry that this donation paid for appears in a published report (§9). If the entry was already reported when the match was made, *spent* and *reported* are written together. | This donation's total matched to the report's entries, one event per donation and report ([D-126](08-decision-log.md#d-126)). A match made after publishing gets its own event for its piece | spending entry, report | yes | yes |
 | **reversal** | Any event above is corrected (§15) | Minus the corrected amount | the event it reverses, plus a reason | yes, with the reason category | yes, with the reason category |
 
 The glossary lists four event kinds. The reversal event is the correction required by REQ-TRL-003. The consistency check may add it to the glossary.
@@ -476,7 +476,7 @@ A spending entry records one use of money from one cause (REQ-TRL-011, REQ-ROL-0
 | Amount | yes | Whole rupees. |
 | Date | yes | The date of the purchase or payment, in Pakistan time. It can be in the past. |
 | Description | yes, in at least one language | Urdu or English, with the other language optional. A missing language falls back with a notice (REQ-LNG-009). Quantities go in the description, for example "Wheat, 25 maunds". |
-| Receipt or photo | no | One or more images, compressed on upload ([03 §8](03-architecture.md)). |
+| Receipt or photo | no | One image for now, compressed on upload ([03 §8](03-architecture.md)). More than one waits for Sami ([D-124](08-decision-log.md#d-124)). |
 | Receipt public | yes | Defaults to the cause's setting (06-P20). Can be changed per entry. |
 
 **Privacy check on the form.** The form shows a short reminder: "Do not write names of patients, children, or individual staff salaries." Descriptions are aggregated where they concern people, for example "March salaries, 8 staff".
@@ -501,11 +501,11 @@ A report groups recorded spending entries for one period, either a day or a week
 - **Title:** made from the period, such as "Week of 6 to 12 April 2026" or "Report for 9 April 2026", in both languages.
 - **Content:** each entry with its cause, date, description, amount and public receipt photo; a total per cause; and an optional short note from Moazam in Urdu or English.
 - **Corrections:** any entry reversed since the last report is listed under "Corrections", with the reason category.
-- Publishing writes a *reported* event for every match of every entry in the report.
+- Publishing writes one *reported* event for each donation whose money the report's entries used, for its total in the report ([D-126](08-decision-log.md#d-126)).
 - A published report is never edited. Mistakes are fixed by reversal and appear in the next report.
 - Reports appear on each cause page and on a reports list. The pages are specified in [05 §5](05-public-pages-roles-admin.md).
 
-The table list has no home yet for a report as a group of entries. [04](04-database.md) needs to add one. This is noted in the final report to the main agent.
+Reports are stored in `spending_reports`, and an entry joins one through `spending_entries.report_id` ([04 §9.7](04-database.md#97-spending_entries-and-spending_reports)). *Reported* is not stored on the entry: a recorded entry is reported once its report is published ([D-124](08-decision-log.md#d-124)).
 
 ### 9.4 Figures for the admin and the public
 
@@ -596,12 +596,14 @@ A guest donor gives with only an email address (REQ-DPR-001, D-009). They are st
 | Property | Rule |
 | --- | --- |
 | Token | Random and unguessable, at least 128 bits. Only a hash is stored (REQ-SEC-004, [04 §8](04-database.md)). |
-| Address | `/{lang}/trail/{token}`. The token is not personal data, and no email or name is ever in the address (REQ-SEC-005). |
+| Address | `/{lang}/trail#{token}`. The browser sends the token in a same-origin POST and removes the fragment from the displayed address. No email or name appears in the address (REQ-SEC-005). |
 | Lifetime | No expiry (06-P10). |
 | Revoking | The admin can revoke it, which creates a new link and emails it to the donor. The old link then shows "This link is no longer valid". |
 | Lost link | "Send me my link again": the donor types their email, and the page always says "If we have donations for this address, we have emailed the link", whether or not the email is known. This stops anyone checking who has given. |
 | Page safety | No search engine indexing, no public caching, and no referrer sent to outside links. |
 | Sponsorship | Never shows sponsorship pages (06-P16). |
+
+During the first release, a two-factor verified administrator issues or revokes the guest link from a receipt number. Issuance also requires the matching verified email. The administrator shares the link privately. Automated delivery and resend still need an email service.
 
 ### 11.3 Claiming into an account
 
@@ -734,7 +736,7 @@ Automatic recurring payments are by card only and come in P5 (D-008, [§16](#16-
 
 - Every donation that reaches *received* gets one receipt number (REQ-DON-010). A *notified* donation never gets one.
 - Format: `{prefix}-{year}-{sequence}`, for example `MAA-2026-00042` (06-P12). The prefix is stored in institute settings (`MAA` for Markaz Al Azeem). The year is the year of recording. The sequence runs per institute per year and is 5 digits, extending past 99,999 if needed.
-- Numbers are given out in one transaction with the *received* event. Each number is used once. A number taken by a transaction that fails is skipped and logged, never reused.
+- Numbers are given out in one transaction with the *received* event. Each number is on one receipt only. A transaction that fails gives its number back, so the sequence has no gaps ([D-122](08-decision-log.md#d-122)).
 - A reversed donation keeps its number, marked **cancelled**. A re-recorded donation gets a new number, and its receipt says "Replaces receipt MAA-2026-00042".
 
 ### 14.2 Content
@@ -883,20 +885,20 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P1-E2-T01 | Cause rules: three types, four states, targets and periods (§5.1, §5.2) | todo | P0-E2 | REQ-DON-005, REQ-DON-007, REQ-DON-014 |
-| P1-E2-T02 | Bilingual admin form to create, edit, close and archive a cause, with type-specific fields | todo | P1-E2-T01, P1-E5, P0-E3 | REQ-DON-009, REQ-DON-013, REQ-LNG-009 |
+| P1-E2-T02 | Bilingual admin form to create, edit, close and archive a cause, with type-specific fields | in progress | P1-E2-T01, P1-E5, P0-E3 | REQ-DON-009, REQ-DON-013, REQ-LNG-009 |
 | P1-E2-T03 | Zakat flag, approving scholar's name and receipt-photo default on each cause | todo | P1-E2-T02 | REQ-ROL-005 |
-| P1-E2-T04 | Campaign auto-close at end date, late-recording rule, and archive guard (§5.3) | todo | P1-E2-T01 | REQ-DON-006 |
-| P1-E2-T05 | Cause progress figures (raised, spent, target, period) for public pages and the home page | todo | P1-E2-T01, P1-E3-T01 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
+| P1-E2-T04 | Campaign auto-close at end date, late-recording rule, and archive guard (§5.3) | in progress | P1-E2-T01 | REQ-DON-006 |
+| P1-E2-T05 | Cause progress figures (raised, spent, target, period) for public pages and the home page | in progress | P1-E2-T01, P1-E3-T01 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
 | P1-E2-T06 | Seed Markaz Al Azeem's starting causes as drafts (§5.4) | todo | P1-E2-T03 | REQ-DON-014 |
 
 ### P1-E3 Manual donation recording and guest donors
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E3-T01 | Recording rules: save donation, *received* and *allocated* events in one transaction (§4.4, §4.5), including unknown donor | todo | P1-E2-T03, P0-E2 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-008, REQ-TRL-001, REQ-TRL-002, REQ-DON-017 (proposed, needs approval for unknown donor only) |
-| P1-E3-T02 | Phone-friendly admin form to record a bank transfer, with duplicate warning and large-amount confirmation | todo | P1-E3-T01, P1-E5, P0-E5 | REQ-DON-008, REQ-PAY-001 |
-| P1-E3-T03 | Receipt numbering per institute per year (§14.1) | todo | P1-E3-T01 | REQ-DON-010 |
-| P1-E3-T04 | Guest donors and private trail-link tokens: create, hash, revoke (§11.2) | todo | P1-E3-T01 | REQ-DPR-001, REQ-DPR-002, REQ-SEC-004 |
+| P1-E3-T01 | Recording rules: save donation, *received* and *allocated* events in one transaction (§4.4, §4.5), including unknown donor | in progress | P1-E2-T03, P0-E2 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-008, REQ-TRL-001, REQ-TRL-002, REQ-DON-017 (proposed, needs approval for unknown donor only) |
+| P1-E3-T02 | Phone-friendly admin form to record a bank transfer, with duplicate warning and large-amount confirmation | done | P1-E3-T01, P1-E5, P0-E5 | REQ-DON-008, REQ-PAY-001 |
+| P1-E3-T03 | Receipt numbering per institute per year (§14.1) | in progress | P1-E3-T01 | REQ-DON-010 |
+| P1-E3-T04 | Guest donors and private trail-link tokens: create, hash, revoke (§11.2) | done | P1-E3-T01 | REQ-DPR-001, REQ-DPR-002, REQ-SEC-004 |
 | P1-E3-T05 | Email the private link to a new guest donor when their first donation is received | todo | P1-E3-T04, P1-E3-T30 | REQ-DPR-002, REQ-LNG-011 |
 | P1-E3-T06 | Anonymity read layer: name fields hidden for anonymous donations outside donor and finance roles (§10.4) | todo | P1-E3-T01 | REQ-DPR-006, REQ-DPR-009, REQ-SEC-008 |
 | P1-E3-T07 | Public transfer notice form creating *notified* donations (§4.2) | todo | P1-E3-T01, P1-E1-T08 | REQ-DON-001, REQ-DON-002, REQ-DON-003, REQ-DON-004, REQ-DPR-001, REQ-DPR-006 |
@@ -910,11 +912,13 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E4-T01 | Donor trail page by private link or account: donations with *received* and *allocated* events, in Urdu and English | todo | P1-E3-T04, P1-E3-T06, P0-E3 | REQ-TRL-001, REQ-TRL-007, REQ-DPR-002, REQ-LNG-012 |
-| P1-E4-T02 | Donation state worked out from events and shown in donor words (§4.4 table) | todo | P1-E4-T01 | REQ-TRL-001 |
-| P1-E4-T03 | Bilingual printable receipt page reached from the trail (§14.2) | todo | P1-E3-T03, P1-E4-T01 | REQ-DON-010, REQ-DPR-010, REQ-PAY-008 |
+| P1-E4-T01 | Donor trail page by private link or account: donations with *received* and *allocated* events, in Urdu and English | done | P1-E3-T04, P1-E3-T06, P0-E3 | REQ-TRL-001, REQ-TRL-007, REQ-DPR-002, REQ-LNG-012 |
+| P1-E4-T02 | Donation state worked out from events and shown in donor words (§4.4 table) | done | P1-E4-T01 | REQ-TRL-001 |
+| P1-E4-T03 | Bilingual printable receipt page reached from the trail (§14.2) | in progress | P1-E3-T03, P1-E4-T01 | REQ-DON-010, REQ-DPR-010, REQ-PAY-008 |
 | P1-E4-T04 | "Send me my link again" without revealing whether the email is known | todo | P1-E3-T05 | REQ-DPR-002, REQ-SEC-004 |
-| P1-E4-T05 | Private by default: no indexing, no public caching, no referrer on trail pages | todo | P1-E4-T01 | REQ-TRL-008, REQ-SEC-005 |
+| P1-E4-T05 | Private by default: no indexing, no public caching, no referrer on trail pages | done | P1-E4-T01 | REQ-TRL-008, REQ-SEC-005 |
+
+2026-11-10 · P1-E4-T02: [`donation-state.ts`](../apps/web/src/app/[locale]/trail/donation-state.ts) works out each donation's §4.4 state from its standing events: the earliest stage any of its money is still at (awaiting split, partly allocated, allocated, partly spent, spent, reported), or *reversed* with its reason category. The trail page shows it under each receipt number in donor words, in Urdu and English, with amounts and cause titles kept in their own direction inside the sentence. `identity.read_guest_trail` now also returns a reversed donation's category ([`0032_guest_trail_reversal.sql`](../db/drizzle/0032_guest_trail_reversal.sql)), never the staff note. The *notified*, *rejected* and *expired* states belong to transfer notices (blocked, P1-E3-T46). Spent and reported states show once the trail returns those events (P2-E2-T05). The Urdu wording awaits review (Q-20). Tests: [`donation-state.test.ts`](../apps/web/src/app/[locale]/trail/donation-state.test.ts) and [`db/test/reverse_donation.sql`](../db/test/reverse_donation.sql).
 
 ### P2-E1 Spending entries with receipts
 

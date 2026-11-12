@@ -271,3 +271,218 @@ Each specialist document records its own decisions in its §3, with the options 
 | D-105 | PD-07-11 | [07](07-content-hub-student-teacher.md) | Replies in a thread are flat (one level), with an optional "replying to" link. | proposed |
 | D-106 | PD-07-12 | [07](07-content-hub-student-teacher.md) | When a student leaves, an admin moves them into an "Alumni" class owned by an admin. | proposed |
 | D-107 | PD-07-13 | [07](07-content-hub-student-teacher.md) | Report thresholds: three reports from different users hide a class or madrasa post until a teacher reviews it. | proposed |
+
+## D-108
+
+2026-11-07 · Sami · Updates [D-022](#d-022)
+
+Use [Markaz Al Azeem Emblem.png](<../assets/logo/Markaz Al Azeem Emblem.png>) as the institute's logo source. The starter uses responsive WebP copies derived from that file.
+
+## D-109
+
+2026-11-07 · Implementation review · Aligns [03 §4](03-architecture.md#43-database-roles) with [04 §6](04-database.md#6-row-level-security)
+
+Use the schema plan's `tazkiyah_owner` and `tazkiyah_app` names. The transaction supplies institute, user and request IDs, and policies check permissions against `user_roles`. The host lookup exposes only an active institute's ID. The application role stays subject to RLS. Owner-backed views and functions need the explicit tenant checks in 04. The cross-institute test suite must exist before it can run in CI.
+
+## D-110
+
+2026-11-07 · Implementation review
+
+List the direct prerequisites for the cause admin, spending batch, donor wall, donor profile and moderation queue screens. Each task previously depended on its own epic, which made it wait on itself under the master plan's dependency rule. Tie public media copying to the approval and takedown actions so teacher review and media setup can be built in order. See [05 Tasks](05-public-pages-roles-admin.md#tasks) and [03 Tasks](03-architecture.md#tasks).
+
+## D-111
+
+Sami · Homepage direction
+
+Give authentic institutional photos and video a prominent role in the public design. The homepage uses a campus photograph as its lead visual, with a gallery and an on-demand film below. At Sami's request, the local design preview uses labelled web-sourced examples until Markaz Al Azeem's own material is ready. See [02 §14](02-design-ui-ux.md#14-media-placeholders).
+
+## D-112
+
+2026-11-08 · Database implementation · Updates [D-109](#d-109)
+
+Neon named the administrative login `tazkiyah_owner`. Use a separate `tazkiyah_schema_owner` role with no login to own schema objects, and grant the runtime role only the public view and selected functions. Add user and logo foreign keys with their target tables so tenant ownership is enforced from the moment each field exists.
+
+## D-113
+
+2026-11-08 · Phase 0 database implementation
+
+Use case-insensitive indexes for email and username within an institute. Accounts start invited. The audit log stores values for a small set of status and permission fields and redacts the rest. Media uses the `pending` state from the upload flow. Public pages expose published text and ready public cover images without flagged faces. Account and role mutations follow the sign-in and staff workflows.
+
+## D-114
+
+2026-11-08 · Sami · Updates [D-041](#d-041)
+
+Use Drizzle for application queries and one migration history. Keep PostgreSQL-specific role, grant, function, trigger and view SQL in custom migrations in that same history. Existing databases adopt the consolidated baseline after all six original migration hashes are verified. See [04 §13.2](04-database.md#132-migrations).
+
+## D-115
+
+2026-11-09 · Build agent (P0-E2-T14) · Supports [03 §5.3](03-architecture.md#53-deployment-pipeline) and [04 §6.6](04-database.md#66-testing-cross-institute-isolation)
+
+Run the full migration history and every `db/test/*.sql` suite inside `npm test` with PGlite, an in-process build of Postgres. Every local run and pull request then gets the isolation, append-only and policy checks without a database server or Neon credentials. PGlite is PostgreSQL 17 and Neon is PostgreSQL 18, so CI still repeats the suites on a short-lived Neon branch (P0-E1-T07), and that run is the one that counts for REQ-SEC-002. Options: PGlite in Vitest; Postgres in Docker; Neon branches only. Reason: no database or Docker daemon is available on the development machine, and Neon branches need credentials and use free-tier branch slots.
+
+## D-116
+
+2026-11-09 · Build agent (P0-E5-T01, P0-E5-T04) · Moves a check from P0-E5-T01 to [P0-E1-T06](03-architecture.md#p0-e1-repo-environments-and-deployment-to-azeem-lateefcom)
+
+Close P0-E5-T01 on its local proofs, and move "verify sign-in on the hosted preview through `AUTH_HYPERDRIVE`" into P0-E1-T06. That task already owns Worker bindings and secrets, and the check needs a Cloudflare account. Options: mark P0-E5-T01 `blocked` until Cloudflare is set up; move the hosted check. Reason: every database proof in 03 §6.1 passes, and blocking the task would also block every P0-E5 task after it for a reason that belongs to deployment. Sami may reverse this.
+
+P0-E5-T04 also builds the shared matrix definition that P0-E5-T50 names. `can()` cannot be built from the 05 §7 matrix without it. P0-E5-T50 keeps its own status and dependency.
+
+## D-117
+
+2026-11-09 · Build agent (P0-E4-T01) · Fixes a conflict between [02 §5](02-design-ui-ux.md#5-colour) and [04 §5.3](04-database.md#53-institute_settings-one-row-per-institute)
+
+04 showed `theme` as a flat map of colours. 02, which owns the theme shape, stores a nested object with `version`, `direction`, `color`, `font` and `radius`, and the seed already writes that shape. 04 now points to the 02 shape. The database check allows only listed names and well-formed values, so `{}` (the platform default) stays valid. Completeness and contrast are checked by `checkTheme()` before a save. Options: flat colours only; the nested 02 shape. Reason: 02 owns visual tokens, and fonts and radii need a place in the same setting.
+
+## D-118
+
+2026-11-09 · Build agent (P0-E5-T02) · Supports [03 §6.2](03-architecture.md#62-who-signs-in-and-how)
+
+Donor sign-up, email verification and password reset run through Better Auth's own endpoints as `tazkiyah_auth`, so that role now has narrow write rights it did not have before: insert into `app.users`, update `email_verified`, insert a credential and update `password`. Database rules keep it safe. A trigger makes every user that role inserts an active donor with an unverified email, no username, no two-factor and no profile, and gives it only the donor role. A credential can be added only to a donor-only account that has none yet. A password can change by email reset only for accounts that are not students, and the auth role still cannot delete credentials or change a user's status, username or roles. Donor-only accounts must confirm their email before a sign-in creates a session; staff and students are created by someone who checked who they are. Emails go through `EmailSender`; until P1-E3-T30 the console adapter is used on the local origin only, and hosted sign-up and reset answer "Email is unavailable". Options: grant these narrow rights with database checks; write our own sign-up and reset endpoints that call definer functions. Reason: the library's endpoints already give neutral answers for known emails, single-use tokens and session revocation on reset, and the auth role could already create sessions, so a password write adds no new power over an account. `auth_isolation.sql` tests every rule.
+
+## D-119
+
+2026-11-09 · Build agent (P0-E5-T03) · Settles a difference between [03 §6.2](03-architecture.md#62-who-signs-in-and-how) and [07 §4.1](07-content-hub-student-teacher.md#41-student-accounts)
+
+03 gives `azeem-s-0142` as an example username and says the teacher creates "a one-time password"; 07, which owns student accounts, gives `maa-2026-0142` and says the starting password is "set by staff". Usernames are built as the lower-case institute receipt prefix, the year and a four-digit number (`maa-2026-0001` for Markaz Al Azeem, whose prefix is `MAA`), numbered under a lock on the settings row. The staff member may type a starting password (8 to 128 characters); if they leave it out, the server generates 10 characters without look-alike letters. Either way it is shown once and stored only as a hash. The first sign-in must replace it through `/first-password`, which also ends the student's other sessions, and staff workspaces stay closed while `must_change_password` is set. Until classes exist (P3-E1-T41), any teacher or admin can create a student; P3-E1-T41 adds the "teacher of that class" check and the persona. Options: the 03 pattern; the 07 pattern; a random username. Reason: 07 owns the feature, and the receipt prefix is an existing per-institute code that holds no names (REQ-CHS-001).
+
+## D-120
+
+2026-11-10 · Build agent (P1-E3-T41) · Updates [04 §8.3](04-database.md#83-donations)
+
+Keep the built column names `donations.credited_on` (`date`) and `donations.receipt_locale`, in place of the planned `received_at` (`timestamptz`) and `receipt_language`. 04 now uses the built names everywhere, including the FIFO order (04-D10), the donor wall view and the index list. Options: rename the columns and rewrite the recording, trail, receipt and email functions that use them; keep the names and fix 04. Reason: a manual bank transfer only has a credit date on the statement, so a time of day would be invented, and FIFO already breaks ties on `id`. The names are used by several migrations, the receipt worker and the trail page, and renaming them adds risk with no change in behaviour. If online payments in P5 need a time of arrival, a `received_at` column can be added then. Sami may reverse this.
+
+P1-E3-T42 applies the same reasoning to `trail_events`: its date column is `occurred_on` (`date`), not `occurred_at` (`timestamptz`). Bank credits and spending entries (`spent_on`) are both dates. The column was named `credited_on` until then, and was renamed because a *spent* event's date is not a credit date.
+
+## D-121
+
+2026-11-10 · Build agent (P1-E3-T44) · Records a conflict between [05 §7.1](05-public-pages-roles-admin.md#71-money), [06 §11.2](06-donations-and-trail.md#112-the-private-link) and [04 §8.6](04-database.md#86-trail_links-guest-trail-tokens), for Sami
+
+Who may issue (resend) and revoke a guest trail link? 05 §7.1, the permission matrix, says the finance officer and the admin. 06 §11.2 says a two-factor verified administrator during the first release. 04 §8.6 said admins, finance officers and the donor. The built functions keep the narrowest rule, a two-factor verified admin, and 04 now points here. Options: admin only (built); admin and finance officer (05); also the donor (old 04). Reason: widening who can hand out a link to someone's giving history is a privacy decision (00 §4 rule 8), and the matrix and the trail document disagree. **Sami to decide**; widening to finance officers needs only `identity.is_finance_session` in the two functions and the route gate in `auth.ts`.
+
+## D-122
+
+2026-11-10 · Build agent (P1-E3-T47) · Settles a difference between [06 §14.1](06-donations-and-trail.md#141-numbering) and [04 §8.3](04-database.md#83-donations)
+
+06 §14.1 says a receipt number taken by a transaction that fails is "skipped and logged, never reused". 04 §8.3 says the counter row is locked inside the recording transaction, so numbers are unique and gap-free per year. Since P1-E3-T41 and T43, the built rule is 04's: a failed recording rolls back its counter update, and the next donation takes the same number. No number is ever on two receipts, and a reversed donation keeps its number. 06 §14.1 now says the same. Options: gap-free under a lock (04); a sequence that skips numbers and logs the gap (06). Reason: a log written in the failing transaction rolls back with it, so "skipped and logged" cannot be done inside one transaction, and an unbroken sequence is easier to reconcile. Sami may reverse this.
+
+## D-123
+
+2026-11-10 · Build agent (P1-E5-T40) · Narrows [05 §9.1 and §9.3](05-public-pages-roles-admin.md#9-audit-log) for now, for Sami
+
+05 §9 shows "the reason where one is required" on each audit entry and offers an "only entries with a reason" filter. The audit reader returns only whether a reason exists (`has_reason`), not its text. Reasons are free text typed by staff, such as a reversal note, and 05 §9.2 says no donor name or student real name may appear in the audit log screen or its data. A test from P1-E5-T03 already required the reader not to return the reason. Safe, fixed values that explain an action are shown as approved fields instead: a reversal's category (06 §15.2) now shows as `category`. Options: show the reason text; show only that one exists and use fixed categories. Reason: privacy wins (00 §4 rule 8), and fixed categories carry the meaning without free text. Showing reasons later needs a reason category or a name check on input, not just a reader change.
+
+
+## D-124
+
+2026-11-10 · Build agent (P2-E1-T40) · Settles a difference between [06 §9.1 and §9.2](06-donations-and-trail.md#9-spending-entries-and-reports) and [04 §9.7](04-database.md#97-spending_entries-and-spending_reports), for Sami
+
+06 §9.2 gives a spending entry four states: *draft* (editable, not in FIFO), *recorded* (not editable, reverse instead), *reported* and *reversed*. 04 §9.7 had only `recorded` and `reversed`, and locked amount, cause and date only after the first match. Under 04, an entry saved in an unfinished batch would already count as recorded. The built rule follows 06, the owner of the lifecycle. `spending_entries.status` is `draft`, `recorded` or `reversed`, with `draft` as the default. A draft can change or be deleted, and is never matched or filed in a report. From `recorded` on, amount, cause and date are fixed whether or not the entry is matched yet. The description, receipt, receipt visibility and report may still change, because 04 allows them and a receipt that shows a person must be hideable. *Reported* is not stored: a recorded entry is reported when its report is published, and a published report gains or loses no entries. 06 §9.1 also allows "one or more images" per entry, but 04 §9.7 and REQ-TRL-011 have one receipt. The table keeps one `receipt_media_id`, and 06 §9.1 now says one image for now. More images would need a child table, and that waits for Sami. Options: 04's two states; 06's four states stored as a status; three stored states with *reported* derived from the report. Reason: a derived *reported* cannot drift from the report's own status, and drafts keep unfinished batches out of FIFO and the totals. Sami may reverse this.
+
+## D-125
+
+2026-11-10 · Build agent (P2-E2-T40) · Settles a difference between [04-D10 (D-059)](04-database.md#3-decisions) and [06-P02 (D-077)](06-donations-and-trail.md#3-decisions), for Sami
+
+Both are proposed. 04-D10 orders FIFO money by the donation's credit date, so all-needs money split into a cause later keeps its original date. 06-P02 orders it by the date the money entered the cause, so a split piece joins the queue on the split date, with ties going to the lower receipt number. 04-D10 itself says "06 §8 may confirm or change this", and 06 owns the FIFO rules. So `app.match_spending()` follows 06-P02. The entry date is read from the piece's `allocated` event, so no new column is needed. 04 §9.3 and 04-D10 now say so. Options: the donation date (04-D10); the date the money entered the cause (06-P02). Reason: "oldest unspent donations in its cause" (REQ-TRL-004) means oldest in the cause, and split money was not in the cause before its split. The 04 §9.3 worked example gives the same result under both. Sami may reverse this; the order is one `order by` clause in the function and its test.
+
+## D-126
+
+2026-11-10 · Build agent (P2-E2-T41) · Settles a difference between [06 §8.1 and §9.3](06-donations-and-trail.md#8-trail-event-model-and-fifo) and [04 §9.3 and §9.7](04-database.md#97-spending_entries-and-spending_reports), for Sami
+
+06 said publishing writes a *reported* event for every match, each for "the same piece as the *spent* event". 04 §9.7 said one *reported* event per donation touched by the report, and its §9.3 example shows D2 with one event of 500,000 for S1 and S2 in report R1. The built event shape (P1-E3-T42) agrees with 04: a *reported* event carries only the report, not the allocation or the entry, so per-match events could not be told apart. The built rule: publishing writes one *reported* event per donation for its effective total in the report. A match made after publishing, into an entry already in a published report, gets its own *reported* event at once (06 §8.1). Reversing a spending entry reverses its *spent* events only. Its *reported* events stay as history, and the next report lists it under "Corrections" (06 §15.3). Reversing a whole donation also reverses its *reported* events. 06 §8.1 and §9.3 now say so. Options: one event per match, which needs the allocation on the event; one per donation and report. Reason: it fits the stored shape and 04's worked example, and the donor still sees each piece in its *spent* event. Sami may reverse this.
+
+## D-127
+
+2026-11-10 · Build agent (P2-E5-T40) · Settles a difference between [06 §11.3](06-donations-and-trail.md#113-claiming-into-an-account) and [04 §8.2](04-database.md#82-donors)
+
+06 §11.3 says that when a guest donor claims their donations into an account, "the private link is revoked automatically. The account replaces it." 04 §8.2 said existing trail links "keep working until revoked". `app.claim_donor_records()` follows 06 and revokes the donor's live links in the same transaction, with the reason "Claimed into an account". 04 §8.2 now says so. Options: keep the links working; revoke them on claim. Reason: privacy wins (00 §4 rule 8). A link in an old email works for anyone who holds it, and once the donor has an account the link only adds another way in.
+
+## D-128
+
+2026-11-10 · Build agent (P2-E5-T41) · Settles a difference between [04 §8.5](04-database.md#85-donor-wall-and-anonymity) and [06 §10.1](06-donations-and-trail.md#101-profile-and-per-donation-choice), for Sami
+
+04 §8.5's donor wall sketch showed a donor's name only when their profile was public. 06 §10.1 and REQ-DPR-006 say the name on each donation is set separately from the profile: a donor with an anonymous profile can still show their name on one donation, and a guest, who has no profile, can too. The built `public_api.donor_wall` and `public_api.public_trails` follow the requirement. A donation set to show a name shows the donor's public `display_name`, whatever the profile setting, and never the legal name. An anonymous donation never joins its donor. 04 §8.5 now says so. Today every donation is anonymous (`donations_anonymity_check`), so no name shows until named giving is built. Options: name only with a public profile (04); name whenever the donation says so (06). Reason: REQ-DPR-006 is an approved requirement, and the 04 sketch would silently ignore a donor's explicit choice. What a guest's shown name is (their `display_name`, entered on the donation form) needs confirming when the guest form is built.
+
+## D-129
+
+2026-11-10 · Build agent (P3-E1-T40) · Narrows [04 §6.4](04-database.md#64-policy-summary) for child safety, for Moazam and Sami
+
+04 §6.4 lets a "class teacher" insert and update `class_members` rows without saying which roles. A teacher membership gives its holder `app.is_teacher_of()` over every student the class has ever had, which later opens their persona links (§7.4). If any class teacher could add teachers, one teacher could grant another access to children's real identities without the admin. The built rule: a class teacher adds and ends *student* memberships only. Teacher memberships are added and ended by an admin. The creator of a class joins it as its teacher automatically, so a teacher can still create a class and add students (REQ-TCH-005). 04 §6.4 now says so. Options: any class teacher manages all memberships; class teachers manage students and admins manage teachers. Reason: child safety wins (00 §4 rule 9), and the admin (the principal) stays the one who decides which adults see a child's identity. This touches open question Q-16 on which teachers may widen access, so Moazam may want to confirm it.
+
+## D-130
+
+2026-11-10 · Build agent (P3-E1-T41) · Fixes a conflict between [04 §7.4](04-database.md#74-personas-and-persona_links) and [07 §4.2](07-content-hub-student-teacher.md#42-first-login-and-persona-setup), Sami may reverse
+
+04 §7.4 allowed a persona bio of up to 280 characters. 07 §4.2, which owns the persona rules (REQ-STU-002 → 07 §4), allows 160. The built `personas_bio_check` allows 160, and 04 now says so. The display name follows 07 §4.2 in the database too: 3 to 24 Urdu or Latin letters, digits, spaces and hyphens, never digits only and never a phone number. Both name and bio refuse the phone numbers, email addresses (also spelled out) and contact links of 07 §12.2. The real-name match and the word block list stay with P3-E1-T03. Options: 280 (04); 160 (07). Reason: 07 owns the rule, and the shorter limit leaves less room for a child to give away who they are (00 §4 rule 9).
+
+## D-131
+
+2026-11-10 · Build agent (P3-E1-T41) · Settles how [04 §7.4](04-database.md#74-personas-and-persona_links)'s `app.create_student_account()` meets the built sign-in, Sami may reverse
+
+P0-E5-T03 had already built `identity.create_student_account(session, name, password hash)` for the auth role, which made a user and the student role but no class membership or persona. 04 §7.4 asks for one transaction that makes the user, the role, the membership, a persona with a generated name and the private link. The built shape: `app.create_student_account(full_name, username, class_id, is_orphan)` does all five and returns null unless the caller is an admin or a teacher of that open class. It is granted to no runtime role. `identity.create_student_account` now takes the class and the orphan flag, checks the staff session, generates the username, calls the app function and stores the starting password. The class is required (07 §4.1, "at least one"). The old three-argument function is dropped, so no path makes a student without a persona (REQ-STU-003). The student-account route sends `classId` and `isOrphan`. Two related narrowings: a student's own `show_real_name` cannot be set by anyone until P3-E1-T13 adds the consent check (07 §5.2), and only an admin switches a persona off (04 §7.4). The optional public name of 07 §4.1 is not stored yet, because 04 §7.1 says `public_name` is null for students while 07 §4.1 and PD-07-10 store "Ahmed R." there. That conflict is left for Sami with P3-E1-T13. Options: grant the app function to `tazkiyah_app` beside the auth function; one path through the auth function. Reason: a student without a starting password or a persona would be a broken account, and one path is easier to keep safe.
+
+## D-132
+
+2026-11-10 · Build agent (P3-E2-T40) · Fixes conflicts between [04 §10.1](04-database.md#101-consent_records), [07 §5](07-content-hub-student-teacher.md#5-consent) and the glossary in [00 §8](00-MASTER-PLAN.md#8-glossary), Sami may reverse
+
+Three points. **Sign-offs:** 04 §10.1 limited the two sign-offs to the `orphan_full_profile` kind. The master plan's glossary says a consent record for an orphan needs two sign-offs, and 07 §5.4 applies that to hub consent. The master plan wins, so every record of a student who is an orphan needs the principal's and an assigned teacher's sign-offs before it counts, and the orphan flag is read live, so a student marked as an orphan later loses single-signature consent until it is signed. The sign-off and assignment functions are built now rather than in P4-E2-T40 (proposed PD-07-09 says the same). P4-E2-T40 still adds the `orphan_full_profile` kind, its sponsorship link and the sponsor view gating. **One row per item:** 07 §5.1 lets one form cover several items, each a separate yes or no; 04 stores one `kind` per row. The table keeps one row per item and adds 07's `face` item, which 04 allowed 07 to add; the form task (P3-E2-T01) writes one row per ticked item. 04 also lacked the "date given" field of 07 §5.1, now `given_on`. **Withdrawal:** 04 let any admin or either signer record a withdrawal. A teacher of the student may also record one, because that teacher may record consent (04 §6.4) and a withdrawal only ever reduces what is shown. 07 §5.4's "declines with a note" has no column; until the form task adds one, a teacher who will not sign simply does not, and the principal reassigns. Options: follow 04 as written; follow the glossary and 07. Reason: the master plan wins (00 §1), and child safety wins (00 §4 rule 9).
+
+## D-133
+
+2026-11-10 · Build agent (P3-E3-T40) · Narrows [04 §6.4](04-database.md#64-policy-summary) for threads and posts until P3-E3-T11 and P3-E5-T40, Sami may reverse
+
+04 §6.4 lets the author update a post's content and teachers and admins update it for moderation. Both need rules that later tasks build: editing must keep earlier versions for teachers (REQ-CHS-003, P3-E3-T11), and every moderation step needs the transition trigger with its approver and consent checks (REQ-CHS-005, P3-E5-T40). Granting updates now would let a student change a post before a teacher sees it, or move a post to `public` without consent. So `tazkiyah_app` gets select and insert only on `threads` and `posts`, inserts are limited to `draft` or `published` in `class` or `madrasa` scope, and the thread counters are kept by a definer trigger. P3-E3-T11 and P3-E5-T40 add the update paths. Options: grant column updates now; hold them back. Reason: child safety wins over publishing speed (00 §4 rule 9), and nothing in P3 needs an edit before those tasks.
+
+## D-134
+
+2026-11-10 · Build agent (P3-E3-T41) · Fixes conflicts between [04 §11.5](04-database.md#115-polls), [04 §6.4](04-database.md#64-policy-summary) and [07 §6.4](07-content-hub-student-teacher.md#64-polls), Sami may reverse
+
+04 §11.5 allowed two to ten poll options; 07 §6.4, which owns the poll rules (REQ-STU-007 → 07 §6), allows two to six of up to 80 characters, a multiple-choice maximum set by the creator, a closing date 1 hour to 30 days out (7 by default) and the creator's choice of showing results after voting or after closing. 04 had no columns for the maximum or the results choice, so `posts` gains `poll_max_choices` and `poll_results`, and 04 now follows 07. 04 §6.4 also let the author update and delete options before the first vote and voters update their own vote. Options are insert-only for now, like posts (D-133), because changing an option after classmates have read it is an edit without the kept versions of REQ-CHS-003. A vote is changed by taking it back and casting another, which the policies allow while the poll is open. 04 §6.4 lets admins read votes; 07 §6.4 also lets the voters' teachers, which is built. 04 §6.4 lets any member with access vote; 07 §4.6 says editors do not, which is built. Options: follow 04; follow 07. Reason: 07 owns the rule, and the narrower edit rights keep a child's post from changing unseen (00 §4 rule 9).
+
+## D-135
+
+2026-11-10 · Build agent (P3-E4-T40) · Narrows [04 §6.4](04-database.md#64-policy-summary) for `post_media` and settles who sets the face flag of [04 §11.7](04-database.md#117-media_assets), Sami may reverse
+
+04 §6.4 lets the post's author insert and delete `post_media`. Adding or removing media on a post others have already seen is an edit, and edits must keep earlier versions for teachers (REQ-CHS-003, P3-E3-T11), as D-133 said for posts. So the author attaches media only in the transaction that creates the post, or to a draft, and removing media is left to the post's teachers and admins, who moderate (REQ-MOD-002). P3-E3-T11 can widen both once versions exist. 04 §11.7 says the face flag is "set by the uploader or a teacher" without saying who may clear it. Raising it only ever hides media, so the uploader, the uploader's teachers and admins may raise it; only staff clear it, so a student cannot undo a teacher's flag. Raising it on public media without face consent turns the media private rather than failing, so the flag can always be raised. Options: follow 04 as written; narrow as built. Reason: child safety wins (00 §4 rule 9).
+
+## D-136
+
+2026-11-10 · Build agent (P3-E5-T40) · Settles conflicts between [04 §11.3](04-database.md#113-moderation-states) and [07 §8](07-content-hub-student-teacher.md#8-moderation) in the moderation trigger, Sami may reverse
+
+The trigger keeps 04's single `moderation_state` plus hide and takedown columns, because 07's separate inside and public states (PD-07-02, D-096) are still proposed; the inside state `removed` is therefore not built. Where 04 and 07 differ, the safer reading is built. **Restore:** 04 lets an admin restore a taken-down post to `published`; 07 §8.2 sends a public post back to `submitted` for fresh approval. A public post now returns to its class or madrasa scope as `submitted`; a post that was never public returns to `published`. **Reject:** 04 only has `submitted → published`; 07 has `submitted → draft`. A post that was live returns to `published`, a draft request returns to `draft`, and the author may also withdraw (07). **Consent:** 04 checks it on publishing, 07 when the request is sent; both are checked. **Approvers:** an admin or a class teacher of the post's class (D-029, REQ-MOD-003); for a student's post outside a class, a teacher of any class the student is in (07 §8.2). Editors approve only staff work (REQ-TCH-004). The principal approves as an admin. **Madrasa scope:** 07 §8.1 and §8.4 let any teacher hide or take down a madrasa-scope post; so any teacher also reads madrasa-scope posts, including widened class posts and hidden ones, or they would lose sight of what they moderate. Showing a hidden post again stays with its class teacher or an admin (07 §8.1). **System steps** (report thresholds, consent withdrawal) have no user and may only hide or take down. Options: follow 04's diagram as drawn; follow 07; the mix above. Reason: child safety wins (00 §4 rule 9) and 07 owns the moderation rules.
+
+## D-137
+
+2026-11-10 · Build agent (P3-E5-T41) · Fixes a conflict between [04 §11.6](04-database.md#116-post_reports) and [07 §8.5](07-content-hub-student-teacher.md#85-reports-and-the-moderation-queue), Sami may reverse
+
+04 §11.6 listed report reasons `contact_details`, `unkind`, `unsafe`, `wrong_information`, `other` and said the final list is in 07 §8. 07 §8.5 lists personal details, face or real name shown, unkind or bullying, wrong religious information, and other with up to 300 characters. The built codes follow 07: `personal_details`, `face_or_name`, `unkind`, `wrong_information`, `other` (note required). Who may report follows 07 §8.5 (students, teachers, editors and admins, not finance officers), and who closes a report follows the moderation rights of D-136. The queue lists report items only to people who moderate the post, so an editor sees teacher-work requests but not reports (07 §8.5). Options: 04's list; 07's list. Reason: 04 deferred to 07.
+
+## D-138
+
+2026-11-10 · Build agent (P4-E1-T40) · Settles open points of [04 §10.3](04-database.md#103-sponsorship-tables) against [06 §12](06-donations-and-trail.md#12-orphan-sponsorship), Sami may reverse
+
+Four points, each the narrower reading. **Sponsor view:** 04 filters `app.sponsor_child_view` to `app.my_donor_ids()`, which also admits a guest opening a trail link. 06 §12.2 says the page is visible only after logging in, and 06-P16 (proposed) makes sponsors account donors. The view reads only the signed-in account's donor row (`app.my_account_donor_id()`), and matching refuses a donor without an account. **One sponsor:** 04's partial unique index covers `active` rows; a paused sponsorship would then let a second sponsor be matched. The index covers every sponsorship that has not ended (06-P15, Q-18 default). **Teacher updates:** 06 §12.3 (06-P18, proposed) holds a teacher's update until the admin publishes it; built so, since 04 already has `published_at`. **Photos:** until full-profile consent exists (P4-E2-T40), an update photo must have `shows_face = false` (06 §12.3, REQ-CHS-001). Options: follow 04 as written; the narrower readings. Reason: child safety wins (00 §4 rule 9).
+
+## D-139
+
+2026-11-11 · Build agent (P3-E8-T40) · Reads [04 §6.5](04-database.md#65-public-views) "never shows author user id" for `public_api.public_posts`, Sami may reverse
+
+04 §6.5 says `public_posts` never shows `persona_links` or the author user id. 05 §5.13 needs the teacher work item to show the author's short profile (REQ-TCH-001) from `public_api.public_teachers`, which needs a key. The view shows `teacher_id` only for staff posts, whose authors publish under their public name anyway; a student's post is written by a persona and carries no user id, so no student's user id or link can appear. Options: no key, matching teachers by public name (names may repeat); the staff author's id only. Reason: the rule protects students, and the narrow reading keeps it whole.
+
+## D-140
+
+2026-11-11 · Build agent (P4-E2-T40) · Fits [06 §12.4](06-donations-and-trail.md#124-full-profile-and-consent)'s full-profile states into [04 §10.1](04-database.md#101-consent_records), Sami may reverse
+
+06 §12.4 draws *declined*, *withdrawn*, *expired* and *ended* states; 04 §10.1 computes only `pending`, `active` and `withdrawn`, with no decline column. A decline is recorded with `app.withdraw_consent`, which either signer may already use, and `app.consent_status` reads a record withdrawn before both sign-offs as `declined`. A signed record whose sponsorship is ended reads `ended`, and one whose sponsorship is paused reads `paused` and shows nothing until the sponsorship resumes; 06 does not say whether pausing ends consent, so pausing hides the profile without ending it. *Expired* waits for proposed REQ-ORP-010. 06 §12.4's short life story and study progress have no columns in 04, so the full profile returns the real name, the student's photo and current class names (04 §10.3) until they are added. Options: add a stored decline state; compute it as built. Reason: no schema change is needed, and every state that shows nothing errs towards the child (00 §4 rule 9).
+
+## D-141
+
+2026-11-11 · Build agent (P4-E3-T40) · Narrows [06 §12.5](06-donations-and-trail.md#125-messages-through-the-madrasa) for `sponsor_messages` until the inbox task, Sami may reverse
+
+06 §12.5 says the admin "and any teacher he chooses" read and reply. 04 §10.3 has no column or table for that choice, so only admins read and reply for now; P4-E3-T01 (staff inbox) can add the chosen teachers with a schema change. A sponsor writes only while the sponsorship is active, matching the sponsor page, which shows active sponsorships only; an admin may still reply while it is paused, so the madrasa can explain the pause, and nobody writes after it ends. The sponsor keeps reading the history. Options: let any teacher of the child read; admins only. Reason: messages about an orphan should reach as few people as possible until the admin chooses (00 §4 rule 9).
+
+## D-142
+
+2026-11-12 · Sami · Vercel handoff and Resend email
+
+Sami will deploy the current Next.js app to Vercel and chose Resend for account emails and donor receipts (Q-06). The handoff adds Vercel request handling and an authenticated receipt job endpoint using the existing outbox. The [Vercel handoff](../docs/vercel.md) describes the project settings and database roles for this release.

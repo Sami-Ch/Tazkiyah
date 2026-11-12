@@ -1,0 +1,82 @@
+.staff-directory {
+  display: grid;
+  gap: 1.25rem;
+  padding-block: 2.5rem 4rem;
+  max-inline-size: 58rem;
+}
+
+.staff-directory h1 {
+  color: var(--navy);
+}
+
+.staff-directory > a {
+  justify-self: start;
+}
+
+.staff-filters {
+  display: grid;
+  align-items: end;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.staff-list,
+.staff-roles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.staff-list,
+.staff-entry,
+.staff-access-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.staff-entry {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.staff-summary,
+.staff-actions,
+.staff-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.staff-summary {
+  justify-content: space-between;
+  overflow-wrap: anywhere;
+}
+
+.staff-summary h2 {
+  font-size: 1.3rem;
+}
+
+.staff-roles li {
+  border-radius: var(--radius);
+  background: var(--navy-soft);
+  color: var(--navy);
+  padding-inline: 0.5rem;
+}
+
+.staff-access summary {
+  cursor: pointer;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.staff-access-form {
+  margin-block-start: 0.75rem;
+}
+
+.staff-access-form fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  border: 1px solid var(--border);
+}

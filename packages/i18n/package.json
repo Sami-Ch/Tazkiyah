@@ -1,0 +1,13 @@
+{
+  "name": "@tazkiyah/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./routing": "./src/routing.ts",
+    "./messages/*": "./messages/*"
+  },
+  "peerDependencies": {
+    "next-intl": "^4.14.9"
+  }
+}

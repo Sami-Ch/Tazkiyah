@@ -1,0 +1,231 @@
+.private-trail {
+  max-inline-size: 58rem;
+  padding-block: clamp(2.5rem, 7vw, 5rem);
+}
+
+body:has(.private-trail) .language-switch,
+.private-trail:has(noscript p) .trail-client {
+  display: none;
+}
+
+.trail-heading {
+  display: grid;
+  gap: 0.65rem;
+  max-inline-size: 42rem;
+  margin-block-end: 1.25rem;
+}
+
+.trail-heading > p:last-child,
+.trail-toolbar p,
+.trail-donation-facts dt {
+  color: var(--muted);
+}
+
+.trail-toolbar,
+.trail-record-heading,
+.trail-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.trail-toolbar {
+  margin-block-end: 1.5rem;
+  padding-block-end: 1.25rem;
+  border-block-end: 1px solid var(--border);
+}
+
+.trail-toolbar a:lang(ur) {
+  font-family: "Noto Naskh Urdu", "Geeza Pro", serif;
+}
+
+.trail-toolbar a:lang(en) {
+  font-family: system-ui, sans-serif;
+}
+
+.trail-records {
+  display: grid;
+  gap: 1rem;
+}
+
+.trail-record,
+.trail-message {
+  min-inline-size: 0;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+
+.trail-message :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 3rem;
+  margin-block-start: 0.5rem;
+}
+
+.trail-record-heading strong {
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius);
+  background: var(--navy-soft);
+  color: var(--navy);
+  font-size: 0.875rem;
+}
+
+.trail-cancelled,
+.trail-record-heading .trail-cancelled {
+  background: #fbede9;
+  color: #8b3025;
+  font-weight: 600;
+}
+
+.trail-donation-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 0.75rem;
+  margin-block: 1.25rem;
+}
+
+.trail-donation-facts dd,
+.trail-receipt dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.trail-events {
+  margin-block-end: 1rem;
+  border-block: 1px solid var(--border);
+}
+
+.trail-events summary {
+  min-block-size: 3rem;
+  padding-block: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trail-events ol {
+  display: grid;
+  gap: 0.75rem;
+  margin-block: 0 1rem;
+  padding-inline-start: 1.5rem;
+}
+
+.trail-pagination {
+  justify-content: center;
+  margin-block-start: 1.25rem;
+}
+
+.private-trail button {
+  background: var(--surface);
+  color: var(--navy);
+  font: inherit;
+  cursor: pointer;
+}
+
+.private-trail button:hover:not(:disabled) {
+  background: var(--navy-soft);
+}
+
+.private-trail button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.trail-receipt {
+  display: none;
+}
+
+@media print {
+  body:has(.private-trail) {
+    background: white;
+    color: black;
+  }
+
+  body:has(.private-trail) > :not(main),
+  .private-trail > :not(.trail-client),
+  .private-trail .trail-client > :not(.trail-results),
+  .private-trail .trail-results > :not(.trail-records),
+  .trail-records > h2,
+  .trail-record-screen,
+  .trail-records:has([data-print-current]) > :not([data-print-current]) {
+    display: none !important;
+  }
+
+  .private-trail,
+  .trail-record {
+    inline-size: auto;
+    max-inline-size: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: white;
+  }
+
+  .trail-records {
+    display: block;
+  }
+
+  .trail-record + .trail-record {
+    break-before: page;
+  }
+
+  .trail-record[data-print-current] {
+    break-before: auto;
+  }
+
+  .trail-receipt {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border: 1px solid #5b5b5b;
+    break-inside: avoid;
+  }
+
+  .trail-receipt > img {
+    margin-inline: auto;
+  }
+
+  .trail-receipt-languages {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+
+  .trail-receipt [lang="en"] {
+    font:
+      10pt/1.5 system-ui,
+      sans-serif;
+  }
+
+  .trail-receipt [lang="ur"] {
+    font:
+      12pt/1.65 "Noto Naskh Urdu",
+      "Geeza Pro",
+      serif;
+  }
+
+  .trail-receipt :is(h2, h3, address) {
+    color: black;
+    font-family: inherit;
+  }
+
+  .trail-receipt h2 {
+    font-size: 1.2em;
+  }
+
+  .trail-receipt h3 {
+    margin-block-start: 0.75rem;
+    font-size: 1.1em;
+  }
+
+  .trail-receipt dl {
+    display: grid;
+    gap: 0.35rem;
+    padding-block: 0.6rem;
+    border-block: 1px solid #aaa;
+  }
+}
