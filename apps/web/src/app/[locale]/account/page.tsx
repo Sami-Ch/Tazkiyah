@@ -4,6 +4,7 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
 import { getAccountAccess } from "@/server/auth";
 import { AccountFormPage } from "../sign-in/account-form-page";
+import { trailCopy } from "../trail/trail-copy";
 import "../sign-in/sign-in.css";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +54,11 @@ export default async function AccountPage({
                 .join(locale === "ur" ? "، " : ", ")}
             </p>
             {staff && <a href={`/${locale}/admin`}>{admin.heading}</a>}
+            {access.roles.includes("donor") && (
+              <a href={`/${locale}/account/donations`}>
+                {trailCopy[locale].accountTitle}
+              </a>
+            )}
           </>
         ) : (
           <p role="status">{account.unavailable}</p>

@@ -42,8 +42,8 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 - [ ] REQ-DPR-001 Donor can give as a guest by entering only an email address. MUST → 06 §11
 - [ ] REQ-DPR-002 A guest donor receives a private link to their trail. MUST → 06 §11
-- [ ] REQ-DPR-003 A guest donor can create an account later and claim past donations made with the same email. SHOULD → 06 §11
-- [ ] REQ-DPR-004 Donor can create an account and log in with email. MUST → 03 §6
+- [x] REQ-DPR-003 A guest donor can create an account later and claim past donations made with the same email. SHOULD → 06 §11
+- [x] REQ-DPR-004 Donor can create an account and log in with email. MUST → 03 §6
 - [ ] REQ-DPR-005 Donor can set a public profile with a display name, photo and links to profiles elsewhere. SHOULD → 06 §10
 - [ ] REQ-DPR-006 Each donation can show the donor's name or be anonymous, set separately from the profile. MUST → 06 §10
 - [ ] REQ-DPR-007 The donor wall shows the amount and cause of every donation. MUST → 06 §10

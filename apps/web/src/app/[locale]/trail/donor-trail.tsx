@@ -4,6 +4,7 @@ import type { Locale } from "@tazkiyah/i18n/routing";
 import Image from "next/image";
 import { Fragment, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
+import { authRequest } from "@/components/auth-request";
 import { givingCopy } from "@/institutes/giving-copy";
 import { institute } from "@/institutes/markaz-al-azeem";
 import { formatPkr, type DonationType } from "@/institutes/manual-donations";
@@ -29,6 +30,8 @@ type TrailDonation = TrailCursor & {
   status: "recorded" | "reversed";
   reversal_reason: string | null;
   receipt_locale: Locale;
+  public_ref?: string;
+  bank_reference_tail: string | null;
   cause_title: LocalizedPageText | null;
   events: TrailEvent[];
 };
@@ -66,23 +69,35 @@ function useTrailToken() {
 }
 
 async function readTrail(
-  token: string,
+  token: string | undefined,
+  donationRef: string | undefined,
   cursor: TrailCursor | null,
   signal: AbortSignal,
 ): Promise<TrailResult> {
   try {
-    const response = await fetch("/api/auth/donor-trail", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(cursor ? { token, cursor } : { token }),
-      cache: "no-store",
-      credentials: "omit",
-      mode: "same-origin",
-      redirect: "error",
-      referrerPolicy: "no-referrer",
-      signal,
-    });
-    if (response.status === 404 || response.status === 400)
+    const response = await fetch(
+      token ? "/api/auth/donor-trail" : "/api/auth/account-trail",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          donationRef,
+          cursor: cursor ?? undefined,
+        }),
+        cache: "no-store",
+        credentials: token ? "omit" : "same-origin",
+        mode: "same-origin",
+        redirect: "error",
+        referrerPolicy: "no-referrer",
+        signal,
+      },
+    );
+    if (
+      response.status === 404 ||
+      response.status === 400 ||
+      response.status === 403
+    )
       return { state: "invalid" };
     if (!response.ok) return { state: "unavailable" };
     const page: TrailPage = await response.json();
@@ -197,8 +212,21 @@ function Receipt({ donation }: { donation: TrailDonation }) {
                   <dt>{copy.type}</dt>
                   <dd>{givingCopy[locale].purposes[donation.donation_type]}</dd>
                 </div>
+                {donation.bank_reference_tail && (
+                  <div>
+                    <dt>{copy.referenceTail}</dt>
+                    <dd>
+                      <bdi dir="ltr">{donation.bank_reference_tail}</bdi>
+                    </dd>
+                  </div>
+                )}
               </dl>
               <p>{copy.taxNotice}</p>
+              {donation.public_ref && (
+                <a href={`/${locale}/account/donations/${donation.public_ref}`}>
+                  {copy.viewTrail}
+                </a>
+              )}
             </section>
           );
         })}
@@ -304,11 +332,13 @@ function DonationRecord({
   locale,
   printable,
   onPrint,
+  showTrailLink,
 }: {
   donation: TrailDonation;
   locale: Locale;
   printable: boolean;
   onPrint: () => void;
+  showTrailLink: boolean;
 }) {
   const copy = trailCopy[locale];
   return (
@@ -388,13 +418,29 @@ function DonationRecord({
         >
           {copy.printReceipt}
         </button>
+        {showTrailLink && donation.public_ref && (
+          <a
+            className="button button-outline"
+            href={`/${locale}/account/donations/${donation.public_ref}`}
+          >
+            {copy.viewTrail}
+          </a>
+        )}
       </div>
       <Receipt donation={donation} />
     </article>
   );
 }
 
-function TrailResults({ locale, token }: { locale: Locale; token: string }) {
+function TrailResults({
+  locale,
+  token,
+  donationRef,
+}: {
+  locale: Locale;
+  token?: string;
+  donationRef?: string;
+}) {
   const copy = trailCopy[locale];
   const [cursors, setCursors] = useState<(TrailCursor | null)[]>([null]);
   const [retry, setRetry] = useState(0);
@@ -405,11 +451,13 @@ function TrailResults({ locale, token }: { locale: Locale; token: string }) {
 
   useEffect(() => {
     const request = new AbortController();
-    void readTrail(token, cursor, request.signal).then((loaded) => {
-      if (!request.signal.aborted) setResult(loaded);
-    });
+    void readTrail(token, donationRef, cursor, request.signal).then(
+      (loaded) => {
+        if (!request.signal.aborted) setResult(loaded);
+      },
+    );
     return () => request.abort();
-  }, [token, cursor, retry]);
+  }, [token, donationRef, cursor, retry]);
 
   useEffect(() => {
     const clear = () => setPrintId(undefined);
@@ -444,17 +492,25 @@ function TrailResults({ locale, token }: { locale: Locale; token: string }) {
                 locale={locale}
                 printable={printId === donation.id}
                 onPrint={() => printReceipt(donation.id)}
+                showTrailLink={!token && !donationRef}
               />
             ))}
           </section>
         ) : (
-          <p className="trail-message" role="status">
-            {copy.empty}
-          </p>
+          <div className="trail-message">
+            <p role="status">{token ? copy.empty : copy.accountEmpty}</p>
+            {!token && (
+              <a href={`/${locale}/donate`}>{givingCopy[locale].label}</a>
+            )}
+          </div>
         )
       ) : (
         <div className="trail-message">
-          <p role="status">{copy[result.state]}</p>
+          <p role="status">
+            {!token && result.state === "invalid"
+              ? copy.accountUnavailable
+              : copy[result.state]}
+          </p>
           {result.state === "unavailable" && (
             <button
               type="button"
@@ -468,7 +524,9 @@ function TrailResults({ locale, token }: { locale: Locale; token: string }) {
             </button>
           )}
           {result.state === "invalid" && (
-            <a href={`/${locale}/contact`}>{copy.contact}</a>
+            <a href={`/${locale}/${token ? "contact" : "account"}`}>
+              {token ? copy.contact : copy.accountBack}
+            </a>
           )}
         </div>
       )}
@@ -509,6 +567,7 @@ export function DonorTrail({ locale }: { locale: Locale }) {
     <div className="trail-client">
       <div className="trail-toolbar">
         <p>{copy.privacy}</p>
+        <a href={`/${locale}/signup`}>{copy.createAccount}</a>
         <a
           className="button button-outline"
           href={`/${alternate}/trail${token ? `#${token}` : ""}`}
@@ -533,6 +592,64 @@ export function DonorTrail({ locale }: { locale: Locale }) {
           <a href={`/${locale}/contact`}>{copy.contact}</a>
         </div>
       )}
+    </div>
+  );
+}
+
+export function AccountDonorTrail({
+  locale,
+  donationRef,
+}: {
+  locale: Locale;
+  donationRef?: string;
+}) {
+  const copy = trailCopy[locale];
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [version, setVersion] = useState(0);
+
+  async function claim() {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await authRequest("claim-guest-donations", {});
+      const result: { code?: string } = await response.json();
+      if (response.ok && result.code === "claimed") {
+        setNotice(copy.claimed);
+        setVersion((previous) => previous + 1);
+      } else if (response.ok && result.code === "none") {
+        setNotice(copy.noClaim);
+      } else {
+        setNotice(
+          result.code === "conflict"
+            ? copy.claimConflict
+            : copy.claimUnavailable,
+        );
+      }
+    } catch {
+      setNotice(copy.claimUnavailable);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="trail-client">
+      {!donationRef && (
+        <div className="trail-toolbar">
+          <button
+            className="button button-outline"
+            type="button"
+            disabled={busy}
+            onClick={() => void claim()}
+          >
+            {busy ? copy.claiming : copy.claim}
+          </button>
+          {notice && <p role="status">{notice}</p>}
+        </div>
+      )}
+      <TrailResults key={version} locale={locale} donationRef={donationRef} />
     </div>
   );
 }

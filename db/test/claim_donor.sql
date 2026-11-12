@@ -47,6 +47,7 @@ declare
 begin
   assert not has_function_privilege('tazkiyah_app', 'app.claim_donor_records()', 'EXECUTE');
   assert not has_function_privilege('tazkiyah_auth', 'app.claim_donor_records()', 'EXECUTE');
+  assert not has_function_privilege('tazkiyah_auth', 'identity.donation_trail_page(uuid, timestamptz, uuid, text)', 'EXECUTE');
   perform set_config('app.institute_id', tenant::text, true);
 
   -- Only a donor account can claim, and only with a confirmed email.

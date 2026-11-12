@@ -12,6 +12,8 @@ type TrailRow = Cursor & {
   amount_paisa: string;
   donation_type: "general" | "sadaqah" | "zakat";
   cause_title: LocalizedText | null;
+  bank_reference_tail: string | null;
+  public_ref?: string;
   status: "recorded" | "reversed";
   reversal_reason: string | null;
   events: {
@@ -24,6 +26,7 @@ type TrailRow = Cursor & {
 
 const pageSize = 20;
 const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
+export const donationRefPattern = /^[a-z2-7]{10}$/;
 const uuidPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const cursorPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
 
@@ -64,6 +67,26 @@ async function requestFields(request: Request) {
   }
 }
 
+function readCursor(value: unknown): Cursor | null | undefined {
+  if (value === undefined) return null;
+  if (!value || typeof value !== "object") return undefined;
+  const { recorded_at, id } = value as Record<string, unknown>;
+  if (
+    typeof recorded_at !== "string" ||
+    !cursorPattern.test(recorded_at) ||
+    typeof id !== "string" ||
+    !uuidPattern.test(id)
+  )
+    return undefined;
+  const date = new Date(recorded_at);
+  if (
+    !Number.isFinite(date.getTime()) ||
+    date.toISOString().slice(0, 23) !== recorded_at.slice(0, 23)
+  )
+    return undefined;
+  return { recorded_at, id };
+}
+
 export async function readTrailQuery(request: Request) {
   const fields = await requestFields(request);
   if (
@@ -72,41 +95,12 @@ export async function readTrailQuery(request: Request) {
     !tokenPattern.test(fields.token)
   )
     return null;
-
-  let cursor: Cursor | null = null;
-  if (fields.cursor !== undefined) {
-    if (!fields.cursor || typeof fields.cursor !== "object") return null;
-    const { recorded_at, id } = fields.cursor as Record<string, unknown>;
-    if (
-      typeof recorded_at !== "string" ||
-      !cursorPattern.test(recorded_at) ||
-      typeof id !== "string" ||
-      !uuidPattern.test(id)
-    )
-      return null;
-    const date = new Date(recorded_at);
-    if (
-      !Number.isFinite(date.getTime()) ||
-      date.toISOString().slice(0, 23) !== recorded_at.slice(0, 23)
-    )
-      return null;
-    cursor = { recorded_at, id };
-  }
+  const cursor = readCursor(fields.cursor);
+  if (cursor === undefined) return null;
   return { hash: await tokenHash(fields.token), cursor };
 }
 
-export async function readDonorTrail(
-  tx: AuthQuery,
-  query: { hash: string; cursor: Cursor | null },
-) {
-  const { rows } = await tx.execute<TrailRow>(sql`
-    select id, receipt_number, receipt_locale, credited_on, amount_paisa,
-      donation_type, status, recorded_at, events, reversal_reason, cause_title
-    from identity.read_guest_trail(
-      ${query.hash}, ${query.cursor?.recorded_at ?? null}::timestamptz, ${query.cursor?.id ?? null}::uuid
-    )
-  `);
-  if (!rows.length) return privateJson({ code: "unavailable" }, 404);
+function trailPage(rows: TrailRow[]) {
   const tail = rows[pageSize - 1];
   return privateJson({
     donations: rows.slice(0, pageSize),
@@ -115,6 +109,64 @@ export async function readDonorTrail(
         ? { recorded_at: tail.recorded_at, id: tail.id }
         : null,
   });
+}
+
+export async function readDonorTrail(
+  tx: AuthQuery,
+  query: { hash: string; cursor: Cursor | null },
+) {
+  const { rows } = await tx.execute<TrailRow>(sql`
+    select id, receipt_number, receipt_locale, credited_on, amount_paisa,
+      donation_type, status, recorded_at, events, reversal_reason, cause_title, bank_reference_tail
+    from identity.read_guest_trail(
+      ${query.hash}, ${query.cursor?.recorded_at ?? null}::timestamptz, ${query.cursor?.id ?? null}::uuid
+    )
+  `);
+  if (!rows.length) return privateJson({ code: "unavailable" }, 404);
+  return trailPage(rows);
+}
+
+export async function readAccountTrail(
+  tx: AuthQuery,
+  request: Request,
+  sessionId: string,
+) {
+  const fields = await requestFields(request);
+  if (!fields) return privateJson({ code: "invalid" }, 400);
+  const cursor = readCursor(fields.cursor);
+  const ref = fields.donationRef;
+  if (
+    cursor === undefined ||
+    (ref !== undefined &&
+      (typeof ref !== "string" || !donationRefPattern.test(ref) || cursor))
+  )
+    return privateJson({ code: "invalid" }, 400);
+
+  const { rows } = await tx.execute<TrailRow>(sql`
+    select id, receipt_number, receipt_locale, credited_on, amount_paisa,
+      donation_type, status, recorded_at, events, reversal_reason, cause_title, bank_reference_tail, public_ref
+    from identity.read_account_trail(${sessionId}::uuid, ${cursor?.recorded_at ?? null}::timestamptz,
+      ${cursor?.id ?? null}::uuid, ${ref ?? null}::text)
+  `);
+  if (ref && !rows.length) return privateJson({ code: "unavailable" }, 404);
+  return trailPage(rows);
+}
+
+export async function claimGuestDonations(tx: AuthQuery, sessionId: string) {
+  const {
+    rows: [result],
+  } = await tx.execute<{ code: string }>(sql`
+    select identity.claim_guest_donations(${sessionId}::uuid) as code
+  `);
+  switch (result?.code) {
+    case "claimed":
+    case "none":
+      return privateJson(result);
+    case "conflict":
+      return privateJson(result, 409);
+    default:
+      return privateJson({ code: "denied" }, 403);
+  }
 }
 
 export async function manageDonorLink(

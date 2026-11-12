@@ -593,14 +593,31 @@ select pg_temp.harness_check('tazkiyah_auth');
 -- 8: B's trail token opens nothing in A, and still opens B's own trail in B.
 set local role tazkiyah_auth;
 do $token$
+declare
+  guest record;
+  guest_hash constant text := repeat('e1', 32);
+  b_session constant uuid := '14000000-0000-4000-8000-000000000402';
 begin
-  perform set_config('app.institute_id', '14000000-0000-4000-8000-000000000001', true);
+  -- The earlier donors have account rows for the sponsorship fixtures. Use
+  -- a separate guest to verify that an active token still works inside B.
+  perform set_config('app.institute_id', '14000000-0000-4000-8000-000000000002', true);
+  perform set_config('app.user_id', '14000000-0000-4000-8000-000000000302', true);
+  select * into strict guest from identity.record_manual_donation(
+    b_session, gen_random_uuid(), '14000000-0000-4000-8000-000000000202', 'ZZB-guest-control',
+    (now() at time zone 'Asia/Karachi')::date, 310000, 'general', null, 'zzb-guest-control@example.test',
+    'en', true, true, true
+  );
+  assert guest.code = 'recorded';
+  assert identity.issue_trail_link(b_session, guest.receipt_number,
+    'zzb-guest-control@example.test', guest_hash, 'e1e1') = 'issued';
   perform set_config('app.user_id', '', true);
   assert not exists (select from identity.read_guest_trail(repeat('b1', 32), null, null)),
-    'B''s trail token opened a trail in A';
-  perform set_config('app.institute_id', '14000000-0000-4000-8000-000000000002', true);
-  assert exists (select from identity.read_guest_trail(repeat('b1', 32), null, null)),
+    'An account donor still has guest access';
+  assert exists (select from identity.read_guest_trail(guest_hash, null, null)),
     'Control failed: B''s trail token does not open B''s trail';
+  perform set_config('app.institute_id', '14000000-0000-4000-8000-000000000001', true);
+  assert not exists (select from identity.read_guest_trail(guest_hash, null, null)),
+    'B''s trail token opened a trail in A';
 end
 $token$;
 

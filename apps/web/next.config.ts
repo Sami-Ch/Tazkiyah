@@ -26,12 +26,17 @@ export default withNextIntl({
     return [
       {
         source:
-          "/:locale(en|ur)/:page(sign-in|signup|forgot-password|reset-password|account)",
+          "/:locale(en|ur)/:page(sign-in|signup|forgot-password|reset-password)",
         headers,
       },
       { source: "/:locale(en|ur)/trail", headers },
+      { source: "/:locale(en|ur)/account/:path*", headers },
       { source: "/:locale(en|ur)/admin/donor-links", headers },
-      { source: "/api/auth/:endpoint(donor-trail|donor-link)", headers },
+      {
+        source:
+          "/api/auth/:endpoint(donor-trail|donor-link|account-trail|claim-guest-donations)",
+        headers,
+      },
       {
         source: "/api/auth/:endpoint(verify-email|reset-password)/:token?",
         headers,

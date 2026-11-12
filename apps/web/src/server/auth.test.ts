@@ -622,6 +622,165 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     expect(notes).toEqual([{ reason: otherCredit.note }]);
   });
 
+  it("claims only donations for the account’s verified email and replaces the guest link", async () => {
+    await spreadOverTime();
+    const [bank] = await asOwner<{ id: string }>(`
+      select b.id from app.institute_bank_accounts b join app.institute_domains domain using (institute_id)
+      where domain.domain = 'azeem-lateef.com' and b.account_number = 'statement-bank'
+    `);
+    const credited = await enrolledAdmin.post("/manual-donation", {
+      operation: crypto.randomUUID(),
+      bank: bank.id,
+      reference: "private-reference-6721",
+      date: karachiDate(),
+      amount: "900",
+      type: "general",
+      cause: "",
+      email: "Donor@Example.Test",
+      language: "ur",
+      confirmLarge: false,
+      confirmSimilar: false,
+    });
+    expect(credited.status).toBe(201);
+    const receipt = credited.json.receipt;
+    const issued = await enrolledAdmin.post("/donor-link", {
+      action: "issue",
+      receipt,
+      email: "donor@example.test",
+      language: "ur",
+      confirm: true,
+    });
+    expect(issued.status).toBe(201);
+    const token = new URL(issued.json.link).hash.slice(1);
+    const guest = new Browser();
+    const guestTrail = await guest.post("/donor-trail", { token });
+    expect(guestTrail.json.donations).toMatchObject([
+      { receipt_number: receipt, bank_reference_tail: "6721" },
+    ]);
+    expect(JSON.stringify(guestTrail.json)).not.toContain("private-reference");
+    expect(
+      (
+        await guest.post("/claim-guest-donations", {
+          email: "donor@example.test",
+        })
+      ).status,
+    ).toBe(403);
+
+    const donor = new Browser();
+    expect(
+      (
+        await donor.post("/sign-in/email", {
+          email: "donor@example.test",
+          password,
+        })
+      ).status,
+    ).toBe(200);
+    expect((await donor.post("/account-trail", {})).json.donations).toEqual([]);
+    expect(
+      (
+        await donor.post("/claim-guest-donations", {
+          email: "somebody-else@example.test",
+        })
+      ).json.code,
+    ).toBe("claimed");
+    expect((await guest.post("/donor-trail", { token })).status).toBe(404);
+    expect(
+      (
+        await enrolledAdmin.post("/donor-link", {
+          action: "issue",
+          receipt,
+          email: "donor@example.test",
+          language: "ur",
+          confirm: true,
+        })
+      ).status,
+    ).toBe(404);
+    expect((await donor.post("/claim-guest-donations", {})).json.code).toBe(
+      "none",
+    );
+    const linked = await donor.post("/account-trail", {});
+    expect(linked.status).toBe(200);
+    expect(linked.json.donations).toMatchObject([
+      {
+        receipt_number: receipt,
+        receipt_locale: "ur",
+        bank_reference_tail: "6721",
+      },
+    ]);
+    const donationRef = linked.json.donations[0].public_ref;
+    expect(
+      (await donor.post("/account-trail", { donationRef })).json.donations,
+    ).toHaveLength(1);
+    expect((await guest.post("/account-trail", { donationRef })).status).toBe(
+      403,
+    );
+
+    await asOwner(
+      `
+      with account as (
+        insert into app.users (institute_id, email, full_name, status, must_change_password, email_verified)
+        select institute_id, 'different-donor@example.test', 'Another donor fixture', 'active', false, true
+        from app.users where id = $1 returning id, institute_id
+      ), donor_role as (
+        insert into app.user_roles (institute_id, user_id, role) select institute_id, id, 'donor' from account
+      )
+      insert into identity.accounts (institute_id, user_id, provider_id, account_id, password)
+      select account.institute_id, account.id, 'credential', account.id::text, old.password
+      from account join identity.accounts old on old.institute_id = account.institute_id
+      where old.user_id = $1 and old.provider_id = 'credential'
+    `,
+      [staff.donor],
+    );
+    const other = new Browser();
+    expect(
+      (
+        await other.post("/sign-in/email", {
+          email: "different-donor@example.test",
+          password,
+        })
+      ).status,
+    ).toBe(200);
+    expect((await other.post("/account-trail", { donationRef })).status).toBe(
+      404,
+    );
+    expect((await other.post("/account-trail", {})).json.donations).toEqual([]);
+
+    const next = await enrolledAdmin.post("/manual-donation", {
+      operation: crypto.randomUUID(),
+      bank: bank.id,
+      reference: "claimed-receipt-7290",
+      date: karachiDate(),
+      amount: "901",
+      type: "general",
+      cause: "",
+      email: "donor@example.test",
+      emailConfirmed: true,
+      language: "en",
+      confirmLarge: false,
+      confirmSimilar: false,
+    });
+    expect(next.status).toBe(201);
+    expect(
+      (await donor.post("/account-trail", {})).json.donations,
+    ).toHaveLength(2);
+    const [job] = await asOwner<{ job_id: string; claim_token: string }>(
+      `
+      select claim.job_id, claim.claim_token from mail.claim_receipt_emails(10) claim
+      join app.receipt_email_jobs job on job.id = claim.job_id
+      join app.donations gift on (gift.institute_id, gift.id) = (job.institute_id, job.donation_id)
+      where gift.receipt_number = $1
+    `,
+      [next.json.receipt],
+    );
+    const prepared = await asOwner(
+      `
+      select outcome, include_trail from mail.prepare_receipt_email($1::uuid, $2::uuid, repeat('e', 64), null)
+    `,
+      [job.job_id, job.claim_token],
+    );
+    expect(prepared).toEqual([{ outcome: "ready", include_trail: false }]);
+  });
+
   it("locks the account for 15 minutes after 5 wrong codes", async () => {
     const setup = new Browser();
     const { enabled } = await enrol(setup, "finance_officer@example.test");

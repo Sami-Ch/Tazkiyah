@@ -610,7 +610,7 @@ During the first release, a two-factor verified administrator issues or revokes 
 A guest donor can create an account later and claim their past donations (REQ-DPR-003).
 
 1. The donor signs up with email ([03 §6](03-architecture.md), REQ-DPR-004) and confirms the address.
-2. Every guest donation whose donor email exactly matches the confirmed email is linked to the new account. Case is ignored and spaces are trimmed.
+2. Under **My donations**, the donor chooses **Claim donations made with my email**. Every guest donation whose donor email exactly matches the confirmed email is linked to the new account. Case is ignored and spaces are trimmed.
 3. The private link is revoked automatically. The account replaces it.
 4. Every per-donation name or anonymous choice stays as it was.
 
@@ -967,13 +967,15 @@ P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals p
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P2-E5-T01 | Donor account sign-up and claiming guest donations by confirmed email (§11.3) | todo | P0-E5, P1-E3-T04 | REQ-DPR-003, REQ-DPR-004, REQ-DPR-010 |
+| P2-E5-T01 | Donor account sign-up and claiming guest donations by confirmed email (§11.3) | done | P0-E5, P1-E3-T04 | REQ-DPR-003, REQ-DPR-004, REQ-DPR-010 |
 | P2-E5-T02 | Public donor profile: display name, photo, up to 3 links, named donations only (§10.1) | todo | P2-E5-T01 | REQ-DPR-005 |
 | P2-E5-T03 | Donor can switch each donation between named and anonymous, with cache purge | todo | P2-E5-T01, P1-E3-T06 | REQ-DPR-006, REQ-DPR-008 |
 | P2-E5-T04 | Donor wall data: amount, cause, date, name or "Anonymous", paged, no type (§10.2) | todo | P1-E3-T06 | REQ-DPR-007, REQ-DPR-008, REQ-DPR-009 |
 | P2-E5-T05 | Public trail toggle per donation and the public trail page (§10.3) | todo | P2-E2-T05 | REQ-TRL-008, REQ-TRL-009, REQ-DPR-009 |
-| P2-E5-T06 | "My donations" list with states and receipts for account donors | todo | P2-E5-T01, P1-E4-T03 | REQ-DPR-010 |
+| P2-E5-T06 | "My donations" list with states and receipts for account donors | in progress | P2-E5-T01, P1-E4-T03 | REQ-DPR-010 |
 | P2-E5-T07 | Anonymity leak test across pages, exports, API, logs, audit log and emails (§10.4) | todo | P2-E5-T04, P2-E5-T05, P2-E7-T60 | REQ-DPR-009, REQ-SEC-008 |
+
+[Migration 0058](../db/drizzle/0058_account_donation_trails.sql) connects the verified-email claim to **My donations**. It revokes existing guest access and prevents both manual issuance and receipt jobs from creating a new guest link for a claimed donor. Signed-in donors can page through their own donations, open an individual trail, and print a bilingual receipt with the last four characters of its bank reference. The full receipt details and spending events are still tracked in P1-E4-T03 and P2-E2-T05.
 
 ### P2-E6 Spending reports and public cause transparency
 

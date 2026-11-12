@@ -97,6 +97,8 @@ Record the transfer with the donor's verified email. As a two-factor verified ad
 
 Generate a replacement link or revoke access from the same workspace. Replacing a link disables the old one across all gifts from that guest donor. The database stores the link's hash. When a receipt recipient's email is confirmed during recording, the app queues an email for the [receipt job](docs/vercel.md#receipt-email).
 
+Donors can create an account, confirm their email, and open **My donations** from the account page. **Claim donations made with my email** links past transfers made with that address and revokes the old guest link. The account then provides the donation history, individual trails, and printable receipts.
+
 ## Add campus photos and video
 
 Place approved WebP photos and the film poster in `apps/web/public/campus/`. Replace the sample entries in [campus-media.ts](apps/web/src/institutes/campus-media.ts) with their dimensions, Urdu and English descriptions and captions. Put the wide lead photo first. Additional photos appear in the gallery. Supply smaller WebP variants for mobile where available. Set `sample: false` after replacing all sample entries.

@@ -18,6 +18,24 @@ export const trailCopy = {
     donations: "Recorded donations",
     receipt: "Donation receipt",
     receiptNumber: "Receipt number",
+    referenceTail: "Bank reference ending",
+    viewTrail: "View donation trail",
+    createAccount: "Create a donor account to keep your donations together",
+    accountTitle: "My donations",
+    accountBack: "Back to your account",
+    accountList: "Back to my donations",
+    accountEmpty: "You have no donations linked to this account yet.",
+    accountUnavailable:
+      "This donation trail is unavailable. Check that you’re signed into your donor account.",
+    claim: "Claim donations made with my email",
+    claiming: "Checking your email…",
+    claimed:
+      "Your past donations are now in this account. Use this page to view them.",
+    noClaim: "There are no new donations to claim for your verified email.",
+    claimConflict:
+      "This account already has a donor record. Contact the institute office for help linking your donations.",
+    claimUnavailable:
+      "Donations could not be claimed. Check that your email address is verified and try again.",
     printReceipt: "Print receipt",
     anonymous: "Anonymous donor",
     credited: "Transfer date",
@@ -75,6 +93,26 @@ export const trailCopy = {
     donations: "درج شدہ عطیات",
     receipt: "عطیے کی رسید",
     receiptNumber: "رسید نمبر",
+    referenceTail: "بینک حوالے کے آخری حروف",
+    viewTrail: "عطیے کا ریکارڈ دیکھیں",
+    createAccount:
+      "اپنے عطیات ایک جگہ رکھنے کے لیے عطیہ دہندہ کا اکاؤنٹ بنائیں",
+    accountTitle: "میرے عطیات",
+    accountBack: "اپنے اکاؤنٹ پر واپس جائیں",
+    accountList: "میرے عطیات پر واپس جائیں",
+    accountEmpty: "ابھی اس اکاؤنٹ سے کوئی عطیہ منسلک نہیں ہے۔",
+    accountUnavailable:
+      "یہ ریکارڈ دستیاب نہیں۔ چیک کریں کہ آپ عطیہ دہندہ کے اکاؤنٹ سے سائن اِن ہیں۔",
+    claim: "میری ای میل سے دیے گئے عطیات منسلک کریں",
+    claiming: "آپ کی ای میل چیک ہو رہی ہے…",
+    claimed:
+      "آپ کے پچھلے عطیات اس اکاؤنٹ سے منسلک ہو گئے ہیں۔ انہیں یہاں دیکھیں۔",
+    noClaim:
+      "آپ کی تصدیق شدہ ای میل سے منسلک کرنے کے لیے کوئی نیا عطیہ نہیں ہے۔",
+    claimConflict:
+      "اس اکاؤنٹ کے ساتھ عطیہ دہندہ کا ریکارڈ پہلے سے ہے۔ اپنے عطیات منسلک کرنے کے لیے ادارے کے دفتر سے رابطہ کریں۔",
+    claimUnavailable:
+      "عطیات منسلک نہیں ہو سکے۔ اپنی ای میل کی تصدیق چیک کریں اور دوبارہ کوشش کریں۔",
     printReceipt: "رسید پرنٹ کریں",
     anonymous: "گمنام عطیہ دہندہ",
     credited: "منتقلی کی تاریخ",

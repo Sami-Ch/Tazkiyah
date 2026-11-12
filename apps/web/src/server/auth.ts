@@ -49,7 +49,13 @@ import {
   readStatementWorkspace,
   type StatementWorkspace,
 } from "./bank-reconciliation";
-import { manageDonorLink, readDonorTrail, readTrailQuery } from "./donor-trail";
+import {
+  claimGuestDonations,
+  manageDonorLink,
+  readAccountTrail,
+  readDonorTrail,
+  readTrailQuery,
+} from "./donor-trail";
 import {
   manageDonationReversal,
   readDonationWorkspace,
@@ -101,6 +107,8 @@ const postEndpoints = new Set([
   "/bank-reconciliation",
   "/bank-account",
   "/donor-trail",
+  "/account-trail",
+  "/claim-guest-donations",
   "/donor-link",
   "/two-factor/verify-totp",
   "/two-factor/verify-backup-code",
@@ -320,7 +328,13 @@ async function runAuth(request: Request, path: string) {
   if (publicUrl.protocol !== "https:" && !local)
     return jsonError("Not found.", 404);
 
-  if ((path === "/donor-trail" || path === "/donor-link") && publicUrl.search)
+  if (
+    (path === "/donor-trail" ||
+      path === "/donor-link" ||
+      path === "/account-trail" ||
+      path === "/claim-guest-donations") &&
+    publicUrl.search
+  )
     return jsonError("Invalid request.", 400);
   const trailQuery =
     path === "/donor-trail" ? await readTrailQuery(request) : null;
@@ -573,6 +587,20 @@ async function runAuth(request: Request, path: string) {
           return privateJson(
             await readAccountAccess(tx, await currentSession()),
           );
+        }
+        if (path === "/account-trail" || path === "/claim-guest-donations") {
+          const session = await currentSession();
+          const access = await readAccountAccess(tx, session);
+          if (
+            !session ||
+            access.state !== "allowed" ||
+            access.mustChangePassword ||
+            !access.roles.includes("donor")
+          )
+            return privateJson({ code: "denied" }, 403);
+          return path === "/account-trail"
+            ? readAccountTrail(tx, request, session.session.id)
+            : claimGuestDonations(tx, session.session.id);
         }
         if (path === "/staff-invite/accept") {
           return acceptStaffInvitation(tx, request);
