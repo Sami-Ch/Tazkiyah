@@ -43,6 +43,9 @@ export default async function DonationsPage({
       {workspace.state === "allowed" ? (
         <>
           <p>{copy.intro}</p>
+          <a href={`/${locale}/admin/donations/reconciliation`}>
+            {common.bankReconciliation.heading}
+          </a>
           {workspace.banks.length ? (
             <ManualDonationForm
               copy={copy}

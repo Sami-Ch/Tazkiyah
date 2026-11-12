@@ -1182,6 +1182,8 @@ export const donations = app
       trailPublic: boolean("trail_public").default(false).notNull(),
       status: text().default("recorded").notNull(),
       privateNote: text("private_note"),
+      statementAuditId: bigint("statement_audit_id", { mode: "bigint" }),
+      statementMatched: boolean("statement_matched"),
       recordedBy: uuid("recorded_by").notNull(),
       recordedAt: timestamp("recorded_at", { withTimezone: true })
         .defaultNow()
@@ -1190,6 +1192,10 @@ export const donations = app
     (table) => [
       index("donations_cause").on(table.instituteId, table.causeId),
       index("donations_recorded_by").on(table.instituteId, table.recordedBy),
+      index("donations_statement_audit").on(
+        table.instituteId,
+        table.statementAuditId,
+      ),
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.operationId),
       unique().on(table.instituteId, table.receiptNumber),
@@ -1246,6 +1252,10 @@ export const donations = app
         columns: [table.instituteId, table.recordedBy],
         foreignColumns: [users.instituteId, users.id],
       }),
+      foreignKey({
+        columns: [table.instituteId, table.statementAuditId],
+        foreignColumns: [auditLog.instituteId, auditLog.id],
+      }),
       check(
         "donations_amount_check",
         sql`amount_paisa between 100 and 99999999999900 and amount_paisa % 100 = 0`,
@@ -1285,6 +1295,10 @@ export const donations = app
       ),
       check("donations_locale_check", sql`receipt_locale in ('en', 'ur')`),
       check("donations_status_check", sql`status in ('recorded', 'reversed')`),
+      check(
+        "donations_statement_check",
+        sql`(statement_audit_id is null) = (statement_matched is null) and (statement_audit_id is null or method = 'bank_transfer')`,
+      ),
       check("donations_anonymity_check", sql`is_anonymous`),
       manualDonationIsolation(),
       // 04 §6.4: the donor (account or trail token) reads their own

@@ -118,7 +118,7 @@ Every page exists under both prefixes. The table shows the path once, after the 
 | --- | --- | --- |
 | Dashboard | `/admin` | P1 |
 | Causes | `/admin/causes`, `/admin/causes/new`, `/admin/causes/{id}` | P1 |
-| Donations and reconciliation | `/admin/donations`, `/admin/donations/new`, `/admin/donations/notices`, `/admin/donations/{id}` | P1 |
+| Donations and reconciliation | `/admin/donations`, `/admin/donations/new`, `/admin/donations/notices`, `/admin/donations/reconciliation`, `/admin/donations/{id}` | P1 |
 | All-needs split | `/admin/all-needs` | P2 |
 | Spending entries and reports | `/admin/spending`, `/admin/spending/{batch_id}`, `/admin/reports` | P2 |
 | Consent records | `/admin/consent`, `/admin/consent/{id}` | P3 (orphan sign-offs P4) |
@@ -394,6 +394,7 @@ This table is the one place where role rights are defined (REQ-ROL-002). Code re
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Give and send a transfer notice | yes (as guest) | yes | — ¹ | — ¹ | — ¹ | — ¹ | — ¹ |
 | Record a bank-transfer donation | — | — | — | — | — | yes | yes |
+| Reconcile a bank statement | — | — | — | — | — | yes | yes |
 | Confirm or reject a transfer notice (reconcile) | — | — | — | — | — | yes | yes |
 | Reverse a donation, with a reason | — | — | — | — | — | yes | yes |
 | See the donor's name and email on a donation record | — | own | — | — | — | yes | yes |

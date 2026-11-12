@@ -44,6 +44,11 @@ import {
 } from "./site-pages";
 import { authOriginHeader, forwardedHttpsOrigin } from "./auth-origin";
 import { readAuditWorkspace, type AuditWorkspace } from "./audit-log";
+import {
+  manageBankStatement,
+  readStatementWorkspace,
+  type StatementWorkspace,
+} from "./bank-reconciliation";
 import { manageDonorLink, readDonorTrail, readTrailQuery } from "./donor-trail";
 import {
   manageDonationReversal,
@@ -93,6 +98,7 @@ const postEndpoints = new Set([
   "/first-password",
   "/manual-donation",
   "/donation-reversal",
+  "/bank-reconciliation",
   "/bank-account",
   "/donor-trail",
   "/donor-link",
@@ -197,6 +203,15 @@ export function getBankWorkspace(headers: Headers): Promise<BankWorkspace> {
   return readWorkspace<BankWorkspace>(headers, "/bank-settings");
 }
 
+export function getStatementWorkspace(
+  headers: Headers,
+): Promise<StatementWorkspace> {
+  return readWorkspace<StatementWorkspace>(
+    headers,
+    "/bank-reconciliation-workspace",
+  );
+}
+
 export function getSitePageWorkspace(
   headers: Headers,
 ): Promise<SitePageWorkspace> {
@@ -247,7 +262,8 @@ async function readWorkspace<
     | CauseWorkspace
     | AuditWorkspace
     | DonationWorkspace
-    | BankWorkspace,
+    | BankWorkspace
+    | StatementWorkspace,
 >(
   headers: Headers,
   path: string,
@@ -585,6 +601,8 @@ async function runAuth(request: Request, path: string) {
           path === "/manual-donation-workspace" ||
           path === "/manual-donation" ||
           path === "/donation-reversal" ||
+          path === "/bank-reconciliation" ||
+          path === "/bank-reconciliation-workspace" ||
           path === "/site-page-workspace" ||
           path === "/site-page" ||
           path === "/cause-workspace" ||
@@ -593,6 +611,28 @@ async function runAuth(request: Request, path: string) {
           const session = await currentSession();
           const access = await checkWorkspaceAccess(tx, session);
           if (path === "/admin-access") return privateJson(access);
+          if (
+            path === "/bank-reconciliation" ||
+            path === "/bank-reconciliation-workspace"
+          ) {
+            if (
+              path === "/bank-reconciliation-workspace" &&
+              access.state !== "allowed"
+            )
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canReconcileTransfers
+            ) {
+              return path === "/bank-reconciliation"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            }
+            return path === "/bank-reconciliation"
+              ? manageBankStatement(tx, request, session.session.id)
+              : readStatementWorkspace(tx, session.session.id);
+          }
           if (path === "/donation-reversal") {
             if (
               !session ||

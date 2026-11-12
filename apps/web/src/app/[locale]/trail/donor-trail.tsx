@@ -6,7 +6,7 @@ import { Fragment, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { givingCopy } from "@/institutes/giving-copy";
 import { institute } from "@/institutes/markaz-al-azeem";
-import type { DonationType } from "@/institutes/manual-donations";
+import { formatPkr, type DonationType } from "@/institutes/manual-donations";
 import {
   pageTranslation,
   type LocalizedPageText,
@@ -92,24 +92,6 @@ async function readTrail(
   } catch {
     return { state: "unavailable" };
   }
-}
-
-function formatPkr(value: string, locale: Locale) {
-  const paisa = BigInt(value);
-  const remainder = paisa % 100n;
-  const format = new Intl.NumberFormat(`${locale}-PK`, {
-    style: "currency",
-    currency: "PKR",
-    minimumFractionDigits: remainder ? 2 : 0,
-  });
-  if (!remainder) return format.format(paisa / 100n);
-  const digits = new Intl.NumberFormat(`${locale}-PK`, {
-    minimumIntegerDigits: 2,
-  }).format(remainder);
-  return format
-    .formatToParts(paisa / 100n)
-    .map((part) => (part.type === "fraction" ? digits : part.value))
-    .join("");
 }
 
 function TrailDate({

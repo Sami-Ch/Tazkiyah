@@ -94,6 +94,10 @@ declare
   mark text;
   link int;
   result record;
+  statement_session uuid;
+  statement_bank uuid;
+  statement_on constant date := (now() at time zone 'Asia/Karachi')::date;
+  statement_review text;
 begin
   for n in 1..2 loop
     mark := (array['ZZA', 'ZZB'])[n];
@@ -108,6 +112,11 @@ begin
       true, true, true
     );
     assert result.code = 'recorded', 'Fixture donation was not recorded: ' || result.code;
+    statement_session := ('14000000-0000-4000-8000-00000000040' || n)::uuid;
+    statement_bank := ('14000000-0000-4000-8000-00000000020' || n)::uuid;
+    statement_review := identity.read_bank_statement(statement_session, statement_bank, statement_on, statement_on) ->> 'review';
+    assert identity.close_bank_statement(statement_session, statement_bank, statement_on, statement_on,
+      statement_review, array[result.donation_id], gen_random_uuid()) = 'closed', 'Fixture statement was not closed';
     -- A student with a persona and its private link, made the way staff make one.
     assert identity.create_student_account(
       ('14000000-0000-4000-8000-00000000040' || n)::uuid, mark || '-Student', repeat('h', 64),

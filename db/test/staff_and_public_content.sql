@@ -193,6 +193,12 @@ begin
   begin
     truncate app.audit_log;
     raise exception 'Audit truncate was accepted';
+  exception when object_not_in_prerequisite_state or feature_not_supported then
+    null;
+  end;
+  begin
+    truncate app.audit_log cascade;
+    raise exception 'Cascading audit truncate was accepted';
   exception when object_not_in_prerequisite_state then
     null;
   end;

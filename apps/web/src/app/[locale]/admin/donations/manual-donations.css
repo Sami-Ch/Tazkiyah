@@ -74,6 +74,30 @@
   gap: 1rem;
 }
 
+.statement-day,
+.statement-summary {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.statement-transfer {
+  border-block-start: 1px solid var(--border);
+  padding-block: 0.5rem;
+}
+
+.statement-transfer small {
+  display: block;
+}
+
+.statement-summary {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+}
+
+.statement-summary dd {
+  margin: 0;
+  font-weight: 600;
+}
+
 .donation-reversal-details {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
   border-block-start: 1px solid var(--border);

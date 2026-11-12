@@ -13,7 +13,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-DON-005 Every cause has a type of campaign, ongoing or yearly stock. MUST → 06 §5
 - [ ] REQ-DON-006 A campaign stops accepting donations after its end date. MUST → 06 §5
 - [ ] REQ-DON-007 Admin can set a target amount for each cause. MUST → 06 §5
-- [ ] REQ-DON-008 Admin can record a bank-transfer donation with amount, date, donor, cause or all needs, type and bank reference. MUST → 06 §4
+- [x] REQ-DON-008 Admin can record a bank-transfer donation with amount, date, donor, cause or all needs, type and bank reference. MUST → 06 §4
 - [ ] REQ-DON-009 Admin can create, edit, close and archive causes with Urdu and English text. MUST → 05 §8
 - [ ] REQ-DON-010 Every recorded donation gets a unique receipt number. MUST → 06 §14
 - [ ] REQ-DON-011 Donor receives an emailed receipt in their chosen language when a donation is recorded. SHOULD → 06 §14
@@ -112,7 +112,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 ## Payments
 
-- [ ] REQ-PAY-001 Until online payments arrive, donations are recorded manually by admin from bank transfers. MUST → 06 §4
+- [x] REQ-PAY-001 Until online payments arrive, donations are recorded manually by admin from bank transfers. MUST → 06 §4
 - [ ] REQ-PAY-002 The payment gateway is chosen with Sami before Phase 5 starts. MUST → 03 §11
 - [ ] REQ-PAY-003 Card payments support one-off and automatic monthly or yearly donations. LATER → 06 §16
 - [ ] REQ-PAY-004 JazzCash and Easypaisa support one-off donations. LATER → 06 §16

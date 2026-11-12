@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  asciiDigits,
   donationTypes,
   karachiDate,
   receiptPattern,
@@ -109,7 +110,6 @@ export async function manageDonationReversal(
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const supportedDate = /^(?!0000)\d{4}-\d{2}-\d{2}$/;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const localizedDigits = "٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹";
 
 export async function recordDonation(
   tx: AuthQuery,
@@ -133,12 +133,7 @@ export async function recordDonation(
     confirmLarge,
     confirmSimilar,
   } = input as Record<string, unknown>;
-  const rupees =
-    typeof amount === "string"
-      ? amount.replace(/[٠-٩۰-۹]/g, (digit) =>
-          String(localizedDigits.indexOf(digit) % 10),
-        )
-      : "";
+  const rupees = typeof amount === "string" ? asciiDigits(amount) : "";
   if (
     typeof operation !== "string" ||
     !uuid.test(operation) ||

@@ -11,6 +11,7 @@ export type AdminAccess =
       canEditPages: boolean;
       canRecordTransfers: boolean;
       canReverseTransfers: boolean;
+      canReconcileTransfers: boolean;
       canCreateStudents: boolean;
       twoFactorVerified: boolean;
     }
@@ -111,6 +112,7 @@ export async function checkWorkspaceAccess(
     canEditPages: can(actor, "site_pages.edit"),
     canRecordTransfers: can(actor, "donation.record"),
     canReverseTransfers: can(actor, "donation.reverse"),
+    canReconcileTransfers: can(actor, "donation.reconcile"),
     canCreateStudents: can(actor, "student_account.create"),
     twoFactorVerified: requireMfa,
   } as const;

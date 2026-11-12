@@ -85,6 +85,8 @@ Administrators and finance officers can open **Record a bank transfer** after co
 
 To correct an unspent transfer, use **Reverse a recorded transfer** in the same workspace. Look it up by receipt number, check the original, choose a reason, and confirm. The private trail and printable receipt show the cancellation. Record a new transfer if the ledger needs corrected details.
 
+Open **Bank reconciliation** from the transfers screen to review a statement. Select the account and date range, tick the transfers found on the statement, and close the period. Staff can record a missing donation from the transfers screen or note a non-donation credit in the audit log.
+
 Open **Bank accounts** as an administrator to enter verified institute accounts for finance staff. Review each account separately and confirm publication before it appears on the Give page. Hiding an account takes it off the Give page while keeping it available to staff for recording.
 
 The seed supplies the institute's address and directions. An authorized database operator can enter verified phone and email details before launch.

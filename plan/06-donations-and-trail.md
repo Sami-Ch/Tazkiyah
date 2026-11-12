@@ -908,9 +908,11 @@ The bilingual admin cause form saves the optional scholar name and the spending 
 | P1-E3-T09 | Reverse a donation before any spending, with a reason; receipt marked cancelled (§15.2, §15.3) | done | P1-E3-T01, P1-E3-T03 | REQ-DON-012, REQ-TRL-003 |
 | P1-E3-T10 | Recurring pledges: create from the notice form or by admin, and link recorded payments (§13.1) | todo | P1-E3-T02, P1-E3-T07 | REQ-DON-003 |
 | P1-E3-T11 | "Expected this month" list and pledge lapsing after 3 missed periods | todo | P1-E3-T10 | REQ-DON-003 |
-| P1-E3-T12 | Bank statement reconciliation screen (§15.1) | todo | P1-E3-T02, P1-E3-T09 | REQ-DON-008, REQ-DON-012, REQ-PAY-001 |
+| P1-E3-T12 | Bank statement reconciliation screen (§15.1) | done | P1-E3-T02, P1-E3-T09 | REQ-DON-008, REQ-DON-012, REQ-PAY-001 |
 
 P1-E3-T09 uses [migration 0056](../db/drizzle/0056_manual_donation_reversal.sql) and the bilingual staff donations screen. Administrators and finance officers with two-factor verification find the original bank transfer by receipt number. The reversal preserves that receipt number and original cause, and the guest trail shows the cancellation and reason category. The staff note is kept in the audit record. Reversing an already-spent donation from the staff screen remains P2-E2-T03.
+
+P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals per day and masks references to their last four characters. Closing a review records one audit summary and updates all matched and missing transfers in the same transaction. If a transfer was added, reversed, or reconciled since the review was loaded, staff reload before closing. Non-donation credits go only to the audit log. See [migration 0057](../db/drizzle/0057_bank_statement_reconciliation.sql).
 
 ### P1-E4 Donor's own trail view (received and allocated)
 

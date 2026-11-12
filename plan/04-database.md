@@ -649,11 +649,13 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `receipt_number` | `text not null` | `{prefix}-{year}-{5-digit sequence}`, for example `MAA-2026-00042` (06 §14), `unique (institute_id, receipt_number)` (REQ-DON-010). |
 | `receipt_locale` | `text not null` | `en` or `ur`, copied from the donor at recording time. Named `receipt_language` before D-120. |
 | `status` | `text not null default 'recorded'` | `recorded`, `reversed`. Changed only by the reversal function. |
+| `statement_audit_id` | `bigint null` | Composite foreign key to the institute's audit row for the last statement review. The audit row records the date range and totals. |
+| `statement_matched` | `bool null` | True when found on the statement, false when flagged as missing, null before the first review. |
 | `private_note` | `text null` | Staff only. Must not hold an anonymous donor's name (reviewed in the admin form, [05 §8](05-public-pages-roles-admin.md)). |
 
 **Data-level rules (triggers):**
 
-- After insert, only `is_anonymous`, `trail_public` and (through the reversal function) `status` may change. Any other column change is rejected. Corrections are reversals plus a new donation (REQ-DON-012).
+- After insert, the anonymity and trail choices can change. The reversal function updates `status`, and closing a statement updates `statement_audit_id` and `statement_matched` together. Corrections to transfer details are reversals plus a new donation (REQ-DON-012).
 - `cause_id`, when set, must point at a cause with `status = 'active'`. For a campaign, `credited_on <= ends_on` (REQ-DON-006). An admin recording a late bank transfer for a closed campaign records it as all needs; 06 §5 owns that rule.
 - If `donation_type = 'zakat'` and `cause_id` is set, the cause must have `accepts_zakat` (§9.4).
 
