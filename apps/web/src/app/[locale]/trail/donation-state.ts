@@ -3,17 +3,10 @@
 // events themselves are left out by the server. Money can sit at several
 // stages at once, so the state is the earliest stage any of it is still at.
 
-export const reversalCategories = [
-  "recorded_twice",
-  "wrong_details",
-  "wrong_type",
-  "wrong_donor",
-  "transfer_returned",
-  "refund_to_donor",
-  "moved_to_another_cause",
-  "other",
-] as const;
-export type ReversalCategory = (typeof reversalCategories)[number];
+import {
+  reversalCategories,
+  type ReversalCategory,
+} from "@/institutes/manual-donations";
 
 export type StateEvent<Cause> = {
   event_type: "received" | "allocated" | "spent" | "reported";

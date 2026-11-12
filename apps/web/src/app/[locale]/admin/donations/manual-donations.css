@@ -67,3 +67,15 @@
   padding-block: 0.75rem;
   border-block-start: 1px solid var(--border);
 }
+
+.donation-reversal,
+.donation-reversal-details {
+  display: grid;
+  gap: 1rem;
+}
+
+.donation-reversal-details {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 1rem;
+}

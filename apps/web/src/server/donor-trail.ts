@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { receiptPattern } from "@/institutes/manual-donations";
 import { privateJson, tokenHash } from "./staff-invitations";
 import type { AuthQuery } from "./workspace-access";
 
@@ -10,6 +11,7 @@ type TrailRow = Cursor & {
   credited_on: string;
   amount_paisa: string;
   donation_type: "general" | "sadaqah" | "zakat";
+  cause_title: LocalizedText | null;
   status: "recorded" | "reversed";
   reversal_reason: string | null;
   events: {
@@ -22,7 +24,6 @@ type TrailRow = Cursor & {
 
 const pageSize = 20;
 const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
-const receiptPattern = /^[A-Z0-9]{1,64}-\d{4}-\d{5,19}$/;
 const uuidPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const cursorPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
 
@@ -100,7 +101,7 @@ export async function readDonorTrail(
 ) {
   const { rows } = await tx.execute<TrailRow>(sql`
     select id, receipt_number, receipt_locale, credited_on, amount_paisa,
-      donation_type, status, recorded_at, events, reversal_reason
+      donation_type, status, recorded_at, events, reversal_reason, cause_title
     from identity.read_guest_trail(
       ${query.hash}, ${query.cursor?.recorded_at ?? null}::timestamptz, ${query.cursor?.id ?? null}::uuid
     )
@@ -108,12 +109,7 @@ export async function readDonorTrail(
   if (!rows.length) return privateJson({ code: "unavailable" }, 404);
   const tail = rows[pageSize - 1];
   return privateJson({
-    donations: rows.slice(0, pageSize).map((row) => ({
-      ...row,
-      cause_title:
-        row.events.find(({ event_type }) => event_type === "allocated")
-          ?.cause_title ?? null,
-    })),
+    donations: rows.slice(0, pageSize),
     nextCursor:
       rows.length > pageSize
         ? { recorded_at: tail.recorded_at, id: tail.id }

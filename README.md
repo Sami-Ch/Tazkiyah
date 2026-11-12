@@ -83,6 +83,8 @@ Administrators can create, publish, and close bilingual giving causes in **Manag
 
 Administrators and finance officers can open **Record a bank transfer** after completing two-factor verification. Use a confirmed bank statement credit. The workspace records the transfer, assigns a receipt number and adds its received and, when applicable, allocated events. Transfers start anonymous and any supplied donor email remains private. The admin-only **Audit log** shows redacted activity.
 
+To correct an unspent transfer, use **Reverse a recorded transfer** in the same workspace. Look it up by receipt number, check the original, choose a reason, and confirm. The private trail and printable receipt show the cancellation. Record a new transfer if the ledger needs corrected details.
+
 Open **Bank accounts** as an administrator to enter verified institute accounts for finance staff. Review each account separately and confirm publication before it appears on the Give page. Hiding an account takes it off the Give page while keeping it available to staff for recording.
 
 The seed supplies the institute's address and directions. An authorized database operator can enter verified phone and email details before launch.

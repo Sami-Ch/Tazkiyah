@@ -6,6 +6,7 @@ import { createOTP } from "@better-auth/utils/otp";
 import { hashPassword } from "better-auth/crypto";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { karachiDate } from "@/institutes/manual-donations";
 
 // Runs the real Better Auth handler against the migrated schema in PGlite,
 // connected as tazkiyah_auth through a local Postgres socket.
@@ -373,6 +374,120 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
       zakat_approved_by: null,
       receipt_public_by_default: false,
     });
+  });
+
+  it("reverses a recorded transfer once and reports the cancellation on its private trail", async () => {
+    const [bank] = await asOwner<{ id: string }>(`
+      insert into app.institute_bank_accounts (institute_id, label, bank_name, account_title, account_number)
+      select institute_id, '{"en":"Fixture bank"}', 'Bank', 'Institute', '123456'
+      from app.institute_domains where domain = 'azeem-lateef.com'
+      returning id
+    `);
+    const [cause] = await auth.getPublishedCauses(
+      enrolledAdmin.headers(),
+      "test-zakat-cause",
+    );
+    const email = "fixture-reversal@example.test";
+    const recorded = await enrolledAdmin.post("/manual-donation", {
+      operation: crypto.randomUUID(),
+      bank: bank.id,
+      reference: "fixture-reversal-reference",
+      date: karachiDate(),
+      amount: "1200",
+      type: "general",
+      cause: cause.id,
+      email,
+      language: "ur",
+      confirmLarge: false,
+      confirmSimilar: false,
+    });
+    expect(recorded.status).toBe(201);
+    const receipt = recorded.json.receipt;
+    const issued = await enrolledAdmin.post("/donor-link", {
+      action: "issue",
+      receipt,
+      email,
+      language: "ur",
+      confirm: true,
+    });
+    expect(issued.status).toBe(201);
+    const token = new URL(issued.json.link).hash.slice(1);
+
+    const lookup = { action: "lookup", receipt };
+    expect(
+      (await new Browser().post("/donation-reversal", lookup)).status,
+    ).toBe(403);
+    const before = await enrolledAdmin.post("/donation-reversal", lookup);
+    expect(before.json.transfer).toMatchObject({
+      receipt_number: receipt,
+      amount_paisa: "120000",
+      status: "recorded",
+      has_spending: false,
+    });
+    expect(JSON.stringify(before.json)).not.toContain(email);
+    const reversal = {
+      action: "reverse",
+      receipt,
+      category: "other",
+      note: "Duplicate import from an old spreadsheet",
+    };
+    expect(
+      (await enrolledAdmin.post("/donation-reversal", reversal)).status,
+    ).toBe(400);
+    expect(
+      (
+        await enrolledAdmin.post("/donation-reversal", {
+          ...reversal,
+          confirm: true,
+          note: "",
+        })
+      ).status,
+    ).toBe(400);
+    const changed = await enrolledAdmin.post("/donation-reversal", {
+      ...reversal,
+      confirm: true,
+    });
+    expect(changed.status).toBe(200);
+    expect(changed.json).toMatchObject({
+      code: "reversed",
+      transfer: {
+        receipt_number: receipt,
+        amount_paisa: "120000",
+        status: "reversed",
+        reversal_reason: "other",
+      },
+    });
+    expect(JSON.stringify(changed.json)).not.toContain(reversal.note);
+    const retry = await enrolledAdmin.post("/donation-reversal", {
+      ...reversal,
+      confirm: true,
+    });
+    expect(retry.json.code).toBe("already_reversed");
+
+    const trail = await new Browser().post("/donor-trail", { token });
+    expect(trail.status).toBe(200);
+    expect(trail.json.donations).toMatchObject([
+      {
+        receipt_number: receipt,
+        status: "reversed",
+        reversal_reason: "other",
+        events: [],
+        cause_title: cause.title,
+      },
+    ]);
+    expect(JSON.stringify(trail.json)).not.toContain(reversal.note);
+    expect(
+      (await auth.getPublishedCauses(enrolledAdmin.headers(), cause.slug))[0]
+        .raised_paisa,
+    ).toBe("0");
+    const audit = await asOwner(
+      `
+      select a.reason from app.audit_log a join app.donations d on a.entity_id = d.id::text
+      where d.receipt_number = $1 and a.action = 'donations.reversed'
+    `,
+      [receipt],
+    );
+    expect(audit).toEqual([{ reason: reversal.note }]);
   });
 
   it("locks the account for 15 minutes after 5 wrong codes", async () => {

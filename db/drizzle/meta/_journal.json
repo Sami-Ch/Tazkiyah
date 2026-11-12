@@ -393,6 +393,13 @@
       "when": 1794441718528,
       "tag": "0055_cause_donation_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1794442114710,
+      "tag": "0056_manual_donation_reversal",
+      "breakpoints": true
     }
   ]
 }

@@ -905,10 +905,12 @@ The bilingual admin cause form saves the optional scholar name and the spending 
 | P1-E3-T06 | Anonymity read layer: name fields hidden for anonymous donations outside donor and finance roles (§10.4) | todo | P1-E3-T01 | REQ-DPR-006, REQ-DPR-009, REQ-SEC-008 |
 | P1-E3-T07 | Public transfer notice form creating *notified* donations (§4.2) | todo | P1-E3-T01, P1-E1-T08 | REQ-DON-001, REQ-DON-002, REQ-DON-003, REQ-DON-004, REQ-DPR-001, REQ-DPR-006 |
 | P1-E3-T08 | Admin queue to confirm, reject or expire transfer notices | todo | P1-E3-T07, P1-E3-T02 | REQ-DON-008, REQ-PAY-001 |
-| P1-E3-T09 | Reverse a donation before any spending, with a reason; receipt marked cancelled (§15.2, §15.3) | todo | P1-E3-T01, P1-E3-T03 | REQ-DON-012, REQ-TRL-003 |
+| P1-E3-T09 | Reverse a donation before any spending, with a reason; receipt marked cancelled (§15.2, §15.3) | done | P1-E3-T01, P1-E3-T03 | REQ-DON-012, REQ-TRL-003 |
 | P1-E3-T10 | Recurring pledges: create from the notice form or by admin, and link recorded payments (§13.1) | todo | P1-E3-T02, P1-E3-T07 | REQ-DON-003 |
 | P1-E3-T11 | "Expected this month" list and pledge lapsing after 3 missed periods | todo | P1-E3-T10 | REQ-DON-003 |
 | P1-E3-T12 | Bank statement reconciliation screen (§15.1) | todo | P1-E3-T02, P1-E3-T09 | REQ-DON-008, REQ-DON-012, REQ-PAY-001 |
+
+P1-E3-T09 uses [migration 0056](../db/drizzle/0056_manual_donation_reversal.sql) and the bilingual staff donations screen. Administrators and finance officers with two-factor verification find the original bank transfer by receipt number. The reversal preserves that receipt number and original cause, and the guest trail shows the cancellation and reason category. The staff note is kept in the audit record. Reversing an already-spent donation from the staff screen remains P2-E2-T03.
 
 ### P1-E4 Donor's own trail view (received and allocated)
 

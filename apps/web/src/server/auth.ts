@@ -46,6 +46,7 @@ import { authOriginHeader, forwardedHttpsOrigin } from "./auth-origin";
 import { readAuditWorkspace, type AuditWorkspace } from "./audit-log";
 import { manageDonorLink, readDonorTrail, readTrailQuery } from "./donor-trail";
 import {
+  manageDonationReversal,
   readDonationWorkspace,
   recordDonation,
   type DonationWorkspace,
@@ -91,6 +92,7 @@ const postEndpoints = new Set([
   "/student-account",
   "/first-password",
   "/manual-donation",
+  "/donation-reversal",
   "/bank-account",
   "/donor-trail",
   "/donor-link",
@@ -582,6 +584,7 @@ async function runAuth(request: Request, path: string) {
           path === "/bank-account" ||
           path === "/manual-donation-workspace" ||
           path === "/manual-donation" ||
+          path === "/donation-reversal" ||
           path === "/site-page-workspace" ||
           path === "/site-page" ||
           path === "/cause-workspace" ||
@@ -590,6 +593,15 @@ async function runAuth(request: Request, path: string) {
           const session = await currentSession();
           const access = await checkWorkspaceAccess(tx, session);
           if (path === "/admin-access") return privateJson(access);
+          if (path === "/donation-reversal") {
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canReverseTransfers
+            )
+              return privateJson({ code: "denied" }, 403);
+            return manageDonationReversal(tx, request, session.session.id);
+          }
           if (path === "/student-account") {
             if (
               !session ||

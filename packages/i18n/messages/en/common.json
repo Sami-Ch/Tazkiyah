@@ -1,4 +1,24 @@
 {
+  "donationReversal": {
+    "heading": "Reverse a recorded transfer",
+    "receipt": "Receipt number",
+    "find": "Find transfer",
+    "original": "Original transfer",
+    "reversal": "Reversal",
+    "reason": "Reason",
+    "chooseReason": "Choose a reason",
+    "note": "Staff note (required for another reason)",
+    "confirm": "I checked this transfer and want to cancel its receipt.",
+    "submit": "Reverse transfer",
+    "pending": "Please wait…",
+    "cancelled": "Receipt cancelled",
+    "reversed": "The transfer was reversed. The original stays in the ledger.",
+    "has_spending": "This transfer has funded spending. This screen handles unspent transfers only.",
+    "no_match": "No bank transfer matches this receipt number.",
+    "invalid": "Check the receipt number, reason and confirmation.",
+    "denied": "Sign in with a verified finance or administrator account.",
+    "unavailable": "The transfer could not be checked. Try again."
+  },
   "donorLinks": {
     "heading": "Private donor links",
     "back": "Back to staff workspace",

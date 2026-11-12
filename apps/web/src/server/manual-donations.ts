@@ -2,9 +2,12 @@ import { sql } from "drizzle-orm";
 import {
   donationTypes,
   karachiDate,
+  receiptPattern,
+  reversalCategories,
   type DonationBank,
   type DonationCause,
   type RecordedDonation,
+  type TransferForReversal,
 } from "@/institutes/manual-donations";
 import { privateJson } from "./staff-invitations";
 import type { AdminAccess, AuthQuery } from "./workspace-access";
@@ -41,6 +44,66 @@ export async function readDonationWorkspace(tx: AuthQuery, sessionId: string) {
     causes: options.causes,
     recent: rows,
   } satisfies DonationWorkspace);
+}
+
+export async function manageDonationReversal(
+  tx: AuthQuery,
+  request: Request,
+  sessionId: string,
+) {
+  const invalid = () => privateJson({ code: "invalid" }, 400);
+  const input: unknown = await request.json().catch(() => null);
+  if (!input || typeof input !== "object") return invalid();
+  const { receipt, action, category, note, confirm } = input as Record<
+    string,
+    unknown
+  >;
+  if (typeof receipt !== "string" || !receiptPattern.test(receipt))
+    return invalid();
+
+  let code = "found";
+  if (action === "reverse") {
+    if (
+      confirm !== true ||
+      !reversalCategories.some((reason) => reason === category) ||
+      typeof note !== "string" ||
+      note.length > 500 ||
+      /\p{Cc}/u.test(note) ||
+      (category === "other" && !note.trim())
+    )
+      return invalid();
+
+    const {
+      rows: [result],
+    } = await tx.execute<{ code: string }>(sql`
+      select identity.reverse_manual_donation(${sessionId}::uuid, ${receipt}, ${category}, ${note.trim()}) as code
+    `);
+    switch (result?.code) {
+      case "no_match":
+        return privateJson(result, 404);
+      case "has_spending":
+        return privateJson(result, 409);
+      case "invalid":
+        return invalid();
+      case "reversed":
+      case "already_reversed":
+        code = result.code;
+        break;
+      default:
+        return privateJson({ code: "denied" }, 403);
+    }
+  } else if (action !== "lookup") {
+    return invalid();
+  }
+
+  const {
+    rows: [transfer],
+  } = await tx.execute<TransferForReversal>(sql`
+    select * from identity.read_transfer_for_reversal(${sessionId}::uuid, ${receipt})
+  `);
+  return transfer
+    ? privateJson({ code, transfer })
+    : privateJson({ code: "no_match" }, 404);
 }
 
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;

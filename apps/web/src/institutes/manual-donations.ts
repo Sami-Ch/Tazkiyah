@@ -3,6 +3,31 @@ import type { Locale } from "@tazkiyah/i18n/routing";
 export const donationTypes = ["general", "sadaqah", "zakat"] as const;
 export type DonationType = (typeof donationTypes)[number];
 
+export const receiptPattern = /^[A-Z0-9]{1,64}-\d{4}-\d{5,19}$/;
+export const reversalCategories = [
+  "recorded_twice",
+  "wrong_details",
+  "wrong_type",
+  "wrong_donor",
+  "transfer_returned",
+  "refund_to_donor",
+  "moved_to_another_cause",
+  "other",
+] as const;
+export type ReversalCategory = (typeof reversalCategories)[number];
+
+export type TransferForReversal = {
+  receipt_number: string;
+  credited_on: string;
+  amount_paisa: string;
+  donation_type: DonationType;
+  cause_title: Partial<Record<Locale, string>> | null;
+  status: "recorded" | "reversed";
+  has_spending: boolean;
+  reversed_on: string | null;
+  reversal_reason: ReversalCategory | null;
+};
+
 export type DonationBank = {
   id: string;
   label: Partial<Record<Locale, string>>;
