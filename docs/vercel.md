@@ -1,6 +1,8 @@
 # Run Tazkiyah on Vercel
 
-Import the [Tazkiyah repository](https://github.com/Sami-Ch/Tazkiyah). Use **Next.js**, set **Root Directory** to `apps/web`, and enable **Include source files outside of the Root Directory** for the shared workspace packages. Use Node.js 24 and the default install and build commands. Select the Git branch you intend to deploy.
+Import the [Tazkiyah repository](https://github.com/Sami-Ch/Tazkiyah). Use **Next.js**, set **Root Directory** to `apps/web`, and enable **Include source files outside of the Root Directory** for the shared workspace packages. Use Node.js 24 and the default build command. Select the Git branch you intend to deploy.
+
+The app's `vercel.json` runs `npm ci --include=dev` so TypeScript and the type packages are present during the build. Clear any older Install Command override in Vercel or set it to the same command. [Vercel build configuration](https://vercel.com/docs/builds/configure-a-build#install-command)
 
 ## Web app environment
 
