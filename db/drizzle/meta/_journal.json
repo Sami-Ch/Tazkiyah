@@ -442,6 +442,13 @@
       "when": 1794680081766,
       "tag": "0062_staff_moderation",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1794680196156,
+      "tag": "0063_staff_sponsorships",
+      "breakpoints": true
     }
   ]
 }

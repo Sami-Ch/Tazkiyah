@@ -53,7 +53,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 ## Orphan sponsorship
 
-- [ ] REQ-ORP-001 Admin can match a sponsor to one orphan. MUST → 06 §12
+- [x] REQ-ORP-001 Admin can match a sponsor to one orphan. MUST → 06 §12
 - [ ] REQ-ORP-002 By default, a sponsor sees only the orphan's persona name, age and progress updates. MUST → 06 §12
 - [ ] REQ-ORP-003 A sponsor sees the orphan's full profile only after guardian consent with two sign-offs. MUST → 06 §12
 - [ ] REQ-ORP-004 The principal can assign the second sign-off to any teacher. MUST → 06 §12

@@ -992,10 +992,12 @@ P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals p
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P4-E1-T01 | Match an account donor to one orphan; link sponsorship donations to the Orphan sponsorship cause (§12.1) | todo | P3-E1, P2-E5-T01 | REQ-ORP-001, REQ-ORP-009 |
+| P4-E1-T01 | Match an account donor to one orphan; link sponsorship donations to the Orphan sponsorship cause (§12.1) | done | P3-E1, P2-E5-T01 | REQ-ORP-001, REQ-ORP-009 |
 | P4-E1-T02 | Sponsor's private page with persona name, age and updates only (§12.2) | todo | P4-E1-T01 | REQ-ORP-002, REQ-ORP-005 |
 | P4-E1-T03 | Progress updates by admin or teacher, admin approval for teachers, photo and contact checks (§12.3) | todo | P4-E1-T01, P3-E4 | REQ-ORP-008, REQ-CHS-001, REQ-CHS-002 |
 | P4-E1-T04 | Pause and end a sponsorship, ending any consent at once | todo | P4-E1-T01, P4-E2-T03 | REQ-ORP-006 |
+
+2026-11-14 · P4-E1-T01: an administrator matches one account donor to one orphan from [`/admin/sponsorships`](../apps/web/src/app/[locale]/admin/sponsorships/page.tsx). A second open match for the same child is refused. The screen shows the pen name and, to the administrator only, the real name ([`0063_staff_sponsorships.sql`](../db/drizzle/0063_staff_sponsorships.sql)). Ending a match is on the same screen; withdrawing full-profile consent at the same moment stays with P4-E1-T04. The sponsor's own page stays with P4-E1-T02. Tests: [`db/test/staff_sponsorships.sql`](../db/test/staff_sponsorships.sql).
 
 ### P4-E2 Sponsorship consent with an assignable second sign-off
 

@@ -653,5 +653,29 @@
       "public": "Public",
       "community": "Community"
     }
+  },
+  "staffSponsorships": {
+    "heading": "Sponsorships",
+    "intro": "Match one sponsor account to one orphan. The public name is the pen name. The real name is shown here because only an administrator can open this screen.",
+    "match": "New match",
+    "sponsor": "Sponsor",
+    "child": "Orphan",
+    "cause": "Cause",
+    "choose": "Choose",
+    "save": "Match",
+    "matched": "Matched.",
+    "already": "This child already has a sponsor.",
+    "unavailable": "That sponsor, child or cause cannot be matched.",
+    "current": "Current matches",
+    "empty": "No active sponsorship.",
+    "noOrphans": "Every orphan already has a sponsor, or none is marked as an orphan yet.",
+    "end": "End sponsorship",
+    "ended": "The sponsorship has ended.",
+    "started": "Started",
+    "realName": "Real name",
+    "persona": "Pen name",
+    "denied": "Only an administrator can match a sponsor.",
+    "invalid": "Choose a sponsor, a child and a cause.",
+    "pending": "Please wait…"
   }
 }

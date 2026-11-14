@@ -90,6 +90,11 @@ import {
   readModerationQueue,
   type ModerationWorkspace,
 } from "./moderation";
+import {
+  manageSponsorship,
+  readSponsorshipWorkspace,
+  type SponsorshipWorkspace,
+} from "./sponsorships";
 
 const authSchema = {
   user: users,
@@ -123,6 +128,7 @@ const postEndpoints = new Set([
   "/spending",
   "/class",
   "/moderation",
+  "/sponsorship",
   "/bank-account",
   "/donor-trail",
   "/account-trail",
@@ -229,6 +235,12 @@ export function getBankWorkspace(headers: Headers): Promise<BankWorkspace> {
   return readWorkspace<BankWorkspace>(headers, "/bank-settings");
 }
 
+export function getSponsorshipWorkspace(
+  headers: Headers,
+): Promise<SponsorshipWorkspace> {
+  return readWorkspace<SponsorshipWorkspace>(headers, "/sponsorship-workspace");
+}
+
 export function getModerationWorkspace(
   headers: Headers,
 ): Promise<ModerationWorkspace> {
@@ -308,6 +320,7 @@ async function readWorkspace<
     | SpendingWorkspace
     | ClassWorkspace
     | ModerationWorkspace
+    | SponsorshipWorkspace
     | StatementWorkspace,
 >(
   headers: Headers,
@@ -671,6 +684,8 @@ async function runAuth(request: Request, path: string) {
           path === "/class" ||
           path === "/moderation-workspace" ||
           path === "/moderation" ||
+          path === "/sponsorship-workspace" ||
+          path === "/sponsorship" ||
           path === "/donation-reversal" ||
           path === "/bank-reconciliation" ||
           path === "/bank-reconciliation-workspace" ||
@@ -742,6 +757,21 @@ async function runAuth(request: Request, path: string) {
             return path === "/bank-account"
               ? writeBankAccount(tx, request, session.session.id)
               : readBankWorkspace(tx, session.session.id);
+          }
+          if (path === "/sponsorship-workspace" || path === "/sponsorship") {
+            if (path === "/sponsorship-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canMatchSponsors
+            )
+              return path === "/sponsorship"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/sponsorship"
+              ? manageSponsorship(tx, request, session.session.id)
+              : readSponsorshipWorkspace(tx, session.session.id);
           }
           if (path === "/moderation-workspace" || path === "/moderation") {
             if (path === "/moderation-workspace" && access.state !== "allowed")

@@ -71,6 +71,7 @@ it("gives an admin the screens that exist in the workspace", () => {
     "pages",
     "classes",
     "moderation",
+    "sponsorships",
   ]);
 });
 

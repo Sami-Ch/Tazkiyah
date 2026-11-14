@@ -58,6 +58,9 @@ export function staffLinks(
     links.push({ id: "classes", href: `${root}/classes` });
   if (access.canModerate)
     links.push({ id: "moderation", href: `${root}/moderation` });
+  if (access.canMatchSponsors) {
+    links.push({ id: "sponsorships", href: `${root}/sponsorships` });
+  }
   return links;
 }
 
