@@ -504,3 +504,9 @@ The donate page now asks for an amount and shows card, JazzCash and Easypaisa as
 2026-11-14 · Build agent (P4-E1-T02, P4-E2-T02, P4-E3-T01, P4-E3-T02) · The sponsor page reads matches; it does not create them
 
 The sponsor page depended on the staff matching form (P4-E1-T01). Matching is an admin insert, and `app.sponsor_child_view()` already returns only that donor's active sponsorships. The page shows the empty state until a match exists. Full-profile fields come from the same view, which hides them when consent is withdrawn. Child photographs are omitted until private short-lived image addresses exist (P2-E1-T30); showing a public URL would break child safety. Sponsor messages are screened with `app.has_contact_details` and have no child recipient. The staff inbox is left for the staff workspace, because only admins may reply (D-141). Options: wait for the matching screen; build the sponsor page on the existing view. Reason: the view is the safety boundary, and a sponsor with a match should be able to see it without this workstream editing the staff area.
+
+## D-146
+
+2026-11-14 · Build agent (P3-E3-T01) · The web app reaches the hub through `identity` functions
+
+The site connects as `tazkiyah_auth`, which cannot insert threads under the `tazkiyah_app` policies. `identity.read_hub`, `identity.start_hub_thread`, `identity.reply_hub_thread` and `identity.report_hub_post` check the session, then apply the same author, scope, module and contact-detail rules. A student is stored as their persona. The response has the pen name or a staff name, never a user id or a persona link. `community` scope is rejected. Options: grant the app role to the auth login; keep definer functions. Reason: the auth login stays narrow, and child safety stays in one place (00 §4 rules 9 and 11). Pin, lock and the staff consent form are left for the staff workspace.

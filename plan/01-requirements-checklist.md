@@ -70,12 +70,12 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-STU-003 Every student has an anonymous persona that is shown instead of their real name by default. MUST → 07 §4
 - [ ] REQ-STU-004 A student's real name is shown only when the student chooses it and consent is on record. SHOULD → 07 §5
 - [ ] REQ-STU-005 Students can create posts of type message, question, answer, poll, article, video, vlog, audio and slides. MUST → 07 §6
-- [ ] REQ-STU-006 Students can reply in threads. MUST → 07 §6
+- [x] REQ-STU-006 Students can reply in threads. MUST → 07 §6
 - [ ] REQ-STU-007 Students and teachers can create polls, and students can vote in them. MUST → 07 §6
-- [ ] REQ-STU-008 Every post has a scope of class or madrasa when created. MUST → 07 §7
+- [x] REQ-STU-008 Every post has a scope of class or madrasa when created. MUST → 07 §7
 - [ ] REQ-STU-009 A student's account and persona stay active after they leave the madrasa. MUST → 07 §4
 - [ ] REQ-STU-010 Students see a guided walkthrough on first login. MUST → 02 §13
-- [ ] REQ-STU-011 Students can report a post. MUST → 07 §8
+- [x] REQ-STU-011 Students can report a post. MUST → 07 §8
 
 ## Teacher hub
 
@@ -135,7 +135,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 ## Child safety
 
 - [ ] REQ-CHS-001 Students' real names and faces are hidden by default everywhere. MUST → 07 §12
-- [ ] REQ-CHS-002 Posts containing phone numbers, email addresses or street addresses are blocked or flagged for a teacher. MUST → 07 §12
+- [x] REQ-CHS-002 Posts containing phone numbers, email addresses or street addresses are blocked or flagged for a teacher. MUST → 07 §12
 - [ ] REQ-CHS-003 Teachers can see every student-to-student post and reply in their classes. MUST → 07 §12
 - [ ] REQ-CHS-004 Admin can take down any post immediately. MUST → 07 §8
 - [ ] REQ-CHS-005 A parent consent record exists before any of a student's work becomes public. MUST → 07 §5
@@ -168,13 +168,13 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-LNG-007 Mixed Urdu and English text, including numbers, displays in the correct order. MUST → 02 §8
 - [ ] REQ-LNG-008 Each language has its own URL prefix, `/ur` and `/en`. MUST → 03 §7
 - [ ] REQ-LNG-009 Fixed admin content has Urdu and English versions, and a missing version falls back to the other language with a notice. MUST → 03 §7
-- [ ] REQ-LNG-010 Every community post records its language. MUST → 07 §6
+- [x] REQ-LNG-010 Every community post records its language. MUST → 07 §6
 - [ ] REQ-LNG-011 Emails and receipts are sent in the recipient's chosen language. MUST → 03 §10
 - [ ] REQ-LNG-012 Amounts show in rupees and dates in each language's own format. MUST → 02 §8
 
 ## Moderation
 
-- [ ] REQ-MOD-001 Class and madrasa posts appear immediately without approval. MUST → 07 §8
+- [x] REQ-MOD-001 Class and madrasa posts appear immediately without approval. MUST → 07 §8
 - [ ] REQ-MOD-002 Teachers and admins can hide or remove any class or madrasa post. MUST → 07 §8
 - [ ] REQ-MOD-003 Making a post public needs approval from the class teacher or the principal. MUST → 07 §8
 - [ ] REQ-MOD-004 A post going public moves through the states draft, submitted, approved, published and taken down. MUST → 07 §8

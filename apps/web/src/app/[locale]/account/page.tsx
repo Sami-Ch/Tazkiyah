@@ -4,6 +4,8 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
 import { getAccountAccess } from "@/server/auth";
 import { AccountFormPage } from "../sign-in/account-form-page";
+import { sponsorCopy } from "./sponsorship/sponsor-copy";
+import { hubCopy } from "../hub/hub-copy";
 import { trailCopy } from "../trail/trail-copy";
 import "../sign-in/sign-in.css";
 
@@ -59,6 +61,15 @@ export default async function AccountPage({
                 {trailCopy[locale].accountTitle}
               </a>
             )}
+            {access.roles.includes("donor") && (
+              <a href={`/${locale}/account/sponsorship`}>
+                {sponsorCopy[locale].title}
+              </a>
+            )}
+            {access.roles.some(
+              (role) =>
+                role === "student" || role === "teacher" || role === "admin",
+            ) && <a href={`/${locale}/hub`}>{hubCopy[locale].title}</a>}
           </>
         ) : (
           <p role="status">{account.unavailable}</p>
