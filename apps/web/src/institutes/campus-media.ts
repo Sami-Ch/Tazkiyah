@@ -47,6 +47,7 @@ export const campusMedia: CampusMedia = {
       height: 1041,
       variants: [
         { src: "/campus/sample-wazir-khan-courtyard-640.webp", width: 640 },
+        { src: "/campus/sample-wazir-khan-courtyard-960.webp", width: 960 },
         { src: "/campus/sample-wazir-khan-courtyard.webp", width: 1280 },
       ],
       alt: {
@@ -68,6 +69,11 @@ export const campusMedia: CampusMedia = {
       src: "/campus/sample-wazir-khan-prayer-hall.webp",
       width: 1280,
       height: 721,
+      variants: [
+        { src: "/campus/sample-wazir-khan-prayer-hall-640.webp", width: 640 },
+        { src: "/campus/sample-wazir-khan-prayer-hall-960.webp", width: 960 },
+        { src: "/campus/sample-wazir-khan-prayer-hall.webp", width: 1280 },
+      ],
       alt: {
         en: "Painted arches and frescoes in the prayer hall at Wazir Khan Mosque in Lahore",
         ur: "لاہور کی مسجد وزیر خان کے ہال میں نقش دار محرابیں اور دیواری مصوری",
@@ -87,7 +93,7 @@ export const campusMedia: CampusMedia = {
   film: {
     kind: "youtube",
     videoId: "co6Cn0qNKDw",
-    poster: "/campus/sample-wazir-khan-prayer-hall.webp",
+    poster: "/campus/sample-wazir-khan-prayer-hall-960.webp",
     title: {
       en: "Wazir Khan Mosque, Lahore · UrduPoint documentary",
       ur: "مسجد وزیر خان، لاہور · اردو پوائنٹ کی دستاویزی فلم",

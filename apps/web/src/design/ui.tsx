@@ -333,7 +333,9 @@ export function ChoiceChips({
           key={option.id}
           type="button"
           className="ui-chip"
-          aria-pressed={option.pressed || undefined}
+          aria-pressed={
+            option.pressed === undefined ? undefined : option.pressed
+          }
           disabled={option.disabled}
           onClick={option.onSelect}
         >

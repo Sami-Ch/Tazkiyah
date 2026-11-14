@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
-import { getAccountAccess } from "@/server/auth";
+import { getAccountAccess, getDonorProfileWorkspace } from "@/server/auth";
 import { AccountFormPage } from "../sign-in/account-form-page";
 import { sponsorCopy } from "./sponsorship/sponsor-copy";
 import { hubCopy } from "../hub/hub-copy";
@@ -22,6 +22,10 @@ export default async function AccountPage({
   if (access.state === "signed-out") redirect(`/${locale}/sign-in`);
   if (access.state === "enroll") redirect(`/${locale}/admin`);
 
+  const profile =
+    access.state === "allowed" && access.roles.includes("donor")
+      ? await getDonorProfileWorkspace(new Headers(await headers()))
+      : null;
   const { common } = await getMessages({ locale });
   const { account, admin, signIn } = common;
   const staff =
@@ -62,7 +66,7 @@ export default async function AccountPage({
                 {trailCopy[locale].accountTitle}
               </a>
             )}
-            {access.roles.includes("donor") && (
+            {profile?.state === "allowed" && (
               <a href={`/${locale}/account/profile`}>{account.publicProfile}</a>
             )}
             {access.roles.includes("donor") && (

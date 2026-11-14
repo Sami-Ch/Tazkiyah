@@ -14,7 +14,9 @@ import { themeStyle } from "@/design/theme-style";
 import { requireLocale } from "@/i18n/locale";
 import { institute } from "@/institutes/markaz-al-azeem";
 import { themeFromSettings } from "@/institutes/public-ledger";
+import { pageTranslation } from "@/institutes/site-pages";
 import { getPublicOverview, getPublishedInstituteContact } from "@/server/auth";
+import { readPublishedPages } from "@/server/public-pages";
 import "./styles.css";
 import "@/design/design.css";
 
@@ -44,9 +46,10 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
   const t = await getTranslations("common");
   const requestHeaders = new Headers(await headers());
-  const [overview, contact] = await Promise.all([
+  const [overview, contact, pages] = await Promise.all([
     getPublicOverview(requestHeaders),
     getPublishedInstituteContact(requestHeaders),
+    readPublishedPages(),
   ]);
   const switchLabels = {
     label: t("navigation.language"),
@@ -62,11 +65,17 @@ export default async function LocaleLayout({
     newProjects: t("navigation.newProjects"),
     visit: t("navigation.visit"),
   };
+  const about = pages.find(({ slug }) => slug === "about");
   const links = shellLinks(locale, labels, {
     students: overview ? overview.modules.includes("student_hub") : true,
     teachers: overview ? overview.modules.includes("teacher_hub") : true,
     projects: overview ? overview.modules.includes("new_projects") : false,
-  });
+  }).filter(
+    (link) =>
+      !link.href.endsWith("/about") ||
+      (pageTranslation(about?.title, locale) &&
+        pageTranslation(about?.body, locale)),
+  );
   const footerLinks = [
     ...links,
     { href: `/${locale}/sign-in`, label: t("signIn.heading") },

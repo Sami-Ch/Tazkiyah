@@ -235,9 +235,15 @@ a {
   color: var(--on-navy);
   background-color: var(--navy);
   background-image:
-    linear-gradient(165deg, rgb(6 18 40 / 0.28), transparent 46%, rgb(6 18 40 / 0.45)),
+    linear-gradient(
+      165deg,
+      rgb(6 18 40 / 0.28),
+      transparent 46%,
+      rgb(6 18 40 / 0.45)
+    ),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84' viewBox='0 0 84 84'%3E%3Cpath fill='%23D9B25C' fill-opacity='.16' d='M42 6 46 24 64 20 52 36 68 46 50 50 54 70 42 58 30 70 34 50 16 46 32 36 20 24 38 24z'/%3E%3C/svg%3E");
-  border-block-end: 1px solid color-mix(in srgb, var(--silver-blue) 35%, transparent);
+  border-block-end: 1px solid
+    color-mix(in srgb, var(--silver-blue) 35%, transparent);
 }
 
 .hero-inner {
@@ -584,8 +590,20 @@ html:lang(ur) .hero h1 {
 .hero-photo figcaption,
 .campus figcaption {
   margin-block-start: 0.5rem;
-  color: var(--muted);
   font-size: 0.9375rem;
+}
+
+.hero-photo figcaption {
+  color: var(--on-navy-muted);
+}
+
+.campus figcaption {
+  color: var(--muted);
+}
+
+.media-credit a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .media-credit {
