@@ -496,13 +496,27 @@
       "idx": 70,
       "version": "7",
       "when": 1794686000000,
-      "tag": "0074_staff_safeguarding",
+      "tag": "0072_hub_persona_onboarding",
       "breakpoints": true
     },
     {
       "idx": 71,
       "version": "7",
       "when": 1794687000000,
+      "tag": "0073_hub_posts",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794688000000,
+      "tag": "0074_staff_safeguarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794689000000,
       "tag": "0075_staff_post_actions",
       "breakpoints": true
     }

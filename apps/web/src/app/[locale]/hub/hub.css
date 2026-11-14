@@ -1,0 +1,80 @@
+.hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.hub-walk {
+  display: grid;
+  gap: var(--space-4);
+  max-inline-size: 40rem;
+}
+
+.hub-walk-progress {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.hub-walk-progress span {
+  block-size: 0.35rem;
+  flex: 1;
+  border-radius: var(--radius-sm, 0.25rem);
+  background: var(--color-border);
+}
+
+.hub-walk-progress span[data-done="true"] {
+  background: var(--color-primary);
+}
+
+.hub-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: var(--space-2);
+}
+
+.hub-avatar-grid button,
+.hub-choice,
+.hub-poll button {
+  min-block-size: 3rem;
+}
+
+.hub-avatar {
+  inline-size: 3rem;
+  block-size: 3rem;
+  color: var(--color-primary);
+}
+
+.hub-avatar-alt {
+  color: var(--color-accent);
+}
+
+.hub-avatar-plate {
+  fill: var(--color-primary-soft);
+}
+
+.hub-avatar-alt .hub-avatar-plate {
+  fill: var(--color-surface, var(--surface));
+}
+
+.hub-avatar path,
+.hub-avatar circle {
+  fill: currentColor;
+}
+
+.hub-poll-bar {
+  block-size: 0.5rem;
+  border-radius: var(--radius-sm, 0.25rem);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.hub-poll-bar span {
+  display: block;
+  block-size: 100%;
+  background: var(--color-primary);
+}
+
+.hub-sample {
+  display: grid;
+  gap: var(--space-4);
+}

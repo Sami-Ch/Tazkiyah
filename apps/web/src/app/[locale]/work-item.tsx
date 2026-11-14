@@ -60,6 +60,11 @@ export async function WorkItem({
       {post.language !== locale && (
         <Alert tone="warning">{t("fallback")}</Alert>
       )}
+      {post.summary && (
+        <p lang={post.language} dir="auto">
+          {post.summary}
+        </p>
+      )}
       <p
         className="measure published-page-copy"
         lang={post.language}
@@ -67,6 +72,16 @@ export async function WorkItem({
       >
         {post.body}
       </p>
+      {post.youtube_id && (
+        <p>
+          <a
+            href={`https://www.youtube-nocookie.com/embed/${post.youtube_id}`}
+            rel="noreferrer"
+          >
+            YouTube
+          </a>
+        </p>
+      )}
       {bio && (
         <p lang={bio.language} dir={bio.language === "ur" ? "rtl" : "ltr"}>
           {bio.text}

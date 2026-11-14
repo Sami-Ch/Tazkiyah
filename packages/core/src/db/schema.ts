@@ -314,6 +314,12 @@ export const users = app
         withTimezone: true,
         mode: "string",
       }),
+      onboardingStep: smallint("onboarding_step").default(1).notNull(),
+      onboardingSkipped: text("onboarding_skipped")
+        .array()
+        .default(sql`'{}'::text[]`)
+        .notNull(),
+      publicRole: text("public_role"),
       lastLoginAt: timestamp("last_login_at", {
         withTimezone: true,
         mode: "string",
@@ -1829,6 +1835,7 @@ export const classes = app
         .references(() => institutes.id),
       name: localizedText().notNull(),
       yearLabel: text("year_label"),
+      kind: text().default("class").notNull(),
       createdBy: uuid("created_by").notNull(),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
@@ -1970,6 +1977,11 @@ export const personas = app
         .references(() => institutes.id),
       displayName: text("display_name").notNull(),
       avatarMediaId: uuid("avatar_media_id"),
+      avatarPreset: smallint("avatar_preset"),
+      displayNameChangedAt: timestamp("display_name_changed_at", {
+        withTimezone: true,
+      }),
+      resetNote: text("reset_note"),
       bio: text(),
       bioLanguage: text("bio_language"),
       showRealName: boolean("show_real_name").default(false).notNull(),
@@ -2395,7 +2407,10 @@ export const posts = app
       postType: text("post_type").notNull(),
       language: text().notNull(),
       title: text(),
+      summary: text(),
       body: text(),
+      youtubeId: text("youtube_id"),
+      hubLabel: text("hub_label"),
       scope: text().notNull(),
       classId: uuid("class_id"),
       moderationState: text("moderation_state").default("published").notNull(),

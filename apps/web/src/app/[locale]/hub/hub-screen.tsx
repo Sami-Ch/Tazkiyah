@@ -9,8 +9,20 @@ import {
   type LocalizedPageText,
 } from "@/institutes/site-pages";
 import { hubCopy } from "./hub-copy";
+import { hubUiCopy } from "./hub-ui-copy";
+import {
+  FinishProfile,
+  PersonaEditor,
+  PollCard,
+  TeacherProfileForm,
+  VerifyForm,
+  type HubPoll,
+  type HubViewer,
+} from "./hub-panels";
+import { Walkthrough } from "./walkthrough";
+import { AvatarMark } from "./avatars";
 
-type ClassRow = { id: string; name: LocalizedPageText };
+type ClassRow = { id: string; name: LocalizedPageText; kind?: string };
 type ThreadRow = {
   id: string;
   title: string | null;
@@ -25,12 +37,20 @@ type PostRow = {
   post_type: string;
   language: string;
   title: string | null;
+  summary?: string | null;
   body: string | null;
+  youtube_id?: string | null;
+  hub_label?: string | null;
   created_at: string;
   parent_post_id: string | null;
   author_name: string;
   author_kind: "persona" | "staff";
+  avatar?: number | null;
   hidden: boolean;
+  can_submit?: boolean;
+  media_gap?: boolean;
+  is_verified?: boolean;
+  poll?: HubPoll | null;
 };
 type HubResult =
   | { state: "loading" }
@@ -42,6 +62,7 @@ type HubResult =
       title: string | null;
       locked: boolean;
       scope: string;
+      canVerify?: boolean;
       posts: PostRow[];
     };
 
@@ -63,7 +84,9 @@ export function HubScreen({
   threadId?: string;
 }) {
   const copy = hubCopy[locale];
+  const extra = hubUiCopy[locale];
   const router = useRouter();
+  const [viewer, setViewer] = useState<HubViewer | null>(null);
   const [result, setResult] = useState<HubResult>({ state: "loading" });
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -88,12 +111,14 @@ export function HubScreen({
           setResult({ state: "error", code: payload.code ?? "unavailable" });
           return;
         }
+        setViewer(payload.viewer ?? null);
         if (payload.thread) {
           setResult({
             state: "thread",
             title: payload.thread.title,
             locked: payload.thread.locked,
             scope: payload.thread.scope,
+            canVerify: payload.thread.can_verify === true,
             posts: payload.posts ?? [],
           });
         } else if (payload.threads) {
@@ -111,7 +136,7 @@ export function HubScreen({
 
   async function submit(
     event: FormEvent<HTMLFormElement>,
-    action: "start" | "reply",
+    mode: "start" | "reply",
   ) {
     event.preventDefault();
     if (busy) return;
@@ -120,34 +145,34 @@ export function HubScreen({
     setBusy(true);
     setNotice("");
     const language = String(fields.get("language") ?? locale);
-    const response = await authRequest(
-      "hub",
-      action === "start"
-        ? {
-            action,
-            scope: classId === "madrasa" ? "madrasa" : "class",
-            classId: classId === "madrasa" ? undefined : classId,
-            postType: String(fields.get("postType") ?? "message"),
-            language,
-            title: String(fields.get("title") ?? ""),
-            body: String(fields.get("body") ?? ""),
-          }
-        : {
-            action,
-            threadId,
-            parentId: String(fields.get("parentId") ?? "") || undefined,
-            postType: String(fields.get("postType") ?? "message"),
-            language,
-            body: String(fields.get("body") ?? ""),
-          },
-    ).catch(() => null);
+    const options = String(fields.get("options") ?? "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const response = await authRequest("hub", {
+      action: "publish",
+      scope: classId === "madrasa" ? "madrasa" : "class",
+      classId: classId === "madrasa" ? undefined : classId,
+      threadId: mode === "reply" ? threadId : undefined,
+      postType: String(fields.get("postType") ?? "message"),
+      language,
+      title: String(fields.get("title") ?? ""),
+      summary: String(fields.get("summary") ?? ""),
+      body: String(fields.get("body") ?? ""),
+      youtube: String(fields.get("youtube") ?? ""),
+      label: String(fields.get("label") ?? ""),
+      multiple: fields.get("multiple") === "on",
+      results:
+        fields.get("results") === "after_voting" ? "after_voting" : "after_closing",
+      options,
+    }).catch(() => null);
     const payload = await response?.json().catch(() => null);
     const code = payload?.code;
     setBusy(false);
     if (code === "posted") {
       form.reset();
       setNotice(classId === "madrasa" ? copy.postedMadrasa : copy.posted);
-      if (action === "start" && payload.thread_id) {
+      if (mode === "start" && payload.thread_id) {
         router.push(`/${locale}/hub?thread=${payload.thread_id}`);
         return;
       }
@@ -156,6 +181,20 @@ export function HubScreen({
     }
     setNotice(
       code === "contact_details" ? copy.contactBlocked : copy.unavailable,
+    );
+  }
+
+  if (viewer?.walkthrough && (viewer.role === "student" || viewer.role === "teacher")) {
+    return (
+      <Walkthrough
+        locale={locale}
+        role={viewer.role}
+        step={viewer.step ?? 1}
+        onDone={() => {
+          setViewer(null);
+          setVersion((value) => value + 1);
+        }}
+      />
     );
   }
 
@@ -190,6 +229,15 @@ export function HubScreen({
     return (
       <>
         <p className="community-note">{copy.consent}</p>
+        {viewer && <FinishProfile locale={locale} viewer={viewer} onSaved={() => setVersion((value) => value + 1)} />}
+        {viewer && <TeacherProfileForm locale={locale} viewer={viewer} onSaved={() => setVersion((value) => value + 1)} />}
+        {viewer?.role === "student" &&
+          viewer.persona &&
+          !(viewer.skipped ?? []).some(
+            (item) => item === "name" || item === "avatar" || item === "bio",
+          ) && (
+            <PersonaEditor locale={locale} viewer={viewer} onSaved={() => setVersion((value) => value + 1)} />
+          )}
         {result.classes.length ? (
           <ul className="hub-list">
             {result.classes.map((item) => {
@@ -205,6 +253,7 @@ export function HubScreen({
                     ) : (
                       item.id
                     )}
+                    {item.kind === "alumni" ? <small>{extra.alumni}</small> : null}
                   </a>
                 </li>
               );
@@ -247,7 +296,52 @@ export function HubScreen({
               <input type="radio" name="postType" value="question" />
               {copy.question}
             </label>
+            {(
+              [
+                ["poll", extra.poll],
+                ["article", extra.article],
+                ["video", extra.video],
+                ["vlog", extra.vlog],
+                ["audio", extra.audio],
+                ["slides", extra.slides],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value}>
+                <input type="radio" name="postType" value={value} />
+                {label}
+              </label>
+            ))}
           </div>
+          {viewer?.role !== "student" && (
+            <label>
+              {extra.lesson}
+              <select name="label" defaultValue="">
+                <option value="">{extra.none}</option>
+                <option value="lesson">{extra.lesson}</option>
+                <option value="resource">{extra.resource}</option>
+              </select>
+            </label>
+          )}
+          <label>
+            {extra.summary}
+            <input name="summary" maxLength={300} dir="auto" />
+          </label>
+          <label>
+            {extra.youtube}
+            <input name="youtube" maxLength={200} dir="auto" />
+          </label>
+          <label>
+            {extra.options}
+            <textarea name="options" maxLength={500} dir="auto" />
+          </label>
+          <label>
+            <input type="checkbox" name="multiple" />
+            {extra.multiple}
+          </label>
+          <label>
+            <input type="checkbox" name="results" value="after_voting" />
+            {extra.afterVoting}
+          </label>
           <LanguageFields locale={locale} />
           <label>
             {copy.questionTitle}
@@ -305,16 +399,63 @@ export function HubScreen({
         {result.posts.map((post) => (
           <li key={post.id} lang={post.language} dir="auto">
             <strong>
+              {typeof post.avatar === "number" && (
+                <AvatarMark preset={post.avatar} label={post.author_name} />
+              )}
               <bdi>{post.author_name}</bdi>
               {post.author_kind === "staff" ? ` · ${copy.teacher}` : ""}
+              {post.is_verified ? ` · ${extra.verified}` : ""}
+              {post.hub_label === "lesson" ? ` · ${extra.lesson}` : ""}
+              {post.hub_label === "resource" ? ` · ${extra.resource}` : ""}
             </strong>
             {post.hidden && <p>{copy.hidden}</p>}
             {post.title && <h3>{post.title}</h3>}
+            {post.summary && <p>{post.summary}</p>}
             {post.body && <p>{post.body}</p>}
+            {post.youtube_id && (
+              <a href={`https://www.youtube-nocookie.com/embed/${post.youtube_id}`} rel="noreferrer">
+                {extra.play}
+              </a>
+            )}
+            {post.media_gap && <p>{extra.mediaGap}</p>}
+            {post.poll && (
+              <PollCard
+                locale={locale}
+                postId={post.id}
+                poll={post.poll}
+                onChanged={(message) => {
+                  setNotice(message);
+                  setVersion((value) => value + 1);
+                }}
+              />
+            )}
+            {post.can_submit && (viewer?.role === "teacher" || viewer?.role === "admin") && (
+              <button
+                type="button"
+                className="ui-button ui-button-secondary"
+                onClick={() => {
+                  void authRequest("hub", { action: "submit", postId: post.id }).then(async (response) => {
+                    const payload = await response.json().catch(() => null);
+                    setNotice(payload?.code === "published" ? extra.published : extra.submitted);
+                    setVersion((value) => value + 1);
+                  });
+                }}
+              >
+                {extra.submitReview}
+              </button>
+            )}
             <ReportForm locale={locale} postId={post.id} />
           </li>
         ))}
       </ol>
+      {result.canVerify && threadId && (viewer?.role === "teacher" || viewer?.role === "admin") && (
+        <VerifyForm
+          locale={locale}
+          threadId={threadId}
+          posts={result.posts}
+          onDone={() => setVersion((value) => value + 1)}
+        />
+      )}
       {result.locked ? (
         <p>{copy.locked}</p>
       ) : (

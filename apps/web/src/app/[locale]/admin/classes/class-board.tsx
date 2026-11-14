@@ -26,6 +26,7 @@ type Copy = typeof common.staffClasses;
 export function ClassBoard({
   locale,
   copy,
+  isAdmin,
   canCreateStudents,
   classes,
   students,
@@ -33,6 +34,7 @@ export function ClassBoard({
 }: {
   locale: Locale;
   copy: Copy;
+  isAdmin: boolean;
   canCreateStudents: boolean;
   classes: ClassRoom[];
   students: ClassCandidate[];
@@ -71,6 +73,9 @@ export function ClassBoard({
     if (result?.code === "saved") setMessage(copy.saved);
     else if (result?.code === "added") setMessage(copy.added);
     else if (result?.code === "ended") setMessage(copy.ended);
+    else if (result?.code === "left") setMessage(copy.left);
+    else if (result?.code === "already_left") setWarning(copy.alreadyLeft);
+    else if (result?.code === "reset") setMessage(copy.resetDone);
     else if (result?.code === "already_member") setWarning(copy.already);
     else if (result?.code === "denied") setWarning(copy.denied);
     else if (result?.code === "invalid") setWarning(copy.invalid);
@@ -213,6 +218,7 @@ export function ClassBoard({
                     · <bdi>{room.year_label}</bdi>
                   </span>
                 ) : null}
+                {room.kind === "alumni" ? <span> · {copy.alumni}</span> : null}
                 {room.archived ? <span> · {copy.archived}</span> : null}
               </h2>
               <h3>{copy.teachers}</h3>
@@ -290,21 +296,53 @@ export function ClassBoard({
                     persona: <bdi>{student.persona ?? "—"}</bdi>,
                     real: <bdi>{student.real_name ?? copy.hiddenName}</bdi>,
                     action: room.manage_students ? (
-                      <Button
-                        variant="secondary"
-                        disabled={busy}
-                        onClick={() =>
-                          void send("class", {
-                            action: "member",
-                            classId: room.id,
-                            userId: student.user_id,
-                            memberRole: "student",
-                            change: "end",
-                          })
-                        }
-                      >
-                        {copy.end}
-                      </Button>
+                      <span className="hub-actions">
+                        {room.kind !== "alumni" && (
+                          <Button
+                            variant="secondary"
+                            disabled={busy}
+                            onClick={() =>
+                              void send("class", {
+                                action: "member",
+                                classId: room.id,
+                                userId: student.user_id,
+                                memberRole: "student",
+                                change: "end",
+                              })
+                            }
+                          >
+                            {copy.end}
+                          </Button>
+                        )}
+                        <Button
+                          variant="secondary"
+                          disabled={busy}
+                          onClick={() =>
+                            void send("class", {
+                              action: "reset",
+                              userId: student.user_id,
+                            })
+                          }
+                        >
+                          {copy.resetName}
+                        </Button>
+                        {isAdmin &&
+                          room.kind !== "alumni" &&
+                          student.status !== "left" && (
+                            <Button
+                              variant="secondary"
+                              disabled={busy}
+                              onClick={() =>
+                                void send("class", {
+                                  action: "leave",
+                                  userId: student.user_id,
+                                })
+                              }
+                            >
+                              {copy.markLeft}
+                            </Button>
+                          )}
+                      </span>
                     ) : null,
                   }))}
                 />

@@ -565,6 +565,36 @@ The private guest page stays `/{lang}/trail` and remains `noindex`. A trail that
 
 Profile photos and receipt photos stay off the public pages. The profile shows the first character of the display name and says that a photo waits on file storage. Links must be `https` and are rendered `nofollow`. The profile lists only gifts that are not anonymous, and a public profile may be empty. The anonymity scan allows the chosen display name and still rejects the legal name, email, phone, bank reference and gift type. Options: block public profiles until object storage exists; publish the name and links now. Reason: object storage is not configured, and the name and links do not need it.
 
+## D-160
+
+2026-11-14 · Build agent (REQ-STU-010) · First login keeps the password step, then a saved walkthrough
+
+Students get eight screens and teachers get four. Progress is `users.onboarding_step` (1–8) and `users.onboarding_skipped` (`name`, `avatar`, `bio`). `onboarded_at` is set when the walkthrough finishes or the last screen is skipped. Replay from the account page clears those fields. A new teacher invitation leaves `onboarded_at` empty; people who already finished login are not sent back through it. Donors get no walkthrough. An admin sees a checklist of records that already exist (name, logo, bank, contact, cause, teacher), not a stepper. Each English screen is 30 words or fewer. The hub has no separate bottom tab, so the last student screen names Class, Madrasa and Account. The bio limit stays 160 characters (D-130). Options: a client-only tour; store the step on the user. Reason: a student who leaves halfway should return to the same screen, and the checklist must not invent a phone number or a bank.
+
+## D-161
+
+2026-11-14 · Build agent (REQ-STU-002, REQ-STU-003) · Pen names use a preset, not a photo
+
+The avatar is `personas.avatar_preset` 1–24, drawn from theme colours. `avatar_media_id` stays for a later file store. A pen name is 3–24 characters, unique ignoring case, and rejected when it is a phone or email, an insult, or a real-name word of three letters or more. A bio is optional, at most 160 characters, and uses the same contact and real-name checks with a four-letter word. Past names are kept in `app.persona_names`. The student can rename once every 30 days through the hub functions. A teacher of that student, or an admin, can reset the name and clear the wait. Options: upload a face photo; use 24 patterns. Reason: there is no object storage, and a photo of a child is outside the safety rules (REQ-CHS-001).
+
+## D-162
+
+2026-11-14 · Build agent (REQ-STU-005, REQ-STU-007) · New post types go through one publish function
+
+`identity.start_hub_thread` and `identity.reply_hub_thread` still accept only message, question and answer. Polls, articles, video, vlog, audio and slides use `identity.publish_hub_post`. A video or vlog stores an 11-character YouTube id. Audio and slides keep their title and text and set `media_gap`, because a file needs object storage. A poll has 2–6 choices, one choice or several up to the creator's maximum, and closes between one hour and 30 days. Results show after voting or after closing. A vote is replaced by deleting the old one and inserting the new one. Editors are not hub sessions, so they cannot vote. Students cannot post a link or contact details. Options: add the types to the old functions; add one function. Reason: the older tests keep their contract, and the new rules stay in one place.
+
+## D-163
+
+2026-11-14 · Build agent (REQ-TCH-001 to REQ-TCH-004) · A teacher submits; an editor or another admin publishes
+
+A lesson is an article, video, audio or slides post. A resource is an article or slides post. The public profile is `public_name`, `public_role` and `public_bio` in Urdu and English, with no photo until storage exists. A teacher sends a published class or madrasa post to public review. They cannot approve their own work. An admin's own hub item is published by `app.posts_moderation` when they ask, and the audit log records `posts.published_public`. A verified article is written by the teacher, may quote a post by its pen name, and is stored by `app.make_verified_article`. Options: let a teacher publish their own lesson; keep the existing review. Reason: 07 §10 already says a teacher does not approve their own work, and the public page already shows the verified mark.
+
+## D-164
+
+2026-11-14 · Build agent (REQ-STU-009) · Leaving moves the student into one alumni class
+
+An admin marks a student left. Open class memberships end, the persona stays active, and the student joins the institute's one alumni class (`classes.kind = alumni`). They can post in that class and in the madrasa. They cannot post in a class they have left. Past posts stay. A teacher of a past class can still trace them, because `app.is_teacher_of` already includes ended memberships. Changing status revokes the current sessions, so the student signs in again. Options: delete the account; keep the persona and add one alumni class. Reason: the plan says the account and the pen name stay, and child-safety checks still apply.
+
 ## D-165
 
 2026-11-14 · Build agent · Staff record parent consent without a guardian account, Sami may reverse
