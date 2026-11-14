@@ -2212,7 +2212,7 @@ export const consentRecords = app
       check(
         "consent_records_guardian_check",
         sql`length(guardian_name) between 1 and 120 and guardian_name = btrim(guardian_name)
-          and guardian_relation in ('father', 'mother', 'guardian', 'other')`,
+          and guardian_relation in ('father', 'mother', 'guardian', 'other', 'principal')`,
       ),
       check(
         "consent_records_method_check",

@@ -26,7 +26,17 @@ export default async function ModerationPage({
         <p>{copy.intro}</p>
       </div>
       {workspace.state === "allowed" ? (
-        <ModerationQueue locale={locale} copy={copy} items={workspace.items} />
+        <ModerationQueue
+          locale={locale}
+          copy={copy}
+          isAdmin={workspace.is_admin}
+          canWiden={workspace.can_widen}
+          requests={workspace.requests}
+          posts={workspace.posts}
+          publicPosts={workspace.public_posts}
+          takenDown={workspace.taken_down}
+          wideners={workspace.wideners}
+        />
       ) : (
         <p role="status">{common.signIn.unavailable}</p>
       )}

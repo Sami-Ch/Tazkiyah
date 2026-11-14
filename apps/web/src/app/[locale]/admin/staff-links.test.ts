@@ -14,6 +14,8 @@ const none: StaffLinkAccess = {
   canManageClasses: false,
   canModerate: false,
   canMatchSponsors: false,
+  canRecordConsent: false,
+  canPostUpdates: false,
 };
 
 function ids(access: Partial<StaffLinkAccess>) {
@@ -21,11 +23,14 @@ function ids(access: Partial<StaffLinkAccess>) {
 }
 
 it("gives a teacher the class list and keeps finance screens away", () => {
-  expect(ids({ canManageClasses: true, canModerate: true })).toEqual([
-    "home",
-    "classes",
-    "moderation",
-  ]);
+  expect(
+    ids({
+      canManageClasses: true,
+      canModerate: true,
+      canRecordConsent: true,
+      canPostUpdates: true,
+    }),
+  ).toEqual(["home", "classes", "moderation", "consent", "progress"]);
 });
 
 it("gives a finance officer donations and the bank check", () => {
@@ -57,6 +62,8 @@ it("gives an admin the screens that exist in the workspace", () => {
       canManageClasses: true,
       canModerate: true,
       canMatchSponsors: true,
+      canRecordConsent: true,
+      canPostUpdates: true,
     }),
   ).toEqual([
     "home",
@@ -71,6 +78,8 @@ it("gives an admin the screens that exist in the workspace", () => {
     "pages",
     "classes",
     "moderation",
+    "consent",
+    "progress",
     "sponsorships",
   ]);
 });
