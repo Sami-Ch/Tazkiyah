@@ -20,12 +20,11 @@ export default async function SponsorshipsPage({
   const { common } = await getMessages({ locale });
   const copy = common.staffSponsorships;
   return (
-    <section
-      className="shell staff-screen"
-      aria-labelledby="sponsorships-title"
-    >
-      <h1 id="sponsorships-title">{copy.heading}</h1>
-      <p className="staff-lead">{copy.intro}</p>
+    <section className="staff-stack" aria-labelledby="sponsorships-title">
+      <div className="public-intro">
+        <h1 id="sponsorships-title">{copy.heading}</h1>
+        <p>{copy.intro}</p>
+      </div>
       {workspace.state === "allowed" ? (
         <SponsorshipBoard
           locale={locale}

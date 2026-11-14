@@ -5,6 +5,8 @@ import type { Locale } from "@tazkiyah/i18n/routing";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { authRequest } from "@/components/auth-request";
+import { Alert, Button, DataTable, EmptyState, SelectField } from "@/design/ui";
+import { formatDate } from "@/design/format";
 import { pageTranslation } from "@/institutes/site-pages";
 import type {
   SponsorshipChoice,
@@ -32,10 +34,6 @@ export function SponsorshipBoard({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [warning, setWarning] = useState("");
-  const day = new Intl.DateTimeFormat(`${locale}-PK`, {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  });
 
   async function send(body: Record<string, unknown>) {
     setBusy(true);
@@ -72,111 +70,106 @@ export function SponsorshipBoard({
 
   return (
     <>
-      <section className="staff-panel" aria-labelledby="match-title">
+      <section className="ui-card" aria-labelledby="match-title">
         <h2 id="match-title">{copy.match}</h2>
         {orphans.length && sponsors.length && causes.length ? (
-          <form className="staff-fields" onSubmit={onMatch}>
-            <label>
-              {copy.sponsor}
-              <select name="donorId" required defaultValue="">
-                <option value="">{copy.choose}</option>
-                {sponsors.map((sponsor) => (
-                  <option key={sponsor.id} value={sponsor.id}>
-                    {sponsor.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {copy.child}
-              <select name="personaId" required defaultValue="">
-                <option value="">{copy.choose}</option>
-                {orphans.map((child) => (
-                  <option key={child.persona_id} value={child.persona_id}>
-                    {child.persona} · {child.real_name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {copy.cause}
-              <select name="causeId" required defaultValue="">
-                <option value="">{copy.choose}</option>
-                {causes.map((cause) => (
-                  <option key={cause.id} value={cause.id}>
-                    {cause.title
-                      ? (pageTranslation(cause.title, locale)?.text ?? "")
-                      : cause.id}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              className="button button-primary"
-              type="submit"
-              disabled={busy}
+          <form className="ui-form" onSubmit={onMatch}>
+            <SelectField
+              id="sponsor-donor"
+              name="donorId"
+              label={copy.sponsor}
+              required
+              defaultValue=""
             >
+              <option value="">{copy.choose}</option>
+              {sponsors.map((sponsor) => (
+                <option key={sponsor.id} value={sponsor.id}>
+                  {sponsor.name}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField
+              id="sponsor-child"
+              name="personaId"
+              label={copy.child}
+              required
+              defaultValue=""
+            >
+              <option value="">{copy.choose}</option>
+              {orphans.map((child) => (
+                <option key={child.persona_id} value={child.persona_id}>
+                  {child.persona} · {child.real_name}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField
+              id="sponsor-cause"
+              name="causeId"
+              label={copy.cause}
+              required
+              defaultValue=""
+            >
+              <option value="">{copy.choose}</option>
+              {causes.map((cause) => (
+                <option key={cause.id} value={cause.id}>
+                  {cause.title
+                    ? (pageTranslation(cause.title, locale)?.text ?? "")
+                    : cause.id}
+                </option>
+              ))}
+            </SelectField>
+            <Button type="submit" disabled={busy}>
               {busy ? copy.pending : copy.save}
-            </button>
+            </Button>
           </form>
         ) : (
-          <p>{copy.noOrphans}</p>
+          <EmptyState title={copy.noOrphans}>{copy.intro}</EmptyState>
         )}
       </section>
-      <section className="staff-panel" aria-labelledby="current-matches">
+      <section className="ui-card" aria-labelledby="current-matches">
         <h2 id="current-matches">{copy.current}</h2>
         {matches.length ? (
-          <ul className="staff-rows">
-            {matches.map((match) => (
-              <li className="staff-row" key={match.id}>
-                <div>
-                  <strong>
-                    <bdi>{match.persona}</bdi>
-                  </strong>
+          <DataTable
+            columns={[
+              { key: "child", label: copy.child },
+              { key: "sponsor", label: copy.sponsor },
+              { key: "started", label: copy.started },
+              { key: "action", label: copy.end },
+            ]}
+            rows={matches.map((match) => ({
+              child: (
+                <>
+                  <bdi>{match.persona}</bdi>
                   <p>
                     {copy.realName}: <bdi>{match.real_name}</bdi>
                   </p>
-                  <p>
-                    {copy.sponsor}: <bdi>{match.sponsor ?? "—"}</bdi>
-                  </p>
-                </div>
-                <dl>
-                  <div>
-                    <dt>{copy.started}</dt>
-                    <dd>
-                      <time dateTime={match.started_on}>
-                        {day.format(new Date(match.started_on + "T00:00:00Z"))}
-                      </time>
-                    </dd>
-                  </div>
-                </dl>
-                <button
-                  className="button button-outline"
-                  type="button"
+                </>
+              ),
+              sponsor: <bdi>{match.sponsor ?? "—"}</bdi>,
+              started: (
+                <time dateTime={match.started_on}>
+                  {formatDate(match.started_on, locale)}
+                </time>
+              ),
+              action: (
+                <Button
+                  variant="secondary"
                   disabled={busy}
                   onClick={() =>
                     void send({ action: "end", sponsorshipId: match.id })
                   }
                 >
                   {copy.end}
-                </button>
-              </li>
-            ))}
-          </ul>
+                </Button>
+              ),
+            }))}
+          />
         ) : (
-          <p>{copy.empty}</p>
+          <EmptyState title={copy.empty}>{copy.intro}</EmptyState>
         )}
       </section>
-      {message && (
-        <p className="staff-success" role="status">
-          {message}
-        </p>
-      )}
-      {warning && (
-        <p className="staff-warning" role="alert">
-          {warning}
-        </p>
-      )}
+      {message && <Alert tone="success">{message}</Alert>}
+      {warning && <Alert tone="danger">{warning}</Alert>}
     </>
   );
 }

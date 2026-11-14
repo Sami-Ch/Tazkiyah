@@ -489,6 +489,24 @@ Sami will deploy the current Next.js app to Vercel and chose Resend for account 
 
 ## D-143
 
-2026-11-14 · Build agent (P1-E5-T01) · Staff navigation before the shared design system, Sami may reverse
+2026-11-14 · Frontend · Public design system
 
-P1-E5-T01 depends on P0-E4 and P0-E5-T51, which are still open, and another agent owns the design system and public shell. The staff menu is therefore a small primitive inside `/admin`, using the institute tokens already on the page (`--navy`, `--paper`, `--surface`). It does not add components to the public header. Options: wait for P0-E4; build the menu inside the staff area. Reason: finance and teaching staff need a role-based menu now, and 00 §4 rule 10 keeps that change inside the staff task.
+The public shell and pages use Direction A. `themeStyle()` writes the institute theme onto `<html>`. When the database answers, the theme and enabled modules come from `public_api.institute_public`. Otherwise the seeded Night and Paper theme is used. Tasks that depended on all of P0-E1 were narrowed to P0-E1-T01, because the rest of that epic is Cloudflare, DNS and hosted secrets.
+
+The self-hosted Noto Naskh Arabic variable file is 94,032 bytes, about 2 KB over the 90 KB Urdu budget. It stays, so Urdu buttons can be real bold rather than a second face. Noto Nastaliq Urdu is not downloaded. Public Urdu headings use it only when the phone already has the font (`local()`, `font-display: optional`). Naskh is the fallback and keeps the taller line height.
+
+The component gallery is `/{lang}/design` and is `noindex`, so other work can reuse it without a staff login. The planned admin-only `/_design` path can replace it later.
+
+`/{lang}/transparency` lists raised and spent for every public cause. The sitemap did not name that path. The home page and each cause page already required the same figures from `public_api.cause_summary` and `public_api.cause_spending`, and one page holds them together.
+
+`tazkiyah_auth` may select `public_api.public_posts` and `public_api.public_teachers`, and may execute `app.module_enabled` and `app.persona_work_may_show`. That is the role the public site already uses. The views still hide student identity. A visitor's report does not write `post_reports`, because REQ-MOD-008 is still proposed. The button goes to the contact page and asks people not to send a child's details.
+
+A spending row shows its date, amount and description. Receipt photos stay off the page until a public media URL exists. The view has a storage key, and R2 is not configured here.
+
+Amount chips, the settings switch, the form error summary, toasts, a phone bottom sheet and the walkthrough stepper are still open. They belong with the donate flow and the onboarding tasks.
+
+## D-144
+
+2026-11-14 · Build agent (P1-E5-T01) · Staff workspace uses the shared design system, Sami may reverse
+
+The staff menu and workspace screens live inside `/admin` and reuse `apps/web/src/design` (buttons, fields, tables, amount and date formatters, and the public tokens). Role-based links stay in the staff area. Options: keep a private staff stylesheet; use the shared components. Reason: the design system landed in the public branch, and one set of components keeps Urdu and English staff screens on the same type, colour, and money formatting.

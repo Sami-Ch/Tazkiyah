@@ -20,9 +20,11 @@ export default async function ModerationPage({
   const { common } = await getMessages({ locale });
   const copy = common.staffModeration;
   return (
-    <section className="shell staff-screen" aria-labelledby="moderation-title">
-      <h1 id="moderation-title">{copy.heading}</h1>
-      <p className="staff-lead">{copy.intro}</p>
+    <section className="staff-stack" aria-labelledby="moderation-title">
+      <div className="public-intro">
+        <h1 id="moderation-title">{copy.heading}</h1>
+        <p>{copy.intro}</p>
+      </div>
       {workspace.state === "allowed" ? (
         <ModerationQueue locale={locale} copy={copy} items={workspace.items} />
       ) : (

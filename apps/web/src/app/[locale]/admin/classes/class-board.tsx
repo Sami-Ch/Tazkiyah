@@ -5,6 +5,15 @@ import type { Locale } from "@tazkiyah/i18n/routing";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { authRequest } from "@/components/auth-request";
+import {
+  Alert,
+  Button,
+  CheckboxField,
+  DataTable,
+  EmptyState,
+  SelectField,
+  TextField,
+} from "@/design/ui";
 import { pageTranslation } from "@/institutes/site-pages";
 import type {
   ClassCandidate,
@@ -91,36 +100,38 @@ export function ClassBoard({
 
   return (
     <>
-      <section className="staff-panel" aria-labelledby="new-class-title">
+      <section className="ui-card" aria-labelledby="new-class-title">
         <h2 id="new-class-title">{copy.newClass}</h2>
-        <form className="staff-fields" onSubmit={(event) => onSave(event)}>
-          <label>
-            {copy.nameUr}
-            <input name="nameUr" maxLength={80} />
-          </label>
-          <label>
-            {copy.nameEn}
-            <input name="nameEn" maxLength={80} />
-          </label>
-          <label>
-            {copy.year}
-            <input name="year" maxLength={40} />
-          </label>
-          <button
-            className="button button-primary"
-            type="submit"
-            disabled={busy}
-          >
+        <form className="ui-form" onSubmit={(event) => onSave(event)}>
+          <TextField
+            id="class-name-ur"
+            name="nameUr"
+            label={copy.nameUr}
+            maxLength={80}
+          />
+          <TextField
+            id="class-name-en"
+            name="nameEn"
+            label={copy.nameEn}
+            maxLength={80}
+          />
+          <TextField
+            id="class-year"
+            name="year"
+            label={copy.year}
+            maxLength={40}
+          />
+          <Button type="submit" disabled={busy}>
             {busy ? copy.pending : copy.save}
-          </button>
+          </Button>
         </form>
       </section>
 
       {canCreateStudents && (
-        <section className="staff-panel" aria-labelledby="new-student-title">
+        <section className="ui-card" aria-labelledby="new-student-title">
           <h2 id="new-student-title">{copy.createStudent}</h2>
           <form
-            className="staff-fields"
+            className="ui-form"
             onSubmit={(event) => {
               event.preventDefault();
               const data = new FormData(event.currentTarget);
@@ -131,40 +142,45 @@ export function ClassBoard({
               });
             }}
           >
-            <label>
-              {copy.studentName}
-              <input name="name" required maxLength={120} autoComplete="off" />
-            </label>
-            <label>
-              {copy.heading}
-              <select name="classId" required defaultValue="">
-                <option value="">{copy.choose}</option>
-                {classes
-                  .filter((room) => !room.archived && room.manage_students)
-                  .map((room) => (
-                    <option key={room.id} value={room.id}>
-                      {nameOf(room.name)}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="staff-span">
-              <input name="orphan" type="checkbox" /> {copy.orphan}
-            </label>
-            <button
-              className="button button-primary"
-              type="submit"
-              disabled={busy}
+            <TextField
+              id="student-name"
+              name="name"
+              label={copy.studentName}
+              required
+              maxLength={120}
+              autoComplete="off"
+            />
+            <SelectField
+              id="student-class"
+              name="classId"
+              label={copy.heading}
+              required
+              defaultValue=""
             >
+              <option value="">{copy.choose}</option>
+              {classes
+                .filter((room) => !room.archived && room.manage_students)
+                .map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {nameOf(room.name)}
+                  </option>
+                ))}
+            </SelectField>
+            <CheckboxField
+              id="student-orphan"
+              name="orphan"
+              label={copy.orphan}
+            />
+            <Button type="submit" disabled={busy}>
               {busy ? copy.pending : copy.create}
-            </button>
+            </Button>
           </form>
           {created && (
-            <p className="staff-note" role="status">
+            <Alert tone="success">
               {copy.username}: <bdi>{created.username}</bdi>
               <br />
               {copy.password}: <bdi>{created.password}</bdi>
-            </p>
+            </Alert>
           )}
         </section>
       )}
@@ -185,7 +201,7 @@ export function ClassBoard({
           );
           return (
             <section
-              className="staff-panel"
+              className="ui-card"
               key={room.id}
               aria-labelledby={room.id}
             >
@@ -200,16 +216,17 @@ export function ClassBoard({
                 {room.archived ? <span> · {copy.archived}</span> : null}
               </h2>
               <h3>{copy.teachers}</h3>
-              <ul className="staff-rows">
-                {room.teachers.map((teacher) => (
-                  <li className="staff-row" key={teacher.user_id}>
-                    <strong>
-                      <bdi>{teacher.name}</bdi>
-                    </strong>
-                    {room.manage_teachers && (
-                      <button
-                        className="button button-outline"
-                        type="button"
+              {room.teachers.length > 0 && (
+                <DataTable
+                  columns={[
+                    { key: "name", label: copy.teachers },
+                    { key: "action", label: copy.end },
+                  ]}
+                  rows={room.teachers.map((teacher) => ({
+                    name: <bdi>{teacher.name}</bdi>,
+                    action: room.manage_teachers ? (
+                      <Button
+                        variant="secondary"
                         disabled={busy}
                         onClick={() =>
                           void send("class", {
@@ -222,14 +239,14 @@ export function ClassBoard({
                         }
                       >
                         {copy.end}
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                      </Button>
+                    ) : null,
+                  }))}
+                />
+              )}
               {room.manage_teachers && (
                 <form
-                  className="staff-fields"
+                  className="ui-form"
                   onSubmit={(event) => {
                     event.preventDefault();
                     const data = new FormData(event.currentTarget);
@@ -242,72 +259,61 @@ export function ClassBoard({
                     });
                   }}
                 >
-                  <label>
-                    {copy.addTeacher}
-                    <select name="userId" required defaultValue="">
-                      <option value="">{copy.choose}</option>
-                      {teacherChoices.map((teacher) => (
-                        <option key={teacher.user_id} value={teacher.user_id}>
-                          {teacher.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    className="button button-outline"
-                    type="submit"
-                    disabled={busy}
+                  <SelectField
+                    id={`add-teacher-${room.id}`}
+                    name="userId"
+                    label={copy.addTeacher}
+                    required
+                    defaultValue=""
                   >
+                    <option value="">{copy.choose}</option>
+                    {teacherChoices.map((teacher) => (
+                      <option key={teacher.user_id} value={teacher.user_id}>
+                        {teacher.name}
+                      </option>
+                    ))}
+                  </SelectField>
+                  <Button type="submit" variant="secondary" disabled={busy}>
                     {copy.add}
-                  </button>
+                  </Button>
                 </form>
               )}
               <h3>{copy.students}</h3>
               {room.students.length ? (
-                <ul className="staff-rows">
-                  {room.students.map((student) => (
-                    <li className="staff-row" key={student.user_id}>
-                      <dl>
-                        <div>
-                          <dt>{copy.persona}</dt>
-                          <dd>
-                            <bdi>{student.persona ?? "—"}</bdi>
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>{copy.realName}</dt>
-                          <dd>
-                            <bdi>{student.real_name ?? copy.hiddenName}</bdi>
-                          </dd>
-                        </div>
-                      </dl>
-                      {room.manage_students && (
-                        <button
-                          className="button button-outline"
-                          type="button"
-                          disabled={busy}
-                          onClick={() =>
-                            void send("class", {
-                              action: "member",
-                              classId: room.id,
-                              userId: student.user_id,
-                              memberRole: "student",
-                              change: "end",
-                            })
-                          }
-                        >
-                          {copy.end}
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <DataTable
+                  columns={[
+                    { key: "persona", label: copy.persona },
+                    { key: "real", label: copy.realName },
+                    { key: "action", label: copy.end },
+                  ]}
+                  rows={room.students.map((student) => ({
+                    persona: <bdi>{student.persona ?? "—"}</bdi>,
+                    real: <bdi>{student.real_name ?? copy.hiddenName}</bdi>,
+                    action: room.manage_students ? (
+                      <Button
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={() =>
+                          void send("class", {
+                            action: "member",
+                            classId: room.id,
+                            userId: student.user_id,
+                            memberRole: "student",
+                            change: "end",
+                          })
+                        }
+                      >
+                        {copy.end}
+                      </Button>
+                    ) : null,
+                  }))}
+                />
               ) : (
                 <p>{copy.noStudents}</p>
               )}
               {room.manage_students && !room.archived && (
                 <form
-                  className="staff-fields"
+                  className="ui-form"
                   onSubmit={(event) => {
                     event.preventDefault();
                     const data = new FormData(event.currentTarget);
@@ -320,44 +326,35 @@ export function ClassBoard({
                     });
                   }}
                 >
-                  <label>
-                    {copy.addStudent}
-                    <select name="userId" required defaultValue="">
-                      <option value="">{copy.choose}</option>
-                      {studentChoices.map((student) => (
-                        <option key={student.user_id} value={student.user_id}>
-                          {student.persona ??
-                            student.real_name ??
-                            student.user_id}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    className="button button-outline"
-                    type="submit"
-                    disabled={busy}
+                  <SelectField
+                    id={`add-student-${room.id}`}
+                    name="userId"
+                    label={copy.addStudent}
+                    required
+                    defaultValue=""
                   >
+                    <option value="">{copy.choose}</option>
+                    {studentChoices.map((student) => (
+                      <option key={student.user_id} value={student.user_id}>
+                        {student.persona ??
+                          student.real_name ??
+                          student.user_id}
+                      </option>
+                    ))}
+                  </SelectField>
+                  <Button type="submit" variant="secondary" disabled={busy}>
                     {copy.add}
-                  </button>
+                  </Button>
                 </form>
               )}
             </section>
           );
         })
       ) : (
-        <p>{copy.noClasses}</p>
+        <EmptyState title={copy.noClasses}>{copy.intro}</EmptyState>
       )}
-      {message && (
-        <p className="staff-success" role="status">
-          {message}
-        </p>
-      )}
-      {warning && (
-        <p className="staff-warning" role="alert">
-          {warning}
-        </p>
-      )}
+      {message && <Alert tone="success">{message}</Alert>}
+      {warning && <Alert tone="danger">{warning}</Alert>}
     </>
   );
 }

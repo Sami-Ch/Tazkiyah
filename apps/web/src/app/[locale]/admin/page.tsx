@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
 import { getAdminAccess } from "@/server/auth";
+import { Button } from "@/design/ui";
 import { StaffInvitationForm } from "./staff-invitation-form";
 import { TwoFactorSetup } from "./two-factor-setup";
 import "../sign-in/sign-in.css";
-import "./staff-workspace.css";
 
 export const dynamic = "force-dynamic";
 
@@ -24,27 +24,23 @@ export default async function AdminPage({
   const workspace = common.staffWorkspace;
   if (access.state === "allowed") {
     return (
-      <section className="shell staff-dashboard" aria-labelledby="admin-title">
-        <h1 id="admin-title">{copy.heading}</h1>
-        <p className="staff-lead">
-          {copy.welcome} <bdi>{access.name}</bdi>. {workspace.intro}
-        </p>
-        <div className="staff-actions">
+      <section className="staff-stack" aria-labelledby="admin-title">
+        <div className="public-intro">
+          <h1 id="admin-title">{copy.heading}</h1>
+          <p>
+            {copy.welcome} <bdi>{access.name}</bdi>. {workspace.intro}
+          </p>
+        </div>
+        <div className="ui-actions">
           {access.canRecordTransfers && (
-            <a
-              className="button button-primary"
-              href={`/${locale}/admin/donations`}
-            >
+            <Button href={`/${locale}/admin/donations`}>
               {workspace.recordDonation}
-            </a>
+            </Button>
           )}
           {access.canRecordSpending && (
-            <a
-              className="button button-outline"
-              href={`/${locale}/admin/spending`}
-            >
+            <Button href={`/${locale}/admin/spending`} variant="secondary">
               {workspace.recordSpending}
-            </a>
+            </Button>
           )}
         </div>
         {access.canInvite && (

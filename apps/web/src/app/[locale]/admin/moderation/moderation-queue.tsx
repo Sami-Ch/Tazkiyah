@@ -5,6 +5,7 @@ import type { Locale } from "@tazkiyah/i18n/routing";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authRequest } from "@/components/auth-request";
+import { Alert, Badge, Button, EmptyState, TextField } from "@/design/ui";
 import { pageTranslation } from "@/institutes/site-pages";
 import type { ModerationItem } from "@/server/moderation";
 
@@ -46,10 +47,12 @@ export function ModerationQueue({
     router.refresh();
   }
 
-  if (!items.length) return <p>{copy.empty}</p>;
+  if (!items.length) {
+    return <EmptyState title={copy.empty}>{copy.intro}</EmptyState>;
+  }
   return (
     <>
-      <ul className="staff-rows">
+      <ul className="cause-grid">
         {items.map((item) => {
           const blocked =
             (item.needs_public_consent && !item.public_consent) ||
@@ -57,19 +60,16 @@ export function ModerationQueue({
               item.needs_public_consent &&
               !item.face_consent);
           return (
-            <li className="staff-panel" key={item.id}>
-              <p className="staff-meta">
-                <span>
-                  {copy.from} <bdi>{item.persona ?? item.real_name ?? "—"}</bdi>
-                </span>
-                {item.class_name && (
-                  <span>{pageTranslation(item.class_name, locale)?.text}</span>
-                )}
-                <span>
-                  {copy.asks}{" "}
-                  {copy.scopes[item.target_scope as keyof Copy["scopes"]] ??
-                    item.target_scope}
-                </span>
+            <li className="ui-card" key={item.id}>
+              <p>
+                {copy.from} <bdi>{item.persona ?? item.real_name ?? "—"}</bdi>
+                {item.class_name
+                  ? ` · ${pageTranslation(item.class_name, locale)?.text ?? ""}`
+                  : ""}
+                {" · "}
+                {copy.asks}{" "}
+                {copy.scopes[item.target_scope as keyof Copy["scopes"]] ??
+                  item.target_scope}
               </p>
               {item.title && <h2>{item.title}</h2>}
               {item.body && <p>{item.body}</p>}
@@ -78,32 +78,20 @@ export function ModerationQueue({
                   <bdi>{item.real_name}</bdi>
                 </p>
               )}
-              <p className="staff-meta">
+              <div className="ui-actions">
                 {item.needs_public_consent && (
-                  <span
-                    className={
-                      item.public_consent
-                        ? "staff-flag"
-                        : "staff-flag staff-flag-stop"
-                    }
-                  >
+                  <Badge tone={item.public_consent ? "verified" : "warning"}>
                     {item.public_consent ? copy.consent : copy.noConsent}
-                  </span>
+                  </Badge>
                 )}
                 {item.shows_face && (
-                  <span
-                    className={
-                      item.face_consent
-                        ? "staff-flag"
-                        : "staff-flag staff-flag-stop"
-                    }
-                  >
+                  <Badge tone={item.face_consent ? "verified" : "warning"}>
                     {item.face_consent ? copy.faceConsent : copy.face}
-                  </span>
+                  </Badge>
                 )}
-              </p>
+              </div>
               <form
-                className="staff-fields"
+                className="ui-form"
                 onSubmit={(event) => {
                   event.preventDefault();
                   const data = new FormData(event.currentTarget);
@@ -114,43 +102,38 @@ export function ModerationQueue({
                   void decide(item.id, action, String(data.get("note") ?? ""));
                 }}
               >
-                <label className="staff-span">
-                  {copy.note}
-                  <input name="note" maxLength={500} />
-                </label>
-                <button
-                  className="button button-primary"
-                  type="submit"
-                  name="decision"
-                  value="approve"
-                  disabled={busy || blocked}
-                >
-                  {busy ? copy.pending : copy.approve}
-                </button>
-                <button
-                  className="button button-outline"
-                  type="submit"
-                  name="decision"
-                  value="reject"
-                  disabled={busy}
-                >
-                  {copy.reject}
-                </button>
+                <TextField
+                  id={`moderation-note-${item.id}`}
+                  name="note"
+                  label={copy.note}
+                  maxLength={500}
+                />
+                <div className="ui-actions">
+                  <Button
+                    type="submit"
+                    name="decision"
+                    value="approve"
+                    disabled={busy || blocked}
+                  >
+                    {busy ? copy.pending : copy.approve}
+                  </Button>
+                  <Button
+                    type="submit"
+                    name="decision"
+                    value="reject"
+                    variant="danger"
+                    disabled={busy}
+                  >
+                    {copy.reject}
+                  </Button>
+                </div>
               </form>
             </li>
           );
         })}
       </ul>
-      {message && (
-        <p className="staff-success" role="status">
-          {message}
-        </p>
-      )}
-      {warning && (
-        <p className="staff-warning" role="alert">
-          {warning}
-        </p>
-      )}
+      {message && <Alert tone="success">{message}</Alert>}
+      {warning && <Alert tone="danger">{warning}</Alert>}
     </>
   );
 }

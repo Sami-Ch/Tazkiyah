@@ -18,19 +18,19 @@ export function StaffNav({
 }) {
   const pathname = usePathname();
   return (
-    <nav className="staff-nav" aria-label={label}>
-      <ul>
-        {links.map((link) => {
-          const current = staffLinkIsCurrent(pathname, link.href);
-          return (
-            <li key={link.id}>
-              <a href={link.href} aria-current={current ? "page" : undefined}>
-                {names[link.id]}
-              </a>
-            </li>
-          );
-        })}
-      </ul>
+    <nav className="filter-row" aria-label={label}>
+      {links.map((link) => {
+        const current = staffLinkIsCurrent(pathname, link.href);
+        return (
+          <a
+            key={link.id}
+            href={link.href}
+            aria-current={current ? "page" : undefined}
+          >
+            {names[link.id]}
+          </a>
+        );
+      })}
     </nav>
   );
 }

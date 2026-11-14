@@ -4,7 +4,6 @@ import { requireLocale } from "@/i18n/locale";
 import { getAdminAccess } from "@/server/auth";
 import { staffLinks, type StaffLinkId } from "./staff-links";
 import { StaffNav } from "./staff-nav";
-import "./staff-workspace.css";
 
 export default async function AdminLayout({
   children,
@@ -18,7 +17,7 @@ export default async function AdminLayout({
   const { common } = await getMessages({ locale });
   const names = common.staffWorkspace.links;
   return (
-    <div className="staff-workspace">
+    <div className="shell public-stack">
       <StaffNav
         label={common.staffWorkspace.navLabel}
         links={staffLinks(locale, access)}

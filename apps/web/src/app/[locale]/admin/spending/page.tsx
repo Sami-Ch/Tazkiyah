@@ -21,11 +21,13 @@ export default async function SpendingPage({
   const { common } = await getMessages({ locale });
   const copy = common.staffSpending;
   return (
-    <section className="shell staff-screen" aria-labelledby="spending-title">
-      <h1 id="spending-title">{copy.heading}</h1>
+    <section className="staff-stack" aria-labelledby="spending-title">
+      <div className="public-intro">
+        <h1 id="spending-title">{copy.heading}</h1>
+        {workspace.state === "allowed" && <p>{copy.intro}</p>}
+      </div>
       {workspace.state === "allowed" ? (
         <>
-          <p className="staff-lead">{copy.intro}</p>
           <SpendingBoard
             locale={locale}
             copy={copy}

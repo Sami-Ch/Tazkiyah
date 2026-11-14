@@ -691,7 +691,7 @@ Status is `todo` for every task. Where a dependency is another document's epic (
 | P3-E1-T12 | Teacher profile: real name, subject, short profile, optional photo | todo | P0-E5 | REQ-TCH-001 |
 | P3-E1-T13 | Student setting to show their public name with the persona, gated on consent | todo | P3-E1-T05, P3-E2-T03 | REQ-STU-004 |
 
-2026-11-14 · P3-E1-T01, T06 and T07: teachers and admins create classes and student accounts from [`/admin/classes`](../apps/web/src/app/[locale]/admin/classes/page.tsx). The starting username and password are shown once. A class teacher can add and end student memberships only; adding a teacher returns denied unless the caller is an admin ([D-129](08-decision-log.md#d-129), [`0061_staff_classes.sql`](../db/drizzle/0061_staff_classes.sql)). Real names are returned to an admin or a teacher of that student. Tests: [`db/test/staff_classes.sql`](../db/test/staff_classes.sql).
+2026-11-14 · P3-E1-T01, T06 and T07: teachers and admins create classes and student accounts from [`/admin/classes`](../apps/web/src/app/[locale]/admin/classes/page.tsx). The starting username and password are shown once. A class teacher can add and end student memberships only; adding a teacher returns denied unless the caller is an admin ([D-129](08-decision-log.md#d-129), [`0062_staff_classes.sql`](../db/drizzle/0062_staff_classes.sql)). Real names are returned to an admin or a teacher of that student. Tests: [`db/test/staff_classes.sql`](../db/test/staff_classes.sql).
 
 ### P3-E2 Parent consent records
 
@@ -738,7 +738,7 @@ Status is `todo` for every task. Where a dependency is another document's epic (
 | P3-E5-T10 | Report thresholds that hide or take down posts automatically until reviewed | todo | P3-E5-T05, P3-E5-T06 | REQ-MOD-005, REQ-CHS-004 |
 | P3-E5-T11 | Post moderation history and audit entries for every moderation action | todo | P3-E5-T03, P3-E5-T06, P3-E5-T08 | REQ-ROL-008 |
 
-2026-11-14 · P3-E5-T05 and T08: [`/admin/moderation`](../apps/web/src/app/[locale]/admin/moderation/page.tsx) lists submitted posts the signed-in person may approve. Approve is refused without public-work consent, and also when a photo is flagged as showing a face and face consent is missing. Reject needs a note and writes an audit row that does not store a student's real name ([`0062_staff_moderation.sql`](../db/drizzle/0062_staff_moderation.sql)). Reports, takedown and restore stay open (P3-E5-T04, T06, T41). Tests: [`db/test/staff_moderation.sql`](../db/test/staff_moderation.sql).
+2026-11-14 · P3-E5-T05 and T08: [`/admin/moderation`](../apps/web/src/app/[locale]/admin/moderation/page.tsx) lists submitted posts the signed-in person may approve. Approve is refused without public-work consent, and also when a photo is flagged as showing a face and face consent is missing. Reject needs a note and writes an audit row that does not store a student's real name ([`0063_staff_moderation.sql`](../db/drizzle/0063_staff_moderation.sql)). Reports, takedown and restore stay open (P3-E5-T04, T06, T41). Tests: [`db/test/staff_moderation.sql`](../db/test/staff_moderation.sql).
 
 ### P3-E6 Teacher hub and verified articles
 

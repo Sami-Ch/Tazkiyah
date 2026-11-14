@@ -32,7 +32,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-TRL-007 Donor can see, for each of their donations, which spending entries it paid for and how much. MUST → 06 §8
 - [ ] REQ-TRL-008 A donation's trail is private by default. MUST → 06 §10
 - [ ] REQ-TRL-009 Donor can make the trail of a donation public. MUST → 06 §10
-- [ ] REQ-TRL-010 Each cause page shows aggregated spending without any donor identity. MUST → 05 §5
+- [x] REQ-TRL-010 Each cause page shows aggregated spending without any donor identity. MUST → 05 §5
 - [x] REQ-TRL-011 A spending entry records amount, date, description and an optional receipt or photo. MUST → 06 §9
 - [ ] REQ-TRL-012 Admin can publish a daily or weekly report that groups spending entries. SHOULD → 06 §9
 - [x] REQ-TRL-013 Admin can see the unspent balance of each cause. MUST → 06 §9
@@ -46,8 +46,8 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [x] REQ-DPR-004 Donor can create an account and log in with email. MUST → 03 §6
 - [ ] REQ-DPR-005 Donor can set a public profile with a display name, photo and links to profiles elsewhere. SHOULD → 06 §10
 - [ ] REQ-DPR-006 Each donation can show the donor's name or be anonymous, set separately from the profile. MUST → 06 §10
-- [ ] REQ-DPR-007 The donor wall shows the amount and cause of every donation. MUST → 06 §10
-- [ ] REQ-DPR-008 The donor wall shows "Anonymous" for every donation set to anonymous. MUST → 06 §10
+- [x] REQ-DPR-007 The donor wall shows the amount and cause of every donation. MUST → 06 §10
+- [x] REQ-DPR-008 The donor wall shows "Anonymous" for every donation set to anonymous. MUST → 06 §10
 - [ ] REQ-DPR-009 An anonymous donation never reveals the donor's name in pages, exports, logs, emails or API responses. MUST → 06 §10
 - [ ] REQ-DPR-010 Donor can view all their past donations and receipts. MUST → 06 §10
 
@@ -89,10 +89,10 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 ## Public pages
 
 - [ ] REQ-PUB-001 The site has about, facilities, daily life, causes, new projects, donor wall, student work, teacher work and contact pages. MUST → 05 §4
-- [ ] REQ-PUB-002 The home page shows active causes with their progress. MUST → 05 §5
-- [ ] REQ-PUB-003 Each cause has a public page showing its target, amount raised, amount spent and spending entries. MUST → 05 §5
-- [ ] REQ-PUB-004 The student work page shows only approved public posts, under personas. MUST → 05 §5
-- [ ] REQ-PUB-005 The teacher work page shows approved teacher posts and verified articles. MUST → 05 §5
+- [x] REQ-PUB-002 The home page shows active causes with their progress. MUST → 05 §5
+- [x] REQ-PUB-003 Each cause has a public page showing its target, amount raised, amount spent and spending entries. MUST → 05 §5
+- [x] REQ-PUB-004 The student work page shows only approved public posts, under personas. MUST → 05 §5
+- [x] REQ-PUB-005 The teacher work page shows approved teacher posts and verified articles. MUST → 05 §5
 - [ ] REQ-PUB-006 The contact page shows the madrasa's address and contact details from institute settings. MUST → 05 §5
 - [ ] REQ-PUB-007 Public pages show the logo and institute name from institute settings. MUST → 05 §5
 - [ ] REQ-PUB-008 The donate page shows the institute's bank account details from institute settings. MUST → 05 §5

@@ -5,6 +5,19 @@ import type { Locale } from "@tazkiyah/i18n/routing";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { authRequest } from "@/components/auth-request";
+import {
+  Alert,
+  Amount,
+  Badge,
+  Button,
+  CheckboxField,
+  DataTable,
+  EmptyState,
+  SelectField,
+  TextAreaField,
+  TextField,
+} from "@/design/ui";
+import { formatDate } from "@/design/format";
 import { reversalCategories } from "@/institutes/manual-donations";
 import { pageTranslation } from "@/institutes/site-pages";
 import type {
@@ -14,14 +27,6 @@ import type {
 } from "@/server/spending";
 
 type Copy = typeof common.staffSpending;
-
-function rupees(locale: Locale, paisa: string) {
-  return new Intl.NumberFormat(`${locale}-PK`, {
-    style: "currency",
-    currency: "PKR",
-    maximumFractionDigits: 0,
-  }).format(Number(BigInt(paisa) / 100n));
-}
 
 function unspentOf(cause: SpendingCause | undefined) {
   return (cause?.balances ?? []).reduce(
@@ -53,10 +58,6 @@ export function SpendingBoard({
   const [amount, setAmount] = useState("");
   const drafts = entries.filter((entry) => entry.status === "draft");
   const recent = entries.filter((entry) => entry.status !== "draft");
-  const day = new Intl.DateTimeFormat(`${locale}-PK`, {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  });
 
   function label(
     title: SpendingCause["title"] | SpendingEntryRow["description"] | undefined,
@@ -121,19 +122,19 @@ export function SpendingBoard({
 
   return (
     <>
-      <section className="staff-panel" aria-labelledby="spending-balances">
+      <section className="ui-card" aria-labelledby="spending-balances">
         <h2 id="spending-balances">{copy.balances}</h2>
         {causes.length ? (
-          <ul className="staff-rows">
+          <ul className="cause-grid">
             {causes.map((cause) => (
-              <li className="staff-row" key={cause.id}>
+              <li className="ui-card" key={cause.id}>
                 <strong>{label(cause.title)}</strong>
-                <dl>
+                <dl className="money-pair">
                   {cause.balances.map((balance) => (
                     <div key={balance.donation_type}>
                       <dt>{copy.types[balance.donation_type]}</dt>
                       <dd>
-                        <bdi>{rupees(locale, balance.unspent_paisa)}</bdi>
+                        <Amount paisa={balance.unspent_paisa} locale={locale} />
                       </dd>
                     </div>
                   ))}
@@ -142,16 +143,16 @@ export function SpendingBoard({
             ))}
           </ul>
         ) : (
-          <p>{copy.noCauses}</p>
+          <EmptyState title={copy.noCauses}>{copy.noCauses}</EmptyState>
         )}
         <h3>{copy.pools}</h3>
         {pools.length ? (
-          <ul className="staff-rows">
+          <ul className="cause-grid">
             {pools.map((pool) => (
-              <li className="staff-row" key={pool.pool}>
+              <li className="ui-card" key={pool.pool}>
                 <strong>{copy.poolsNames[pool.pool]}</strong>
                 <p>
-                  <bdi>{rupees(locale, pool.unallocated_paisa)}</bdi>
+                  <Amount paisa={pool.unallocated_paisa} locale={locale} />
                   {" · "}
                   {pool.gifts} {copy.gifts}
                 </p>
@@ -163,11 +164,11 @@ export function SpendingBoard({
         )}
       </section>
 
-      <section className="staff-panel" aria-labelledby="spending-form-title">
+      <section className="ui-card" aria-labelledby="spending-form-title">
         <h2 id="spending-form-title">{copy.batch}</h2>
-        <p className="staff-lead">{copy.receiptLater}</p>
+        <p>{copy.receiptLater}</p>
         <form
-          className="staff-fields"
+          className="ui-form"
           onSubmit={(event) => {
             const data = new FormData(event.currentTarget);
             void submit(
@@ -184,163 +185,153 @@ export function SpendingBoard({
             );
           }}
         >
-          <label>
-            {copy.cause}
-            <select
-              name="cause"
-              value={causeId}
-              required
-              onChange={(event) => setCauseId(event.target.value)}
-            >
-              <option value="">{copy.chooseCause}</option>
-              {causes.map((cause) => (
-                <option key={cause.id} value={cause.id}>
-                  {label(cause.title)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {copy.amount}
-            <input
-              name="amount"
-              inputMode="numeric"
-              autoComplete="off"
-              required
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-            />
-          </label>
-          <label>
-            {copy.date}
-            <input
-              name="date"
-              type="date"
-              required
-              defaultValue={today}
-              max={today}
-            />
-          </label>
-          <label>
-            {copy.descriptionUr}
-            <textarea name="descriptionUr" maxLength={500} />
-          </label>
-          <label>
-            {copy.descriptionEn}
-            <textarea name="descriptionEn" maxLength={500} />
-          </label>
-          <p className="staff-span staff-lead">{copy.descriptionHint}</p>
-          <label className="staff-span">
-            <input name="receiptPublic" type="checkbox" defaultChecked />{" "}
-            {copy.receiptPublic}
-          </label>
-          {liveOver && (
-            <p className="staff-warning staff-span" role="status">
-              {copy.overBalance}
-            </p>
-          )}
-          <button
-            className="button button-primary"
-            type="submit"
-            disabled={busy || !causes.length}
+          <SelectField
+            id="spend-cause"
+            name="cause"
+            label={copy.cause}
+            required
+            value={causeId}
+            onChange={(event) => setCauseId(event.target.value)}
           >
+            <option value="">{copy.chooseCause}</option>
+            {causes.map((cause) => (
+              <option key={cause.id} value={cause.id}>
+                {label(cause.title)}
+              </option>
+            ))}
+          </SelectField>
+          <TextField
+            id="spend-amount"
+            name="amount"
+            label={copy.amount}
+            inputMode="numeric"
+            autoComplete="off"
+            required
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+          />
+          <TextField
+            id="spend-date"
+            name="date"
+            label={copy.date}
+            type="date"
+            required
+            defaultValue={today}
+            max={today}
+          />
+          <TextAreaField
+            id="spend-ur"
+            name="descriptionUr"
+            label={copy.descriptionUr}
+            maxLength={500}
+          />
+          <TextAreaField
+            id="spend-en"
+            name="descriptionEn"
+            label={copy.descriptionEn}
+            hint={copy.descriptionHint}
+            maxLength={500}
+          />
+          <CheckboxField
+            id="spend-public"
+            name="receiptPublic"
+            label={copy.receiptPublic}
+            defaultChecked
+          />
+          {liveOver && <Alert tone="warning">{copy.overBalance}</Alert>}
+          <Button type="submit" disabled={busy || !causes.length}>
             {busy ? copy.pending : copy.save}
-          </button>
+          </Button>
         </form>
       </section>
 
-      <section className="staff-panel" aria-labelledby="spending-drafts">
+      <section className="ui-card" aria-labelledby="spending-drafts">
         <h2 id="spending-drafts">{copy.drafts}</h2>
         {drafts.length ? (
           <>
-            <ul className="staff-rows">
-              {drafts.map((entry) => (
-                <li className="staff-row" key={entry.id}>
-                  <div>
+            <DataTable
+              columns={[
+                { key: "cause", label: copy.cause },
+                { key: "amount", label: copy.amount },
+                { key: "date", label: copy.date },
+                { key: "action", label: copy.recordOne },
+              ]}
+              rows={drafts.map((entry) => ({
+                cause: (
+                  <>
                     <strong>{causeName(entry.cause_id)}</strong>
                     <p>{label(entry.description)}</p>
-                  </div>
-                  <dl>
-                    <div>
-                      <dt>{copy.amount}</dt>
-                      <dd>
-                        <bdi>{rupees(locale, entry.amount_paisa)}</bdi>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>{copy.date}</dt>
-                      <dd>
-                        <time dateTime={entry.spent_on}>
-                          {day.format(new Date(entry.spent_on + "T00:00:00Z"))}
-                        </time>
-                      </dd>
-                    </div>
-                  </dl>
-                  <button
-                    className="button button-outline"
-                    type="button"
+                  </>
+                ),
+                amount: <Amount paisa={entry.amount_paisa} locale={locale} />,
+                date: (
+                  <time dateTime={entry.spent_on}>
+                    {formatDate(entry.spent_on, locale)}
+                  </time>
+                ),
+                action: (
+                  <Button
+                    variant="secondary"
                     disabled={busy}
                     onClick={() =>
                       void submit({ action: "record-one", entryId: entry.id })
                     }
                   >
                     {copy.recordOne}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <button
-              className="button button-primary"
-              type="button"
+                  </Button>
+                ),
+              }))}
+            />
+            <Button
               disabled={busy}
               onClick={() => void submit({ action: "record" })}
             >
               {copy.recordAll}
-            </button>
+            </Button>
           </>
         ) : (
-          <p>{copy.noDrafts}</p>
+          <EmptyState title={copy.noDrafts}>{copy.noDrafts}</EmptyState>
         )}
       </section>
 
-      <section className="staff-panel" aria-labelledby="spending-recent">
+      <section className="ui-card" aria-labelledby="spending-recent">
         <h2 id="spending-recent">{copy.recent}</h2>
         {recent.length ? (
-          <ul className="staff-rows">
+          <ul className="cause-grid">
             {recent.map((entry) => (
-              <li className="staff-row" key={entry.id}>
-                <div>
-                  <strong>{causeName(entry.cause_id)}</strong>
-                  <p>{label(entry.description)}</p>
-                  <p className="staff-meta">
-                    <span>{copy.statuses[entry.status]}</span>
-                  </p>
-                </div>
-                <dl>
+              <li className="ui-card" key={entry.id}>
+                <strong>{causeName(entry.cause_id)}</strong>
+                <p>{label(entry.description)}</p>
+                <Badge
+                  tone={entry.status === "recorded" ? "verified" : "warning"}
+                >
+                  {copy.statuses[entry.status]}
+                </Badge>
+                <dl className="money-pair">
                   <div>
                     <dt>{copy.amount}</dt>
                     <dd>
-                      <bdi>{rupees(locale, entry.amount_paisa)}</bdi>
+                      <Amount paisa={entry.amount_paisa} locale={locale} />
                     </dd>
                   </div>
                   <div>
                     <dt>{copy.matched}</dt>
                     <dd>
-                      <bdi>{rupees(locale, entry.matched_paisa)}</bdi>
+                      <Amount paisa={entry.matched_paisa} locale={locale} />
                     </dd>
                   </div>
                   <div>
                     <dt>{copy.date}</dt>
                     <dd>
                       <time dateTime={entry.spent_on}>
-                        {day.format(new Date(entry.spent_on + "T00:00:00Z"))}
+                        {formatDate(entry.spent_on, locale)}
                       </time>
                     </dd>
                   </div>
                 </dl>
                 {entry.status === "recorded" && (
                   <form
-                    className="staff-row-actions"
+                    className="ui-form"
                     onSubmit={(event) => {
                       const data = new FormData(event.currentTarget);
                       void submit(
@@ -354,47 +345,40 @@ export function SpendingBoard({
                       );
                     }}
                   >
-                    <label>
-                      {copy.reason}
-                      <select name="category" required defaultValue="">
-                        <option value="">{copy.chooseReason}</option>
-                        {reversalCategories.map((reason) => (
-                          <option key={reason} value={reason}>
-                            {copy.reasons[reason]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      {copy.note}
-                      <input name="note" maxLength={500} />
-                    </label>
-                    <button
-                      className="button button-outline"
-                      type="submit"
-                      disabled={busy}
+                    <SelectField
+                      id={`reverse-reason-${entry.id}`}
+                      name="category"
+                      label={copy.reason}
+                      required
+                      defaultValue=""
                     >
+                      <option value="">{copy.chooseReason}</option>
+                      {reversalCategories.map((reason) => (
+                        <option key={reason} value={reason}>
+                          {copy.reasons[reason]}
+                        </option>
+                      ))}
+                    </SelectField>
+                    <TextField
+                      id={`reverse-note-${entry.id}`}
+                      name="note"
+                      label={copy.note}
+                      maxLength={500}
+                    />
+                    <Button type="submit" variant="secondary" disabled={busy}>
                       {copy.reverse}
-                    </button>
+                    </Button>
                   </form>
                 )}
               </li>
             ))}
           </ul>
         ) : (
-          <p>{copy.noEntries}</p>
+          <EmptyState title={copy.noEntries}>{copy.noEntries}</EmptyState>
         )}
       </section>
-      {message && (
-        <p className="staff-success" role="status">
-          {message}
-        </p>
-      )}
-      {warning && (
-        <p className="staff-warning" role="alert">
-          {warning}
-        </p>
-      )}
+      {message && <Alert tone="success">{message}</Alert>}
+      {warning && <Alert tone="danger">{warning}</Alert>}
     </>
   );
 }

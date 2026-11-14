@@ -425,29 +425,36 @@
     {
       "idx": 60,
       "version": "7",
-      "when": 1794679591923,
-      "tag": "0060_staff_spending",
+      "when": 1794500000000,
+      "tag": "0060_public_content_read",
       "breakpoints": true
     },
     {
       "idx": 61,
       "version": "7",
-      "when": 1794679892012,
-      "tag": "0061_staff_classes",
+      "when": 1794679591923,
+      "tag": "0061_staff_spending",
       "breakpoints": true
     },
     {
       "idx": 62,
       "version": "7",
-      "when": 1794680081766,
-      "tag": "0062_staff_moderation",
+      "when": 1794679892012,
+      "tag": "0062_staff_classes",
       "breakpoints": true
     },
     {
       "idx": 63,
       "version": "7",
+      "when": 1794680081766,
+      "tag": "0063_staff_moderation",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
       "when": 1794680196156,
-      "tag": "0063_staff_sponsorships",
+      "tag": "0064_staff_sponsorships",
       "breakpoints": true
     }
   ]

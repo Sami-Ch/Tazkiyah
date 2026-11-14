@@ -21,9 +21,11 @@ export default async function ClassesPage({
   const { common } = await getMessages({ locale });
   const copy = common.staffClasses;
   return (
-    <section className="shell staff-screen" aria-labelledby="classes-title">
-      <h1 id="classes-title">{copy.heading}</h1>
-      <p className="staff-lead">{copy.intro}</p>
+    <section className="staff-stack" aria-labelledby="classes-title">
+      <div className="public-intro">
+        <h1 id="classes-title">{copy.heading}</h1>
+        <p>{copy.intro}</p>
+      </div>
       {workspace.state === "allowed" ? (
         <ClassBoard
           locale={locale}
