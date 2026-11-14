@@ -56,6 +56,8 @@ export function staffLinks(
   if (access.canEditPages) links.push({ id: "pages", href: `${root}/pages` });
   if (access.canManageClasses)
     links.push({ id: "classes", href: `${root}/classes` });
+  if (access.canModerate)
+    links.push({ id: "moderation", href: `${root}/moderation` });
   return links;
 }
 

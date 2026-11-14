@@ -24,6 +24,7 @@ it("gives a teacher the class list and keeps finance screens away", () => {
   expect(ids({ canManageClasses: true, canModerate: true })).toEqual([
     "home",
     "classes",
+    "moderation",
   ]);
 });
 
@@ -37,10 +38,11 @@ it("gives a finance officer donations and the bank check", () => {
   ).toEqual(["home", "donations", "reconciliation", "spending"]);
 });
 
-it("gives an editor site pages", () => {
+it("gives an editor site pages and the moderation queue", () => {
   expect(ids({ canEditPages: true, canModerate: true })).toEqual([
     "home",
     "pages",
+    "moderation",
   ]);
 });
 
@@ -68,6 +70,7 @@ it("gives an admin the screens that exist in the workspace", () => {
     "donorLinks",
     "pages",
     "classes",
+    "moderation",
   ]);
 });
 

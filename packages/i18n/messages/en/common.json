@@ -623,5 +623,35 @@
     "invalid": "Check the class name.",
     "unavailable": "The class could not be saved. Try again.",
     "pending": "Please wait…"
+  },
+  "staffModeration": {
+    "heading": "Moderation",
+    "intro": "These posts are waiting to go wider. A student’s public work needs a parent’s consent. A face in the post also needs face consent.",
+    "empty": "Nothing is waiting for you.",
+    "from": "From",
+    "asks": "Asks to become",
+    "approve": "Approve",
+    "reject": "Reject",
+    "note": "Note for a rejection",
+    "consent": "Public-work consent",
+    "noConsent": "No public-work consent",
+    "face": "A photo is flagged as showing a face",
+    "faceConsent": "Face consent is on record",
+    "noFaceConsent": "No face consent",
+    "approved": "Approved.",
+    "rejected": "Sent back.",
+    "needs_consent": "Approval is blocked until there is consent for public work.",
+    "face_blocked": "Approval is blocked because a face is flagged and there is no face consent.",
+    "not_waiting": "This post is no longer waiting.",
+    "denied": "You cannot decide this post.",
+    "invalid": "A rejection needs a short note.",
+    "unavailable": "The decision could not be saved. Try again.",
+    "pending": "Please wait…",
+    "scopes": {
+      "class": "Class",
+      "madrasa": "Madrasa",
+      "public": "Public",
+      "community": "Community"
+    }
   }
 }

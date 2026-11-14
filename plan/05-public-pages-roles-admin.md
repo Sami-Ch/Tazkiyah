@@ -808,7 +808,7 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 | P2-E5-T51 | Donor public profile page listing only named donations | todo | P1-E1-T02, P2-E5-T02, P2-E5-T41 | REQ-DPR-005, REQ-DPR-009 |
 | P2-E6-T50 | Cause page spending block: amount spent, spending entries, public receipts and published reports | todo | P1-E1-T06, P2-E1 | REQ-TRL-010, REQ-PUB-003, REQ-TRL-012 |
 | P2-E6-T51 | Home page "where the money went" block | todo | P2-E6-T50 | REQ-TRL-010 |
-| P3-E5-T50 | Moderation queue screen: reports, public requests with consent check, teacher work review, taken down | todo | P1-E5-T01, P3-E5-T05, P3-E5-T06, P3-E5-T08, P3-E5-T40, P3-E5-T41, P3-E6-T03 | REQ-MOD-003, REQ-MOD-005, REQ-CHS-004, REQ-CHS-005, REQ-TCH-004 |
+| P3-E5-T50 | Moderation queue screen: reports, public requests with consent check, teacher work review, taken down | in progress | P1-E5-T01, P3-E5-T05, P3-E5-T06, P3-E5-T08, P3-E5-T40, P3-E5-T41, P3-E6-T03 | REQ-MOD-003, REQ-MOD-005, REQ-CHS-004, REQ-CHS-005, REQ-TCH-004 |
 | P4-E3-T50 | Sponsor area page: child card, updates, full profile only with active consent, messages to the madrasa | todo | P4-E1, P4-E2 | REQ-ORP-002, REQ-ORP-003, REQ-ORP-005, REQ-ORP-006, REQ-ORP-007 |
 
 **Notes for other documents**

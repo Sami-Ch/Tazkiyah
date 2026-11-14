@@ -85,6 +85,11 @@ import {
   readClassWorkspace,
   type ClassWorkspace,
 } from "./classes";
+import {
+  decidePost,
+  readModerationQueue,
+  type ModerationWorkspace,
+} from "./moderation";
 
 const authSchema = {
   user: users,
@@ -117,6 +122,7 @@ const postEndpoints = new Set([
   "/bank-reconciliation",
   "/spending",
   "/class",
+  "/moderation",
   "/bank-account",
   "/donor-trail",
   "/account-trail",
@@ -223,6 +229,12 @@ export function getBankWorkspace(headers: Headers): Promise<BankWorkspace> {
   return readWorkspace<BankWorkspace>(headers, "/bank-settings");
 }
 
+export function getModerationWorkspace(
+  headers: Headers,
+): Promise<ModerationWorkspace> {
+  return readWorkspace<ModerationWorkspace>(headers, "/moderation-workspace");
+}
+
 export function getClassWorkspace(headers: Headers): Promise<ClassWorkspace> {
   return readWorkspace<ClassWorkspace>(headers, "/class-workspace");
 }
@@ -295,6 +307,7 @@ async function readWorkspace<
     | BankWorkspace
     | SpendingWorkspace
     | ClassWorkspace
+    | ModerationWorkspace
     | StatementWorkspace,
 >(
   headers: Headers,
@@ -656,6 +669,8 @@ async function runAuth(request: Request, path: string) {
           path === "/spending" ||
           path === "/class-workspace" ||
           path === "/class" ||
+          path === "/moderation-workspace" ||
+          path === "/moderation" ||
           path === "/donation-reversal" ||
           path === "/bank-reconciliation" ||
           path === "/bank-reconciliation-workspace" ||
@@ -727,6 +742,17 @@ async function runAuth(request: Request, path: string) {
             return path === "/bank-account"
               ? writeBankAccount(tx, request, session.session.id)
               : readBankWorkspace(tx, session.session.id);
+          }
+          if (path === "/moderation-workspace" || path === "/moderation") {
+            if (path === "/moderation-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (!session || access.state !== "allowed" || !access.canModerate)
+              return path === "/moderation"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/moderation"
+              ? decidePost(tx, request, session.session.id)
+              : readModerationQueue(tx, session.session.id);
           }
           if (path === "/class-workspace" || path === "/class") {
             if (path === "/class-workspace" && access.state !== "allowed")

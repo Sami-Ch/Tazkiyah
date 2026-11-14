@@ -138,7 +138,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-CHS-002 Posts containing phone numbers, email addresses or street addresses are blocked or flagged for a teacher. MUST → 07 §12
 - [ ] REQ-CHS-003 Teachers can see every student-to-student post and reply in their classes. MUST → 07 §12
 - [ ] REQ-CHS-004 Admin can take down any post immediately. MUST → 07 §8
-- [ ] REQ-CHS-005 A parent consent record exists before any of a student's work becomes public. MUST → 07 §5
+- [x] REQ-CHS-005 A parent consent record exists before any of a student's work becomes public. MUST → 07 §5
 - [ ] REQ-CHS-006 Parent consent is recorded by staff on a light form, with no guardian account. MUST → 07 §5
 
 ## Performance
@@ -176,7 +176,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 - [ ] REQ-MOD-001 Class and madrasa posts appear immediately without approval. MUST → 07 §8
 - [ ] REQ-MOD-002 Teachers and admins can hide or remove any class or madrasa post. MUST → 07 §8
-- [ ] REQ-MOD-003 Making a post public needs approval from the class teacher or the principal. MUST → 07 §8
+- [x] REQ-MOD-003 Making a post public needs approval from the class teacher or the principal. MUST → 07 §8
 - [ ] REQ-MOD-004 A post going public moves through the states draft, submitted, approved, published and taken down. MUST → 07 §8
 - [ ] REQ-MOD-005 Reported posts enter a moderation queue for teachers and admins. MUST → 07 §8
 - [ ] REQ-MOD-006 A taken-down post disappears from public pages within one minute (proposed target, D-027). SHOULD → 07 §8
