@@ -4,6 +4,7 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
 import { getAdminAccess, getClassWorkspace } from "@/server/auth";
 import { ClassBoard } from "./class-board";
+import "../../hub/hub.css";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function ClassesPage({
         <ClassBoard
           locale={locale}
           copy={copy}
+          isAdmin={workspace.is_admin}
           canCreateStudents={
             access.state === "allowed" && access.canCreateStudents
           }

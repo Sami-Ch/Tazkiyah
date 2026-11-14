@@ -17,14 +17,60 @@ import {
 import { requireLocale } from "@/i18n/locale";
 import { staffLinks, type StaffLinkId } from "../admin/staff-links";
 import { StaffOverview } from "../admin/staff-overview";
+import { Walkthrough } from "../hub/walkthrough";
+import { hubUiCopy } from "../hub/hub-ui-copy";
+import "../hub/hub.css";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function DesignGallery({
   params,
+  searchParams,
 }: PageProps<"/[locale]/design">) {
   const locale = requireLocale((await params).locale);
   setRequestLocale(locale);
+  const query = await searchParams;
+  const sample = Array.isArray(query.sample) ? query.sample[0] : query.sample;
+  const stepValue = Array.isArray(query.step) ? query.step[0] : query.step;
+  const step = Number(stepValue);
+  const roleValue = Array.isArray(query.role) ? query.role[0] : query.role;
+  const role = roleValue === "teacher" ? "teacher" : "student";
+  const copy = hubUiCopy[locale];
+  if (sample === "hub") {
+    return (
+      <section className="shell hub-sample" aria-labelledby="sample-title">
+        <h1 id="sample-title">{copy.sample}</h1>
+        <article className="ui-card">
+          <h2>{copy.poll}</h2>
+          <p>{copy.sample}</p>
+          <div className="hub-poll">
+            <label>
+              <input type="radio" name="sample-poll" defaultChecked />
+              <bdi>{copy.sample}</bdi>
+              <span className="hub-poll-bar" aria-hidden="true">
+                <span style={{ inlineSize: "60%" }} />
+              </span>
+            </label>
+          </div>
+          <p>{copy.mediaGap}</p>
+          <p>{copy.alumni}</p>
+        </article>
+      </section>
+    );
+  }
+  if (sample === "walk") {
+    return (
+      <section className="shell hub-sample" aria-labelledby="sample-title">
+        <h1 id="sample-title">{copy.sample}</h1>
+        <Walkthrough
+          locale={locale}
+          role={role}
+          step={Number.isInteger(step) ? step : 1}
+          preview
+        />
+      </section>
+    );
+  }
   const t = await getTranslations("common");
 
   return (
