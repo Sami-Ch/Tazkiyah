@@ -1,32 +1,21 @@
 import type { Locale } from "@tazkiyah/i18n/routing";
+import { Amount, ProgressBar } from "@/design/ui";
+import { percentOf } from "@/design/format";
 import { causeCopy } from "@/institutes/cause-copy";
 import type { PublishedCause } from "@/institutes/causes";
-
-function formatPkr(paisa: bigint, locale: Locale) {
-  const remainder = paisa % 100n;
-  const formatter = new Intl.NumberFormat(`${locale}-PK`, {
-    style: "currency",
-    currency: "PKR",
-    minimumFractionDigits: remainder ? 2 : 0,
-  });
-  if (!remainder) return formatter.format(paisa / 100n);
-  const fraction = new Intl.NumberFormat(`${locale}-PK`, {
-    minimumIntegerDigits: 2,
-  }).format(remainder);
-  return formatter
-    .formatToParts(paisa / 100n)
-    .map((part) => (part.type === "fraction" ? fraction : part.value))
-    .join("");
-}
 
 export function CauseProgress({
   cause,
   locale,
   showLifetime = false,
+  spent,
+  spentLabel,
 }: {
   cause: PublishedCause;
   locale: Locale;
   showLifetime?: boolean;
+  spent?: string;
+  spentLabel?: string;
 }) {
   const copy = causeCopy[locale];
   const [raisedLabel, targetLabel] =
@@ -38,26 +27,33 @@ export function CauseProgress({
           ? [copy.yearRaised, copy.yearTarget]
           : [copy.raised, copy.target];
   const raised = BigInt(cause.raised_paisa);
-  const target = BigInt(cause.target_paisa ?? "0");
-  const reached = target > 0n && raised >= target;
-  const progress = reached
-    ? 1000
-    : target > 0n
-      ? Number((raised * 1000n) / target)
-      : 0;
+  const target = cause.target_paisa ? BigInt(cause.target_paisa) : 0n;
   const lifetime = BigInt(cause.lifetime_raised_paisa);
+  const percent = target > 0n ? Math.min(100, percentOf(raised, target)) : 0;
 
   return (
     <div className="giving-progress">
-      <dl>
+      <dl className="money-pair">
         <div>
           <dt>{raisedLabel}</dt>
-          <dd>{formatPkr(raised, locale)}</dd>
+          <dd>
+            <Amount paisa={raised} locale={locale} />
+          </dd>
         </div>
         {target > 0n && (
           <div>
             <dt>{targetLabel}</dt>
-            <dd>{formatPkr(target, locale)}</dd>
+            <dd>
+              <Amount paisa={target} locale={locale} />
+            </dd>
+          </div>
+        )}
+        {spent !== undefined && (
+          <div>
+            <dt>{spentLabel}</dt>
+            <dd>
+              <Amount paisa={spent} locale={locale} />
+            </dd>
           </div>
         )}
         {showLifetime &&
@@ -65,14 +61,22 @@ export function CauseProgress({
           lifetime !== raised && (
             <div>
               <dt>{copy.lifetimeRaised}</dt>
-              <dd>{formatPkr(lifetime, locale)}</dd>
+              <dd>
+                <Amount paisa={lifetime} locale={locale} />
+              </dd>
             </div>
           )}
       </dl>
       {target > 0n && (
-        <progress max={1000} value={progress} aria-label={copy.progress} />
+        <ProgressBar
+          value={percent}
+          max={100}
+          label={`${percent}% · ${raisedLabel}`}
+        />
       )}
-      {reached && <p className="giving-kicker">{copy.targetReached}</p>}
+      {target > 0n && raised >= target && (
+        <p className="giving-kicker">{copy.targetReached}</p>
+      )}
     </div>
   );
 }

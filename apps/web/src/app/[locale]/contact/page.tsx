@@ -60,7 +60,10 @@ export default async function ContactPage({
       : institute.mapUrl);
 
   return (
-    <section className="shell contact-page" aria-labelledby="contact-title">
+    <section
+      className="shell public-stack contact-page"
+      aria-labelledby="contact-title"
+    >
       <a className="contact-back" href={`/${locale}`}>
         {copy.back}
       </a>

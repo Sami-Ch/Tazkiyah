@@ -37,6 +37,17 @@ import {
   type CauseWorkspace,
 } from "./causes";
 import {
+  readDonorWall,
+  readPublicOverview,
+  readPublicWork,
+} from "./public-ledger";
+import type {
+  DonorWallEntry,
+  PublicOverview,
+  PublicPost,
+  PublicTeacher,
+} from "@/institutes/public-ledger";
+import {
   readPublishedSitePages,
   readSitePageWorkspace,
   writeSitePage,
@@ -261,6 +272,39 @@ export async function getPublishedCauses(
   return response.ok ? response.json() : [];
 }
 
+export async function getPublicOverview(
+  headers: Headers,
+): Promise<PublicOverview | null> {
+  const response = await instituteRequest(headers, "/public-overview");
+  return response.ok ? response.json() : null;
+}
+
+export async function getDonorWall(
+  headers: Headers,
+  filters: URLSearchParams,
+): Promise<{ items: DonorWallEntry[]; hasMore: boolean }> {
+  const response = await instituteRequest(
+    headers,
+    "/donor-wall-public",
+    filters,
+  );
+  return response.ok ? response.json() : { items: [], hasMore: false };
+}
+
+export async function getPublicWork(
+  headers: Headers,
+  filters: URLSearchParams,
+): Promise<{
+  items: PublicPost[];
+  teachers: PublicTeacher[];
+  hasMore: boolean;
+}> {
+  const response = await instituteRequest(headers, "/public-work", filters);
+  return response.ok
+    ? response.json()
+    : { items: [], teachers: [], hasMore: false };
+}
+
 async function readWorkspace<
   T extends
     | AccountAccess
@@ -353,7 +397,10 @@ async function runAuth(request: Request, path: string) {
     path === "/site-pages-public" ||
     path === "/contact-public" ||
     path === "/causes-public" ||
-    path === "/bank-accounts-public";
+    path === "/bank-accounts-public" ||
+    path === "/public-overview" ||
+    path === "/donor-wall-public" ||
+    path === "/public-work";
   if (!host || (!publicContent && (!ip || !secret || secret.length < 32))) {
     return jsonError("Authentication is unavailable.", 503);
   }
@@ -418,6 +465,11 @@ async function runAuth(request: Request, path: string) {
           return readPublishedBankAccounts(tx);
         if (path === "/causes-public")
           return readPublishedCauses(tx, publicUrl.searchParams.get("slug"));
+        if (path === "/public-overview") return readPublicOverview(tx);
+        if (path === "/donor-wall-public")
+          return readDonorWall(tx, publicUrl.searchParams);
+        if (path === "/public-work")
+          return readPublicWork(tx, publicUrl.searchParams);
         if (!ip || !secret)
           return jsonError("Authentication is unavailable.", 503);
 

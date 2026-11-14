@@ -57,7 +57,7 @@ export default async function PublishedPage({
   const t = await getTranslations("common.sitePages");
   return (
     <article
-      className="shell published-page"
+      className="shell public-stack published-page"
       aria-labelledby="public-page-title"
     >
       <a href={`/${locale}`}>{t("backHome")}</a>
