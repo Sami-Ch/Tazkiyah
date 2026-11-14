@@ -486,3 +486,21 @@ Four points, each the narrower reading. **Sponsor view:** 04 filters `app.sponso
 2026-11-12 · Sami · Vercel handoff and Resend email
 
 Sami will deploy the current Next.js app to Vercel and chose Resend for account emails and donor receipts (Q-06). The handoff adds Vercel request handling and an authenticated receipt job endpoint using the existing outbox. The [Vercel handoff](../docs/vercel.md) describes the project settings and database roles for this release.
+
+## D-143
+
+2026-11-14 · Frontend · Public design system
+
+The public shell and pages use Direction A. `themeStyle()` writes the institute theme onto `<html>`. When the database answers, the theme and enabled modules come from `public_api.institute_public`. Otherwise the seeded Night and Paper theme is used. Tasks that depended on all of P0-E1 were narrowed to P0-E1-T01, because the rest of that epic is Cloudflare, DNS and hosted secrets.
+
+The self-hosted Noto Naskh Arabic variable file is 94,032 bytes, about 2 KB over the 90 KB Urdu budget. It stays, so Urdu buttons can be real bold rather than a second face. Noto Nastaliq Urdu is not downloaded. Public Urdu headings use it only when the phone already has the font (`local()`, `font-display: optional`). Naskh is the fallback and keeps the taller line height.
+
+The component gallery is `/{lang}/design` and is `noindex`, so other work can reuse it without a staff login. The planned admin-only `/_design` path can replace it later.
+
+`/{lang}/transparency` lists raised and spent for every public cause. The sitemap did not name that path. The home page and each cause page already required the same figures from `public_api.cause_summary` and `public_api.cause_spending`, and one page holds them together.
+
+`tazkiyah_auth` may select `public_api.public_posts` and `public_api.public_teachers`, and may execute `app.module_enabled` and `app.persona_work_may_show`. That is the role the public site already uses. The views still hide student identity. A visitor's report does not write `post_reports`, because REQ-MOD-008 is still proposed. The button goes to the contact page and asks people not to send a child's details.
+
+A spending row shows its date, amount and description. Receipt photos stay off the page until a public media URL exists. The view has a storage key, and R2 is not configured here.
+
+Amount chips, the settings switch, the form error summary, toasts, a phone bottom sheet and the walkthrough stepper are still open. They belong with the donate flow and the onboarding tasks.
