@@ -12,10 +12,13 @@ import { requireLocale } from "@/i18n/locale";
 import { campusMedia, hasCampusSection } from "@/institutes/campus-media";
 import { institute } from "@/institutes/markaz-al-azeem";
 import { defaultHomeFacts } from "@/institutes/home-facts";
-import { homeFactKeys, pageTranslation } from "@/institutes/site-pages";
+import { pageTranslation } from "@/institutes/site-pages";
 import { readPublishedPages } from "@/server/public-pages";
 import { publicPageMetadata, publicSiteOrigin } from "@/server/public-site";
+import { AddressMap } from "@/components/address-map";
+import { StarRule } from "@/design/ornament";
 import { HomeLedger } from "./home-ledger";
+import { HomeStory } from "./home-story";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]">) {
   const locale = requireLocale((await params).locale);
@@ -50,9 +53,6 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
   const additionalPages = pages.filter(
     ({ slug }) => slug === "facilities" || slug === "daily-life",
   );
-  const number = new Intl.NumberFormat(`${locale}-PK`, {
-    numberingSystem: "latn",
-  });
   const [leadPhoto, ...gallery] = campusMedia.photos;
   const { film, sample } = campusMedia;
 
@@ -172,7 +172,8 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
       <div className="shell content">
         <section className="about" id="about" aria-labelledby="about-title">
           <div>
-            <p className="eyebrow">{t("about.label")}</p>
+            <p className="eyebrow">{t("story.missionLabel")}</p>
+            <StarRule />
             <h2
               id="about-title"
               lang={aboutTitle?.language}
@@ -184,7 +185,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
                   : undefined
               }
             >
-              {aboutTitle?.text ?? t("about.heading")}
+              {aboutTitle?.text ?? t("story.missionHeading")}
             </h2>
             {[aboutTitle, aboutBody].some(
               (field) => field && field.language !== locale,
@@ -204,7 +205,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
                   : undefined
               }
             >
-              {aboutBody?.text ?? t("about.body")}
+              {aboutBody?.text ?? t("story.missionBody")}
             </p>
             {additionalPages.length > 0 && (
               <div className="published-page-links">
@@ -222,32 +223,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
           </div>
         </section>
 
-        <section
-          className="community"
-          id="community"
-          aria-labelledby="community-title"
-        >
-          <p className="eyebrow">{t("community.label")}</p>
-          <h2 id="community-title">{t("community.heading")}</h2>
-          <ul className="service-list">
-            {homeFactKeys.map((service) => (
-              <li className="service" key={service}>
-                <span className="service-icon">
-                  <Icon name={service} />
-                </span>
-                <p className="service-stat">
-                  <bdi>{number.format(facts[service].value)}</bdi>
-                  {facts[service].label[locale]}
-                </p>
-                <h3>{t(`community.${service}.title`)}</h3>
-                <p>{t(`community.${service}.body`)}</p>
-              </li>
-            ))}
-          </ul>
-          <a className="button button-outline" href={`/${locale}/causes`}>
-            {t("giving.explore")}
-          </a>
-        </section>
+        <HomeStory locale={locale} facts={facts} />
 
         <HomeLedger locale={locale} />
 
@@ -329,8 +305,29 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
               {t("visit.directions")}
             </a>
           </div>
+          <div className="visit-extra">
+            <p className="sample-flag">{t("story.sampleBadge")}</p>
+            <h3>{t("story.hoursLabel")}</h3>
+            <p>{t("story.hoursBody")}</p>
+            <AddressMap
+              query={`${institute.mosque.en}, ${institute.address.roadNumber} ${institute.address.roadLabel.en}, ${institute.address.region.en}`}
+              title={t("story.mapTitle")}
+            />
+          </div>
         </section>
       </div>
+      <section className="give-band" aria-labelledby="give-band-title">
+        <div className="shell give-band-inner">
+          <div>
+            <h2 id="give-band-title">{t("story.ctaHeading")}</h2>
+            <p>{t("story.ctaBody")}</p>
+          </div>
+          <a className="button button-primary" href={`/${locale}/donate`}>
+            {t("story.ctaButton")}
+            <Icon name="arrow" />
+          </a>
+        </div>
+      </section>
     </>
   );
 }

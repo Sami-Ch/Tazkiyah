@@ -75,12 +75,14 @@ export function PatternBand() {
 export function SiteFooter({
   name,
   platform,
+  tagline,
   address,
   links,
   language,
 }: {
   name: string;
   platform: string;
+  tagline: string;
   address: ReactNode;
   links: ShellLink[];
   language: ReactNode;
@@ -90,6 +92,7 @@ export function SiteFooter({
       <div className="shell footer-grid">
         <div>
           <p className="footer-name">{name}</p>
+          <p className="footer-tagline">{tagline}</p>
           <p className="footer-muted">{address}</p>
           <p className="footer-muted">{platform}</p>
         </div>

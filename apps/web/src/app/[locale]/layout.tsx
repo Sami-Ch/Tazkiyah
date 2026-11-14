@@ -106,6 +106,7 @@ export default async function LocaleLayout({
         <SiteFooter
           name={institute.name[locale]}
           platform={t("footer.platform")}
+          tagline={t("footer.tagline")}
           address={
             <>
               {institute.mosque[locale]}

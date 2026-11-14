@@ -53,6 +53,11 @@ export async function DonationPage({
         <p className="eyebrow">{institute.name[locale]}</p>
         <h1 id="donate-title">{copy.title}</h1>
         <p>{copy.intro}</p>
+        <ul className="donate-reassure">
+          <li>{copy.reassureAccount}</li>
+          <li>{copy.reassureEmail}</li>
+          <li>{copy.reassureTrail}</li>
+        </ul>
       </header>
       <div className="donate-grid">
         <section className="ui-card" aria-labelledby="donate-purpose">
