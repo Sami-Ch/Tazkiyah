@@ -3,6 +3,8 @@ export type StaffLinkId =
   | "donations"
   | "reconciliation"
   | "spending"
+  | "allNeeds"
+  | "reports"
   | "causes"
   | "banks"
   | "users"
@@ -20,6 +22,8 @@ export type StaffLinkAccess = {
   canRecordTransfers: boolean;
   canReconcileTransfers: boolean;
   canRecordSpending: boolean;
+  canSplitAllNeeds: boolean;
+  canPublishReports: boolean;
   canInvite: boolean;
   canEditPages: boolean;
   canManageClasses: boolean;
@@ -48,6 +52,10 @@ export function staffLinks(
   }
   if (access.canRecordSpending)
     links.push({ id: "spending", href: `${root}/spending` });
+  if (access.canPublishReports)
+    links.push({ id: "reports", href: `${root}/reports` });
+  if (access.canSplitAllNeeds)
+    links.push({ id: "allNeeds", href: `${root}/all-needs` });
   if (access.canInvite) {
     links.push(
       { id: "causes", href: `${root}/causes` },

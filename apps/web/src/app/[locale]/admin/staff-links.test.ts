@@ -9,6 +9,8 @@ const none: StaffLinkAccess = {
   canRecordTransfers: false,
   canReconcileTransfers: false,
   canRecordSpending: false,
+  canSplitAllNeeds: false,
+  canPublishReports: false,
   canInvite: false,
   canEditPages: false,
   canManageClasses: false,
@@ -39,8 +41,9 @@ it("gives a finance officer donations and the bank check", () => {
       canRecordTransfers: true,
       canReconcileTransfers: true,
       canRecordSpending: true,
+      canPublishReports: true,
     }),
-  ).toEqual(["home", "donations", "reconciliation", "spending"]);
+  ).toEqual(["home", "donations", "reconciliation", "spending", "reports"]);
 });
 
 it("gives an editor site pages and the moderation queue", () => {
@@ -57,6 +60,8 @@ it("gives an admin the screens that exist in the workspace", () => {
       canRecordTransfers: true,
       canReconcileTransfers: true,
       canRecordSpending: true,
+      canPublishReports: true,
+      canSplitAllNeeds: true,
       canInvite: true,
       canEditPages: true,
       canManageClasses: true,
@@ -70,6 +75,8 @@ it("gives an admin the screens that exist in the workspace", () => {
     "donations",
     "reconciliation",
     "spending",
+    "reports",
+    "allNeeds",
     "causes",
     "banks",
     "users",

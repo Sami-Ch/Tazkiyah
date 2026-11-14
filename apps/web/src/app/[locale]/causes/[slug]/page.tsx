@@ -16,6 +16,7 @@ import {
 } from "@/server/auth";
 import { publicPageMetadata, publicSiteOrigin } from "@/server/public-site";
 import { CauseProgress } from "../cause-progress";
+import { WallName } from "../../donor-wall/wall-name";
 import "../causes.css";
 
 export const dynamic = "force-dynamic";
@@ -232,7 +233,15 @@ export default async function CausePage({
             {wall.items.map((entry) => (
               <li className="wall-row" key={entry.public_ref}>
                 <Amount paisa={entry.amount_paisa} locale={locale} />
-                <span>{entry.donor_label ?? t("anonymous")}</span>
+                <WallName
+                  locale={locale}
+                  label={entry.donor_label}
+                  anonymous={t("anonymous")}
+                  profileRef={entry.profile_ref}
+                  trailPublic={entry.trail_public}
+                  publicRef={entry.public_ref}
+                  viewTrail={t("viewTrail")}
+                />
                 <time dateTime={entry.given_on}>
                   {formatDate(entry.given_on, locale)}
                 </time>

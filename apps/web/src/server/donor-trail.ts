@@ -15,6 +15,8 @@ type TrailRow = Cursor & {
   cause_title: LocalizedText | null;
   bank_reference_tail: string | null;
   public_ref?: string;
+  is_anonymous?: boolean;
+  trail_public?: boolean;
   donor_name: string | null;
   issuer_name: LocalizedText | null;
   issuer_address: LocalizedText | null;
@@ -141,6 +143,7 @@ export async function readDonorTrail(
   const { rows } = await tx.execute<TrailRow>(sql`
     select id, receipt_number, receipt_locale, credited_on, amount_paisa,
       donation_type, status, recorded_at, events, reversal_reason, cause_title, bank_reference_tail,
+      public_ref, is_anonymous, trail_public,
       donor_name, issuer_name, issuer_address, issuer_slug, issuer_logo_key, replaces_donation, replaces_receipt
     from identity.read_guest_trail(
       ${query.hash}, ${query.cursor?.recorded_at ?? null}::timestamptz, ${query.cursor?.id ?? null}::uuid
@@ -169,6 +172,7 @@ export async function readAccountTrail(
   const { rows } = await tx.execute<TrailRow>(sql`
     select id, receipt_number, receipt_locale, credited_on, amount_paisa,
       donation_type, status, recorded_at, events, reversal_reason, cause_title, bank_reference_tail, public_ref,
+      is_anonymous, trail_public,
       donor_name, issuer_name, issuer_address, issuer_slug, issuer_logo_key, replaces_donation, replaces_receipt
     from identity.read_account_trail(${sessionId}::uuid, ${cursor?.recorded_at ?? null}::timestamptz,
       ${cursor?.id ?? null}::uuid, ${ref ?? null}::text)

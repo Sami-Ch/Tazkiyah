@@ -11,6 +11,7 @@ import {
   getPublishedCauses,
 } from "@/server/auth";
 import { CauseProgress } from "./causes/cause-progress";
+import { WallName } from "./donor-wall/wall-name";
 
 export async function HomeLedger({ locale }: { locale: Locale }) {
   const t = await getTranslations("common.public");
@@ -159,7 +160,15 @@ export async function HomeLedger({ locale }: { locale: Locale }) {
           <ul className="wall-list">
             {wall.map((entry) => (
               <li className="wall-row" key={entry.public_ref}>
-                <bdi>{entry.donor_label ?? t("anonymous")}</bdi>
+                <WallName
+                  locale={locale}
+                  label={entry.donor_label}
+                  anonymous={t("anonymous")}
+                  profileRef={entry.profile_ref}
+                  trailPublic={entry.trail_public}
+                  publicRef={entry.public_ref}
+                  viewTrail={t("viewTrail")}
+                />
                 <Amount paisa={entry.amount_paisa} locale={locale} />
                 <time dateTime={entry.given_on}>
                   {formatDate(entry.given_on, locale)}

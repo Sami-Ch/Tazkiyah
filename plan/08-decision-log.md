@@ -535,6 +535,36 @@ The site connects as `tazkiyah_auth`, which cannot insert threads under the `taz
 
 The staff menu and workspace screens live inside `/admin` and reuse `apps/web/src/design` (buttons, fields, tables, amount and date formatters, and the public tokens). Role-based links stay in the staff area. The shared button carries both a click handler for the donor screens and `name`/`value` for staff forms, so neither area keeps a second button. Options: keep a private staff stylesheet; use the shared components. Reason: the design system landed in the public branch, and one set of components keeps Urdu and English staff screens on the same type, colour, and money formatting.
 
+## D-155
+
+2026-11-14 · Build agent (REQ-DPR-005) · A public donor profile is addressed by `donors.public_ref`
+
+The public page is `/{lang}/donors/{public_ref}`. The reference is the same ten-character alphabet as a donation's `public_ref`, generated in the database, and it is not derived from the display name. Options: a slug of the display name; a random public reference. Reason: two donors may choose the same display name, and renaming the profile must not change the address.
+
+## D-156
+
+2026-11-14 · Build agent (REQ-ROL-006) · The all-needs screen previews the same FIFO split it saves
+
+`identity.preview_all_needs_split` walks the unallocated pool in credit-date then receipt-number order and does not lock the pool. Saving calls `app.split_all_needs`, which takes the lock and writes the allocations. There is no reverse-split function, so the screen does not offer one. Options: a separate preview allocator; call the same order the save uses. Reason: a preview that disagrees with the save would place different gifts than the administrator just confirmed.
+
+## D-157
+
+2026-11-14 · Build agent (REQ-TRL-012) · A weekly spending report covers seven days, inclusive
+
+A daily report has equal start and end dates. A weekly report ends six days after it starts. A custom report may use any end date on or after the start. Publishing calls `app.publish_spending_report`, which writes one `reported` event per donation for the matched total. Options: any date range the table check allows; a fixed seven-day week. Reason: the table only requires the end to be on or after the start, and a week the staff can explain is seven days.
+
+## D-158
+
+2026-11-14 · Build agent (REQ-TRL-008, REQ-TRL-009, REQ-DPR-006) · Public trails live at `/{lang}/trail/{public_ref}`
+
+The private guest page stays `/{lang}/trail` and remains `noindex`. A trail that is not public answers 404. The donor and a guest-link holder may name a gift or make its trail public, and may turn either choice back. Staff may only make a named gift anonymous or a public trail private, and that change is audited. Recording still starts anonymous unless the person recording ticks the name. Options: publish the private `/trail` page; add the public reference as its own path. Reason: the private link must stay unlisted, and staff must not be able to put a donor's name on the wall.
+
+## D-159
+
+2026-11-14 · Build agent (REQ-DPR-005) · A public profile shows an initial until file storage exists
+
+Profile photos and receipt photos stay off the public pages. The profile shows the first character of the display name and says that a photo waits on file storage. Links must be `https` and are rendered `nofollow`. The profile lists only gifts that are not anonymous, and a public profile may be empty. The anonymity scan allows the chosen display name and still rejects the legal name, email, phone, bank reference and gift type. Options: block public profiles until object storage exists; publish the name and links now. Reason: object storage is not configured, and the name and links do not need it.
+
 ## D-165
 
 2026-11-14 · Build agent · Staff record parent consent without a guardian account, Sami may reverse

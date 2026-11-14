@@ -30,11 +30,11 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-TRL-005 One spending entry can draw on several donations, and one donation can be split across several spending entries. MUST → 06 §8
 - [ ] REQ-TRL-006 Zakat money is matched only to spending in Zakat-eligible causes. MUST → 06 §6
 - [x] REQ-TRL-007 Donor can see, for each of their donations, which spending entries it paid for and how much. MUST → 06 §8
-- [ ] REQ-TRL-008 A donation's trail is private by default. MUST → 06 §10
-- [ ] REQ-TRL-009 Donor can make the trail of a donation public. MUST → 06 §10
+- [x] REQ-TRL-008 A donation's trail is private by default. MUST → 06 §10
+- [x] REQ-TRL-009 Donor can make the trail of a donation public. MUST → 06 §10
 - [x] REQ-TRL-010 Each cause page shows aggregated spending without any donor identity. MUST → 05 §5
 - [x] REQ-TRL-011 A spending entry records amount, date, description and an optional receipt or photo. MUST → 06 §9
-- [ ] REQ-TRL-012 Admin can publish a daily or weekly report that groups spending entries. SHOULD → 06 §9
+- [x] REQ-TRL-012 Admin can publish a daily or weekly report that groups spending entries. SHOULD → 06 §9
 - [x] REQ-TRL-013 Admin can see the unspent balance of each cause. MUST → 06 §9
 - [x] REQ-TRL-014 The allocation model can record a future transfer from a platform fund to an institute without a schema change. MUST → 04 §9
 
@@ -44,8 +44,8 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-DPR-002 A guest donor receives a private link to their trail. MUST → 06 §11
 - [x] REQ-DPR-003 A guest donor can create an account later and claim past donations made with the same email. SHOULD → 06 §11
 - [x] REQ-DPR-004 Donor can create an account and log in with email. MUST → 03 §6
-- [ ] REQ-DPR-005 Donor can set a public profile with a display name, photo and links to profiles elsewhere. SHOULD → 06 §10
-- [ ] REQ-DPR-006 Each donation can show the donor's name or be anonymous, set separately from the profile. MUST → 06 §10
+- [x] REQ-DPR-005 Donor can set a public profile with a display name, photo and links to profiles elsewhere. SHOULD → 06 §10
+- [x] REQ-DPR-006 Each donation can show the donor's name or be anonymous, set separately from the profile. MUST → 06 §10
 - [x] REQ-DPR-007 The donor wall shows the amount and cause of every donation. MUST → 06 §10
 - [x] REQ-DPR-008 The donor wall shows "Anonymous" for every donation set to anonymous. MUST → 06 §10
 - [ ] REQ-DPR-009 An anonymous donation never reveals the donor's name in pages, exports, logs, emails or API responses. MUST → 06 §10
@@ -104,7 +104,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-ROL-003 There are no guardian logins. MUST → 05 §6
 - [ ] REQ-ROL-004 Admin can create teacher, editor and finance officer accounts. MUST → 05 §8
 - [x] REQ-ROL-005 Admin can set Zakat eligibility and an optional approving scholar's name for each cause. MUST → 06 §6
-- [ ] REQ-ROL-006 Admin can split all-needs funds across causes. MUST → 06 §7
+- [x] REQ-ROL-006 Admin can split all-needs funds across causes. MUST → 06 §7
 - [ ] REQ-ROL-007 Admin can record spending entries with receipts. MUST → 06 §9
 - [ ] REQ-ROL-008 Every staff action that changes data is written to an audit log. MUST → 05 §9
 - [ ] REQ-ROL-009 Admin can view and filter the audit log. MUST → 05 §9

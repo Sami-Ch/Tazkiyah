@@ -62,6 +62,9 @@ export default async function AccountPage({
               </a>
             )}
             {access.roles.includes("donor") && (
+              <a href={`/${locale}/account/profile`}>{account.publicProfile}</a>
+            )}
+            {access.roles.includes("donor") && (
               <a href={`/${locale}/account/sponsorship`}>
                 {sponsorCopy[locale].title}
               </a>

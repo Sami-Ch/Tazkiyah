@@ -34,6 +34,8 @@ type TrailDonation = TrailCursor & {
   reversal_reason: string | null;
   receipt_locale: Locale;
   public_ref?: string;
+  is_anonymous?: boolean;
+  trail_public?: boolean;
   bank_reference_tail: string | null;
   donor_name: string | null;
   issuer_name: LocalizedPageText | null;
@@ -424,6 +426,102 @@ function DonationStateLine({
   return <p className="trail-state">{line}</p>;
 }
 
+function VisibilityChoices({
+  donation,
+  locale,
+  token,
+  onSaved,
+}: {
+  donation: TrailDonation;
+  locale: Locale;
+  token?: string;
+  onSaved: () => void;
+}) {
+  const copy = trailCopy[locale];
+  const [notice, setNotice] = useState<string>();
+  const [pending, setPending] = useState(false);
+  if (!donation.public_ref) return null;
+  async function save(anonymous: boolean, trailPublic: boolean) {
+    setPending(true);
+    const response = await authRequest("donation-visibility", {
+      ...(token ? { token } : {}),
+      publicRef: donation.public_ref,
+      anonymous,
+      trailPublic,
+    });
+    const body = (await response.json().catch(() => null)) as {
+      code?: string;
+    } | null;
+    setPending(false);
+    setNotice(body?.code === "saved" ? copy.visibilitySaved : copy.visibilityDenied);
+    if (body?.code === "saved") onSaved();
+  }
+  return (
+    <fieldset className="trail-visibility" disabled={pending}>
+      <label>
+        <input
+          type="checkbox"
+          checked={donation.is_anonymous === false}
+          onChange={(event) =>
+            void save(!event.target.checked, donation.trail_public === true)
+          }
+        />
+        {copy.showName}
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={donation.trail_public === true}
+          onChange={(event) =>
+            void save(donation.is_anonymous !== false, event.target.checked)
+          }
+        />
+        {copy.makePublic}
+      </label>
+      {donation.trail_public && (
+        <a href={`/${locale}/trail/${donation.public_ref}`}>{copy.publicLink}</a>
+      )}
+      {notice && <p role="status">{notice}</p>}
+    </fieldset>
+  );
+}
+
+function GuestName({ locale, token }: { locale: Locale; token: string }) {
+  const copy = trailCopy[locale];
+  const [name, setName] = useState("");
+  const [notice, setNotice] = useState<string>();
+  return (
+    <form
+      className="trail-visibility"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void authRequest("donor-profile", { token, displayName: name }).then(
+          async (response) => {
+            const body = (await response.json().catch(() => null)) as {
+              code?: string;
+            } | null;
+            setNotice(body?.code === "saved" ? copy.nameSaved : copy.visibilityDenied);
+          },
+        );
+      }}
+    >
+      <label>
+        {copy.displayName}
+        <input
+          value={name}
+          maxLength={80}
+          autoComplete="off"
+          onChange={(event) => setName(event.target.value)}
+        />
+      </label>
+      <button type="submit" className="ui-button ui-button-secondary">
+        {copy.saveName}
+      </button>
+      {notice && <p role="status">{notice}</p>}
+    </form>
+  );
+}
+
 function DonationRecord({
   donation,
   locale,
@@ -431,6 +529,7 @@ function DonationRecord({
   onPrint,
   showTrailLink,
   token,
+  onSaved,
 }: {
   donation: TrailDonation;
   locale: Locale;
@@ -438,6 +537,7 @@ function DonationRecord({
   onPrint: () => void;
   showTrailLink: boolean;
   token?: string;
+  onSaved: () => void;
 }) {
   const copy = trailCopy[locale];
   return (
@@ -550,6 +650,12 @@ function DonationRecord({
         >
           {copy.printReceipt}
         </button>
+        <VisibilityChoices
+          donation={donation}
+          locale={locale}
+          token={token}
+          onSaved={onSaved}
+        />
         {showTrailLink && donation.public_ref && (
           <a
             className="ui-button ui-button-secondary"
@@ -626,6 +732,10 @@ function TrailResults({
                 onPrint={() => printReceipt(donation.id)}
                 showTrailLink={!token && !donationRef}
                 token={token}
+                onSaved={() => {
+                  setResult({ state: "loading" });
+                  setRetry(retry + 1);
+                }}
               />
             ))}
           </section>
@@ -718,7 +828,10 @@ export function DonorTrail({ locale }: { locale: Locale }) {
           {copy.loading}
         </p>
       ) : token ? (
-        <TrailResults key={token} locale={locale} token={token} />
+        <>
+          <GuestName locale={locale} token={token} />
+          <TrailResults key={token} locale={locale} token={token} />
+        </>
       ) : (
         <div className="trail-message">
           <p>{copy.invalid}</p>
