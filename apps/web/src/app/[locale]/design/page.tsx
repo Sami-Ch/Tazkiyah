@@ -34,13 +34,13 @@ export default async function DesignGallery({
   const locale = requireLocale((await params).locale);
   setRequestLocale(locale);
   const query = await searchParams;
-  const sample = Array.isArray(query.sample) ? query.sample[0] : query.sample;
+  const preview = Array.isArray(query.sample) ? query.sample[0] : query.sample;
   const stepValue = Array.isArray(query.step) ? query.step[0] : query.step;
   const step = Number(stepValue);
   const roleValue = Array.isArray(query.role) ? query.role[0] : query.role;
   const role = roleValue === "teacher" ? "teacher" : "student";
   const copy = hubUiCopy[locale];
-  if (sample === "hub") {
+  if (preview === "hub") {
     return (
       <section className="shell hub-sample" aria-labelledby="sample-title">
         <h1 id="sample-title">{copy.sample}</h1>
@@ -62,7 +62,7 @@ export default async function DesignGallery({
       </section>
     );
   }
-  if (sample === "walk") {
+  if (preview === "walk") {
     return (
       <section className="shell hub-sample" aria-labelledby="sample-title">
         <h1 id="sample-title">{copy.sample}</h1>
