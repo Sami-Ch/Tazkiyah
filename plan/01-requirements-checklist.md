@@ -65,7 +65,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 ## Student hub
 
-- [ ] REQ-STU-001 Students cannot sign up themselves, and only a teacher or admin can create a student account. MUST → 07 §4
+- [x] REQ-STU-001 Students cannot sign up themselves, and only a teacher or admin can create a student account. MUST → 07 §4
 - [ ] REQ-STU-002 A student can personalise their persona's display name, avatar and short bio after first login. MUST → 07 §4
 - [ ] REQ-STU-003 Every student has an anonymous persona that is shown instead of their real name by default. MUST → 07 §4
 - [ ] REQ-STU-004 A student's real name is shown only when the student chooses it and consent is on record. SHOULD → 07 §5
@@ -83,8 +83,8 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-TCH-002 A teacher can turn a thread into a verified article. MUST → 07 §9
 - [ ] REQ-TCH-003 A verified article shows a verified mark and the verifying teacher's name. MUST → 07 §9
 - [ ] REQ-TCH-004 Teacher work goes through editor or admin review before it becomes public. MUST → 07 §10
-- [ ] REQ-TCH-005 Teachers can create classes and add students to them. MUST → 07 §4
-- [ ] REQ-TCH-006 Teachers can see the real student behind each persona in their classes. MUST → 07 §4
+- [x] REQ-TCH-005 Teachers can create classes and add students to them. MUST → 07 §4
+- [x] REQ-TCH-006 Teachers can see the real student behind each persona in their classes. MUST → 07 §4
 
 ## Public pages
 

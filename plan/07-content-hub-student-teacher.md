@@ -677,19 +677,21 @@ Status is `todo` for every task. Where a dependency is another document's epic (
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P3-E1-T01 | Staff form to create a student account with generated username and starting password, with no self sign-up | todo | P0-E5 | REQ-STU-001, REQ-ROL-003, REQ-ROL-008 |
+| P3-E1-T01 | Staff form to create a student account with generated username and starting password, with no self sign-up | done | P0-E5 | REQ-STU-001, REQ-ROL-003, REQ-ROL-008 |
 | P3-E1-T02 | Create a persona with a generated display name and default avatar when a student account is created | todo | P3-E1-T01 | REQ-STU-003, REQ-SEC-007 |
 | P3-E1-T03 | Preset avatar set and persona rules (name length, uniqueness, real-name match, block list, bio length) | todo | P3-E1-T02, P0-E4 | REQ-STU-002, REQ-CHS-001 |
 | P3-E1-T04 | First-login screen: new password, then persona display name, avatar and bio | todo | P3-E1-T03 | REQ-STU-002, REQ-STU-010 |
 | P3-E1-T05 | Show personas instead of real names in every page, API response, export and email, by role | todo | P3-E1-T02 | REQ-STU-003, REQ-CHS-001, REQ-SEC-005, REQ-SEC-007, REQ-SEC-008 |
-| P3-E1-T06 | Create, edit and archive classes with Urdu and English names and class teachers | todo | P0-E5 | REQ-TCH-005 |
-| P3-E1-T07 | Add, remove and move students between classes, keeping membership history | todo | P3-E1-T06, P3-E1-T01 | REQ-TCH-005 |
+| P3-E1-T06 | Create, edit and archive classes with Urdu and English names and class teachers | done | P0-E5 | REQ-TCH-005 |
+| P3-E1-T07 | Add, remove and move students between classes, keeping membership history | done | P3-E1-T06, P3-E1-T01 | REQ-TCH-005 |
 | P3-E1-T08 | "Who is this?" persona trace for the student's teachers and admins, logged in the audit log | todo | P3-E1-T05, P3-E1-T07 | REQ-TCH-006, REQ-SEC-007, REQ-ROL-008 |
 | P3-E1-T09 | Persona name history, 30-day change limit, and staff reset of an unsuitable name or bio | todo | P3-E1-T03, P3-E1-T08 | REQ-STU-002, REQ-CHS-001, REQ-ROL-008 |
 | P3-E1-T10 | Leaver flow: mark a student as left, move them to the Alumni class, keep account and persona live | todo | P3-E1-T07 | REQ-STU-009 |
 | P3-E1-T11 | Admin suspends and restores a student account with a reason | todo | P3-E1-T01 | REQ-ROL-008 |
 | P3-E1-T12 | Teacher profile: real name, subject, short profile, optional photo | todo | P0-E5 | REQ-TCH-001 |
 | P3-E1-T13 | Student setting to show their public name with the persona, gated on consent | todo | P3-E1-T05, P3-E2-T03 | REQ-STU-004 |
+
+2026-11-14 · P3-E1-T01, T06 and T07: teachers and admins create classes and student accounts from [`/admin/classes`](../apps/web/src/app/[locale]/admin/classes/page.tsx). The starting username and password are shown once. A class teacher can add and end student memberships only; adding a teacher returns denied unless the caller is an admin ([D-129](08-decision-log.md#d-129), [`0061_staff_classes.sql`](../db/drizzle/0061_staff_classes.sql)). Real names are returned to an admin or a teacher of that student. Tests: [`db/test/staff_classes.sql`](../db/test/staff_classes.sql).
 
 ### P3-E2 Parent consent records
 

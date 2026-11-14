@@ -20,8 +20,11 @@ function ids(access: Partial<StaffLinkAccess>) {
   return staffLinks("ur", { ...none, ...access }).map((link) => link.id);
 }
 
-it("keeps finance screens away from a teacher", () => {
-  expect(ids({ canManageClasses: true, canModerate: true })).toEqual(["home"]);
+it("gives a teacher the class list and keeps finance screens away", () => {
+  expect(ids({ canManageClasses: true, canModerate: true })).toEqual([
+    "home",
+    "classes",
+  ]);
 });
 
 it("gives a finance officer donations and the bank check", () => {
@@ -64,6 +67,7 @@ it("gives an admin the screens that exist in the workspace", () => {
     "audit",
     "donorLinks",
     "pages",
+    "classes",
   ]);
 });
 

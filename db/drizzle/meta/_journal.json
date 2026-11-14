@@ -428,6 +428,13 @@
       "when": 1794679591923,
       "tag": "0060_staff_spending",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1794679892012,
+      "tag": "0061_staff_classes",
+      "breakpoints": true
     }
   ]
 }
