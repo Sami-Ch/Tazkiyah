@@ -534,3 +534,33 @@ The site connects as `tazkiyah_auth`, which cannot insert threads under the `taz
 2026-11-14 · Build agent (P1-E5-T01) · Staff workspace uses the shared design system, Sami may reverse
 
 The staff menu and workspace screens live inside `/admin` and reuse `apps/web/src/design` (buttons, fields, tables, amount and date formatters, and the public tokens). Role-based links stay in the staff area. The shared button carries both a click handler for the donor screens and `name`/`value` for staff forms, so neither area keeps a second button. Options: keep a private staff stylesheet; use the shared components. Reason: the design system landed in the public branch, and one set of components keeps Urdu and English staff screens on the same type, colour, and money formatting.
+
+## D-165
+
+2026-11-14 · Build agent · Staff record parent consent without a guardian account, Sami may reverse
+
+REQ-CHS-006 is a staff form. Teachers record `public_work`, `real_name` and `face` for students they teach; an admin may record those for any student. A record that is not about an orphan is active as soon as it is saved, which is how `app.consent_status` already reads it. Full-profile consent stays with the principal (D-166). The paper scan stays empty: `form_media_id` needs a private upload, and that storage does not exist yet (D-146). The guardian list gains `principal`, because 07 §5.1 names the principal as the orphans' guardian and the old check only allowed father, mother, guardian and other. Notes and the guardian's name are refused when they contain a phone number, email address or social link. Options: a guardian login; a staff form with no scan. Reason: the requirement says there is no guardian account, and a scan without private storage would put a child's form on a public address (00 §4 rule 9).
+
+## D-166
+
+2026-11-14 · Build agent · The principal assigns the second sign-off, Sami may reverse
+
+REQ-ORP-004 is the principal, who is the admin named in `institute_settings.principal_user_id`. That person opens full-profile consent, assigns any active teacher, and signs. Another admin can still match a sponsor, and cannot assign or open that consent. The assigned teacher signs from the consent page even when they are not an admin, so the control is not only on the sponsorship board. A non-withdrawn full-profile record blocks a second one for the same sponsorship (`already`). Options: any admin assigns; only the principal. Reason: 07 §5.1 makes the principal the guardian, and a second admin should not sign in their place (00 §4 rule 9).
+
+## D-167
+
+2026-11-14 · Build agent · The staff inbox stays with admins, Sami may reverse
+
+REQ-ORP-007's sponsor message already exists (D-141, D-146). The staff inbox is the missing half. D-141 still holds: only an admin reads and replies, because there is no table of chosen teachers. Opening the sponsorship board marks `to_madrasa` messages read. A reply is `to_sponsor`, in Urdu or English, and `app.has_contact_details` blocks a phone number, email address or social link. A child is never the sender or the recipient. Teachers do not see the inbox. Options: let every teacher of the child read the thread; admins only. Reason: messages about an orphan should reach as few people as possible until the admin can choose (D-141, 00 §4 rule 9).
+
+## D-168
+
+2026-11-14 · Build agent · Progress notes are text, and sponsors read them, Sami may reverse
+
+REQ-ORP-008 lets an admin or a teacher of the child write a progress note for a sponsorship that has not ended. The note is Urdu, English, or both. An admin's note is published by the existing trigger. A teacher's note waits until an admin publishes it (06 §12.3). The note is refused when it contains the child's real name or contact details. There is no photograph: private media storage does not exist yet (D-146), and the insert has no `media_id`. Sponsors already read published notes on their page. They do not write them; the row policies and 06 §12.3 give writing to staff. Options: a sponsor composer; staff write and sponsors read. Reason: the requirement names the admin and the teacher, and a photo without private storage would expose a child (00 §4 rule 9).
+
+## D-169
+
+2026-11-14 · Build agent · Hide, remove, takedown and widening follow the moderation trigger, Sami may reverse
+
+The staff queue could only approve or reject a public request. Hide sets `hidden_at` and can be undone. There is no `removed` column. Remove, for a class or madrasa post, and takedown, for a public post, both set `moderation_state` to `taken_down`, which is the only transition that hides the post from its author. The public states shown are draft, submitted, approved, published and taken down. Restoring a public post returns it to `submitted` for a fresh approval; any other post returns to `published`. The trigger allows only an admin to restore, which is stricter than the permission matrix, so a teacher is not offered restore. The trigger also refuses an editor or a finance officer a takedown, so the queue does not offer them one either. Widening is still an approval of a submitted request whose target is `madrasa`. An admin can mark a teacher with `user_roles.can_widen_scope`. That flag is not a new role, so changing it does not end the teacher's session. A teacher without the flag cannot approve a madrasa request. Visitor reports (REQ-MOD-005, REQ-MOD-008) stay out of this queue. Options: add a `removed` column; use the takedown the trigger already enforces. Reason: a second column would disagree with the trigger, and the trigger is the safety boundary (00 §4 rule 9).

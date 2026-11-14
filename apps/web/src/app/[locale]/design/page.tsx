@@ -1,4 +1,4 @@
-import { setRequestLocale, getTranslations } from "next-intl/server";
+import { setRequestLocale, getMessages, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { Modal } from "@/design/modal";
 import {
@@ -15,8 +15,12 @@ import {
   TextField,
 } from "@/design/ui";
 import { requireLocale } from "@/i18n/locale";
+import { ConsentBoard } from "../admin/consent/consent-board";
+import { ModerationQueue } from "../admin/moderation/moderation-queue";
+import { ProgressBoard } from "../admin/progress/progress-board";
 import { staffLinks, type StaffLinkId } from "../admin/staff-links";
 import { StaffOverview } from "../admin/staff-overview";
+import { SponsorshipBoard } from "../admin/sponsorships/sponsorship-board";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -26,6 +30,9 @@ export default async function DesignGallery({
   const locale = requireLocale((await params).locale);
   setRequestLocale(locale);
   const t = await getTranslations("common");
+  const { common } = await getMessages({ locale });
+  const sampleId = "00000000-0000-4000-8000-000000000001";
+  const sample = locale === "ur" ? "نمونہ" : "Sample";
 
   return (
     <section
@@ -49,6 +56,8 @@ export default async function DesignGallery({
           canManageClasses: true,
           canModerate: true,
           canMatchSponsors: true,
+          canRecordConsent: true,
+          canPostUpdates: true,
         })}
         names={
           {
@@ -64,6 +73,8 @@ export default async function DesignGallery({
             pages: t("staffWorkspace.links.pages"),
             classes: t("staffWorkspace.links.classes"),
             moderation: t("staffWorkspace.links.moderation"),
+            consent: t("staffWorkspace.links.consent"),
+            progress: t("staffWorkspace.links.progress"),
             sponsorships: t("staffWorkspace.links.sponsorships"),
           } satisfies Record<StaffLinkId, string>
         }
@@ -79,6 +90,8 @@ export default async function DesignGallery({
           pages: t("staffWorkspace.blurbs.pages"),
           classes: t("staffWorkspace.blurbs.classes"),
           moderation: t("staffWorkspace.blurbs.moderation"),
+          consent: t("staffWorkspace.blurbs.consent"),
+          progress: t("staffWorkspace.blurbs.progress"),
           sponsorships: t("staffWorkspace.blurbs.sponsorships"),
         }}
         stats={[]}
@@ -152,6 +165,188 @@ export default async function DesignGallery({
       >
         <p>{t("public.reportBody")}</p>
       </Modal>
+      <section id="staff-consent" className="staff-stack">
+        <h2>{common.staffConsent.heading}</h2>
+        <p>{common.staffConsent.intro}</p>
+        <ConsentBoard
+          locale={locale}
+          copy={common.staffConsent}
+          isPrincipal
+          students={[
+            {
+              id: sampleId,
+              real_name: sample,
+              persona: sample,
+              is_orphan: true,
+            },
+          ]}
+          teachers={[{ id: sampleId, name: sample }]}
+          sponsorships={[
+            {
+              id: sampleId,
+              student_id: sampleId,
+              persona: sample,
+              real_name: sample,
+            },
+          ]}
+          records={[
+            {
+              id: sampleId,
+              student_id: sampleId,
+              real_name: sample,
+              persona: sample,
+              kind: "orphan_full_profile",
+              guardian_name: sample,
+              relation: "principal",
+              method: "in_person",
+              given_on: "2026-11-14",
+              notes: null,
+              sponsorship_id: sampleId,
+              status: "pending",
+              second_signer: null,
+              can_sign_principal: true,
+              can_sign_second: false,
+              can_assign: true,
+              can_withdraw: true,
+            },
+          ]}
+        />
+      </section>
+      <section id="staff-sponsorship" className="staff-stack">
+        <h2>{common.staffSponsorships.heading}</h2>
+        <SponsorshipBoard
+          locale={locale}
+          copy={common.staffSponsorships}
+          isPrincipal
+          unread={1}
+          matches={[
+            {
+              id: sampleId,
+              persona: sample,
+              real_name: sample,
+              student_id: sampleId,
+              status: "active",
+              started_on: "2026-11-14",
+              sponsor: sample,
+              consent_id: sampleId,
+              consent_status: "pending",
+              second_signer: null,
+            },
+          ]}
+          orphans={[
+            {
+              persona_id: sampleId,
+              persona: sample,
+              real_name: sample,
+            },
+          ]}
+          sponsors={[{ id: sampleId, name: sample }]}
+          causes={[{ id: sampleId, title: { [locale]: sample } }]}
+          teachers={[{ id: sampleId, name: sample }]}
+          messages={[
+            {
+              id: sampleId,
+              sponsorship_id: sampleId,
+              persona: sample,
+              direction: "to_madrasa",
+              body: sample,
+              language: locale,
+              created_at: "2026-11-14T00:00:00.000Z",
+            },
+          ]}
+        />
+      </section>
+      <section id="staff-progress" className="staff-stack">
+        <h2>{common.staffProgress.heading}</h2>
+        <ProgressBoard
+          locale={locale}
+          copy={common.staffProgress}
+          isAdmin
+          pupils={[
+            { persona_id: sampleId, persona: sample, real_name: sample },
+          ]}
+          updates={[
+            {
+              id: sampleId,
+              persona_id: sampleId,
+              persona: sample,
+              body: { [locale]: sample },
+              published: false,
+              hidden: false,
+              own: false,
+            },
+          ]}
+        />
+      </section>
+      <section id="staff-moderation" className="staff-stack">
+        <h2>{common.staffModeration.heading}</h2>
+        <ModerationQueue
+          locale={locale}
+          copy={common.staffModeration}
+          isAdmin
+          canWiden
+          requests={[
+            {
+              id: sampleId,
+              title: sample,
+              body: sample,
+              language: locale,
+              scope: "class",
+              target_scope: "madrasa",
+              state: "submitted",
+              hidden: false,
+              persona: sample,
+              class_name: { [locale]: sample },
+              real_name: null,
+              shows_face: false,
+              needs_public_consent: false,
+              public_consent: false,
+              face_consent: false,
+              can_approve: true,
+            },
+          ]}
+          posts={[
+            {
+              id: sampleId,
+              title: sample,
+              body: sample,
+              scope: "class",
+              state: "published",
+              hidden: false,
+              persona: sample,
+              class_name: { [locale]: sample },
+              can_hide: true,
+              can_remove: true,
+              can_takedown: false,
+            },
+          ]}
+          publicPosts={[
+            {
+              id: sampleId,
+              title: sample,
+              body: sample,
+              scope: "public",
+              state: "published",
+              hidden: false,
+              persona: sample,
+              can_takedown: true,
+            },
+          ]}
+          takenDown={[
+            {
+              id: sampleId,
+              title: sample,
+              body: sample,
+              scope: "public",
+              state: "taken_down",
+              persona: sample,
+              reason: sample,
+              can_restore: true,
+            },
+          ]}
+          wideners={[{ id: sampleId, name: sample, can_widen: false }]}
+        />
+      </section>
     </section>
   );
 }

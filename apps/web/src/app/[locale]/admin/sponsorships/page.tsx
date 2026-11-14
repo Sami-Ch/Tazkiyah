@@ -29,10 +29,14 @@ export default async function SponsorshipsPage({
         <SponsorshipBoard
           locale={locale}
           copy={copy}
+          isPrincipal={workspace.is_principal}
+          unread={workspace.unread}
           matches={workspace.matches}
           orphans={workspace.orphans}
           sponsors={workspace.sponsors}
           causes={workspace.causes}
+          teachers={workspace.teachers}
+          messages={workspace.messages}
         />
       ) : (
         <p role="status">{common.signIn.unavailable}</p>
