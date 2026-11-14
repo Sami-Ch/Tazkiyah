@@ -45,13 +45,19 @@ type GivingCopy = {
   tellOffice: string;
   sampleAccounts: string;
   checkDetails: string;
+  reassureAccount: string;
+  reassureEmail: string;
+  reassureTrail: string;
+  stepsLabel: string;
+  steps: readonly [string, string, string, string];
+  summaryTitle: string;
 };
 
 export const givingCopy = {
   en: {
     title: "Give to Markaz Al Azeem",
     intro:
-      "Choose a giving purpose and see the bank transfer details published by the institute.",
+      "Give by bank transfer. There is no card charge on this page. You send the money from your own bank, tell the office, and we email a private link once the credit is confirmed.",
     label: "Give",
     purpose: "Giving purpose",
     purposes: { general: "General giving", sadaqah: "Sadaqah", zakat: "Zakat" },
@@ -101,11 +107,20 @@ export const givingCopy = {
     sampleAccounts:
       "These bank details are sample data. They are not an account you can transfer to. The madrasa will publish the real account from its settings.",
     checkDetails: "Please check the amount.",
+    reassureAccount:
+      "Match the account title in your banking app before you send anything. A row marked as sample is not for transfer.",
+    reassureEmail:
+      "Your email is enough. We use it to confirm the gift and to send the private trail link.",
+    reassureTrail:
+      "Zakat stays with causes marked for Zakat. When spending is recorded, the oldest gifts in that cause are matched first.",
+    stepsLabel: "How this gift moves",
+    steps: ["Purpose", "Cause", "Amount", "Bank transfer"],
+    summaryTitle: "This gift",
   },
   ur: {
     title: "مرکز العظیم کو عطیہ دیں",
     intro:
-      "عطیے کا مقصد منتخب کریں اور ادارے کی جانب سے شائع کردہ بینک تفصیلات دیکھیں۔",
+      "عطیہ بینک منتقلی سے ہوتا ہے۔ اس صفحے پر کارڈ سے کوئی کٹوتی نہیں۔ رقم اپنے بینک سے بھیجیں، دفتر کو بتائیں، اور وصولی کی تصدیق پر ہم نجی ربط ای میل کرتے ہیں۔",
     label: "عطیہ دیں",
     purpose: "عطیے کا مقصد",
     purposes: { general: "عمومی عطیہ", sadaqah: "صدقہ", zakat: "زکوٰۃ" },
@@ -155,5 +170,14 @@ export const givingCopy = {
     sampleAccounts:
       "یہ بینک تفصیلات نمونہ ہیں۔ ان پر رقم منتقل نہ کریں۔ مدرسہ اصل اکاؤنٹ اپنی ترتیبات سے شائع کرے گا۔",
     checkDetails: "براہ کرم رقم چیک کریں۔",
+    reassureAccount:
+      "رقم بھیجنے سے پہلے اپنے بینک ایپ میں کھاتے کا عنوان ملا لیں۔ جو خانہ نمونہ لکھا ہو، اس پر منتقلی نہ کریں۔",
+    reassureEmail:
+      "ای میل کافی ہے۔ ہم اسی سے عطیے کی تصدیق کرتے ہیں اور نجی نشان بھیجتے ہیں۔",
+    reassureTrail:
+      "زکوٰۃ ان مدات میں رہتی ہے جو زکوٰۃ کے لیے نشان زد ہوں۔ خرچ درج ہونے پر اس مد کے پرانے عطیات پہلے جوڑے جاتے ہیں۔",
+    stepsLabel: "یہ عطیہ کیسے آگے بڑھتا ہے",
+    steps: ["مقصد", "مد", "رقم", "بینک منتقلی"],
+    summaryTitle: "یہ عطیہ",
   },
 } satisfies Record<Locale, GivingCopy>;

@@ -2,9 +2,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
-import { getAdminAccess } from "@/server/auth";
+import { formatAmount } from "@/design/format";
+import { getAdminAccess, getPublicOverview } from "@/server/auth";
 import { Button } from "@/design/ui";
 import { StaffInvitationForm } from "./staff-invitation-form";
+import { staffLinks, type StaffLinkId } from "./staff-links";
+import { StaffOverview } from "./staff-overview";
 import { TwoFactorSetup } from "./two-factor-setup";
 import "../sign-in/sign-in.css";
 
@@ -23,14 +26,43 @@ export default async function AdminPage({
   const { admin: copy } = common;
   const workspace = common.staffWorkspace;
   if (access.state === "allowed") {
+    const overview = await getPublicOverview(new Headers(await headers()));
+    const active = overview?.causes.filter(
+      (cause) => cause.status === "active",
+    );
+    const raised = active?.reduce(
+      (sum, cause) => sum + BigInt(cause.raised_paisa),
+      0n,
+    );
+    const stats =
+      active && raised !== undefined
+        ? [
+            {
+              label: workspace.stats.causes,
+              value: String(active.length),
+            },
+            {
+              label: workspace.stats.raised,
+              value: formatAmount(raised, locale),
+            },
+            {
+              label: workspace.stats.zakat,
+              value: String(active.filter((cause) => cause.accepts_zakat).length),
+            },
+          ]
+        : [];
     return (
       <section className="staff-stack" aria-labelledby="admin-title">
-        <div className="public-intro">
-          <h1 id="admin-title">{copy.heading}</h1>
-          <p>
-            {copy.welcome} <bdi>{access.name}</bdi>. {workspace.intro}
-          </p>
-        </div>
+        <StaffOverview
+          heading={copy.heading}
+          welcome={copy.welcome}
+          name={access.name}
+          intro={workspace.intro}
+          links={staffLinks(locale, access)}
+          names={workspace.links as Record<StaffLinkId, string>}
+          blurbs={workspace.blurbs}
+          stats={stats}
+        />
         <div className="ui-actions">
           {access.canRecordTransfers && (
             <Button href={`/${locale}/admin/donations`}>

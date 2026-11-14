@@ -53,8 +53,24 @@ export async function DonationPage({
         <p className="eyebrow">{institute.name[locale]}</p>
         <h1 id="donate-title">{copy.title}</h1>
         <p>{copy.intro}</p>
+        <ul className="donate-reassure">
+          <li>{copy.reassureAccount}</li>
+          <li>{copy.reassureEmail}</li>
+          <li>{copy.reassureTrail}</li>
+        </ul>
+        <ol className="donate-steps" aria-label={copy.stepsLabel}>
+          {copy.steps.map((step, index) => (
+            <li key={step}>
+              <span>
+                <bdi>{index + 1}</bdi>
+              </span>
+              {step}
+            </li>
+          ))}
+        </ol>
       </header>
-      <div className="donate-grid">
+      <div className="donate-layout">
+        <div className="donate-main">
         <section className="ui-card" aria-labelledby="donate-purpose">
           <h2 id="donate-purpose">{copy.purpose}</h2>
           <ul className="donate-purposes" role="list">
@@ -175,6 +191,30 @@ export async function DonationPage({
             {copy.visit}
           </a>
         </section>
+        </div>
+        <aside className="donate-summary" aria-labelledby="donate-summary">
+          <h2 id="donate-summary">{copy.summaryTitle}</h2>
+          <dl>
+            <div>
+              <dt>{copy.purpose}</dt>
+              <dd>{copy.purposes[purpose]}</dd>
+            </div>
+            <div>
+              <dt>{copy.cause}</dt>
+              <dd>
+                {selected ? (
+                  <bdi lang={pageTranslation(selected.title, locale)?.language}>
+                    {pageTranslation(selected.title, locale)?.text ??
+                      copy.allNeeds}
+                  </bdi>
+                ) : (
+                  copy.allNeeds
+                )}
+              </dd>
+            </div>
+          </dl>
+          <a href="#donate-accounts">{copy.accounts}</a>
+        </aside>
       </div>
     </article>
   );

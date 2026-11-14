@@ -35,6 +35,7 @@ html:lang(ur) {
 
 body {
   margin: 0;
+  overflow-x: clip;
   background: var(--paper);
   color: var(--text);
   font: 1rem/1.55 var(--body-font);
@@ -230,8 +231,13 @@ a {
 }
 
 .hero {
-  color: var(--navy);
-  border-block-end: 1px solid var(--border);
+  position: relative;
+  color: var(--on-navy);
+  background-color: var(--navy);
+  background-image:
+    linear-gradient(165deg, rgb(6 18 40 / 0.28), transparent 46%, rgb(6 18 40 / 0.45)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84' viewBox='0 0 84 84'%3E%3Cpath fill='%23D9B25C' fill-opacity='.16' d='M42 6 46 24 64 20 52 36 68 46 50 50 54 70 42 58 30 70 34 50 16 46 32 36 20 24 38 24z'/%3E%3C/svg%3E");
+  border-block-end: 1px solid color-mix(in srgb, var(--silver-blue) 35%, transparent);
 }
 
 .hero-inner {
@@ -241,21 +247,33 @@ a {
   padding-block: 2.75rem;
 }
 
+html:lang(ur) .hero-inner {
+  padding-inline-start: 0.85rem;
+}
+
 .hero h1 {
-  font-size: clamp(2.9rem, 7vw, 5.5rem);
-  line-height: 1.02;
+  color: var(--on-navy);
+  font-size: clamp(2.6rem, 6vw, 4.6rem);
+  line-height: 1.08;
   text-wrap: balance;
 }
 
 html:lang(ur) .hero h1 {
-  line-height: 1.24;
+  line-height: 2.05;
+  padding-block: 0.15em 0.05em;
 }
 
 .eyebrow {
   margin-block-end: 0.75rem;
-  color: var(--muted);
+  color: var(--color-verified, #7a5a12);
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+.hero .eyebrow,
+.verse .eyebrow,
+.give-band .eyebrow {
+  color: var(--color-verified-on-primary, #d9b25c);
 }
 
 .eyebrow:lang(en) {
@@ -280,11 +298,30 @@ html:lang(ur) .hero h1 {
 }
 
 .hero-summary {
-  max-inline-size: 32rem;
+  max-inline-size: 36rem;
   margin-block-start: 1rem;
-  color: var(--muted);
+  color: var(--on-navy-muted);
   font-size: 1.125rem;
   text-wrap: pretty;
+}
+
+.hero .button-primary {
+  background: var(--color-verified-on-primary, #d9b25c);
+  color: var(--navy);
+}
+
+.hero .button-primary:hover {
+  background: var(--on-navy);
+  color: var(--navy);
+}
+
+.hero .button-outline {
+  border-color: var(--silver-blue);
+  color: var(--on-navy);
+}
+
+.hero .button-outline:hover {
+  background: color-mix(in srgb, var(--on-navy) 12%, transparent);
 }
 
 .hero-summary:lang(ur) {
@@ -294,8 +331,20 @@ html:lang(ur) .hero h1 {
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.625rem;
+  inline-size: 100%;
   margin-block-start: 1.75rem;
+}
+
+.hero-copy {
+  min-inline-size: 0;
+}
+
+.hero-actions .button {
+  max-inline-size: 100%;
+  white-space: normal;
+  text-wrap: balance;
 }
 
 .button {
@@ -354,7 +403,7 @@ html:lang(ur) .hero h1 {
   min-block-size: 17.5rem;
   aspect-ratio: 4 / 3;
   padding: 1.5rem;
-  background: var(--navy);
+  background: transparent;
   color: var(--on-navy);
 }
 
@@ -402,7 +451,8 @@ html:lang(ur) .hero h1 {
   inset: 0;
   inline-size: 100%;
   block-size: 100%;
-  opacity: 0.55;
+  color: var(--color-verified-on-primary, #d9b25c);
+  opacity: 0.85;
 }
 
 .hero-medallion picture {
@@ -596,7 +646,7 @@ html:lang(ur) .hero h1 {
 
 .visit {
   display: flex;
-  flex-direction: column;
+  flex-flow: column wrap;
   align-items: start;
   gap: 1.25rem;
   padding: 1.5rem;
