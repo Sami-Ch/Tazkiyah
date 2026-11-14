@@ -2,8 +2,9 @@
 
 import type { Locale } from "@tazkiyah/i18n/routing";
 import { useState } from "react";
+import { formatAmount } from "@/design/format";
+import { Amount, ChoiceChips, ErrorSummary, TextField } from "@/design/ui";
 import { givingCopy } from "@/institutes/giving-copy";
-import { formatPkr } from "@/institutes/manual-donations";
 import { donationPresets, parseDonationRupees } from "./donation-amount";
 
 export function DonationAmountForm({ locale }: { locale: Locale }) {
@@ -24,96 +25,68 @@ export function DonationAmountForm({ locale }: { locale: Locale }) {
     <div className="donate-amount">
       <h2 id="donate-amount">{copy.amount}</h2>
       <p id="donate-amount-help">{copy.amountHelp}</p>
-      <div
-        className="donate-chips"
-        role="group"
-        aria-labelledby="donate-amount"
-      >
-        {donationPresets.map((rupees) => (
-          <button
-            key={rupees}
-            type="button"
-            className="button button-outline"
-            aria-pressed={preset === rupees}
-            onClick={() => setPreset(rupees)}
-          >
-            <bdi>{formatPkr(BigInt(rupees) * 100n, locale)}</bdi>
-          </button>
-        ))}
-        <button
-          type="button"
-          className="button button-outline"
-          aria-pressed={preset === "other"}
-          onClick={() => setPreset("other")}
-        >
-          {copy.otherAmount}
-        </button>
-      </div>
-      {preset === "other" && (
-        <label>
-          {copy.otherAmount}
-          <input
-            inputMode="numeric"
-            autoComplete="off"
-            dir="ltr"
-            value={other}
-            aria-invalid={invalid || undefined}
-            aria-describedby="donate-amount-help"
-            onChange={(event) => setOther(event.target.value)}
-          />
-        </label>
-      )}
       {invalid && (
-        <p className="donate-note" role="alert">
-          {copy.amountInvalid}
-        </p>
+        <ErrorSummary title={copy.checkDetails} errors={[copy.amountInvalid]} />
+      )}
+      <ChoiceChips
+        labelId="donate-amount"
+        options={[
+          ...donationPresets.map((rupees) => ({
+            id: String(rupees),
+            label: <Amount paisa={BigInt(rupees) * 100n} locale={locale} />,
+            pressed: preset === rupees,
+            onSelect: () => setPreset(rupees),
+          })),
+          {
+            id: "other",
+            label: copy.otherAmount,
+            pressed: preset === "other",
+            onSelect: () => setPreset("other"),
+          },
+        ]}
+      />
+      {preset === "other" && (
+        <TextField
+          id="donate-other-amount"
+          label={copy.otherAmount}
+          hint={copy.amountHelp}
+          error={invalid ? copy.amountInvalid : undefined}
+          inputMode="numeric"
+          autoComplete="off"
+          dir="ltr"
+          value={other}
+          onChange={(event) => setOther(event.target.value)}
+        />
       )}
       {amount !== null && (
         <p role="status">
-          {copy.amountChosen.replace("{amount}", formatPkr(amount, locale))}
+          {copy.amountChosen.replace("{amount}", formatAmount(amount, locale))}
         </p>
       )}
 
       <h2 id="donate-frequency">{copy.frequency}</h2>
-      <div
-        className="donate-chips"
-        role="group"
-        aria-labelledby="donate-frequency"
-      >
-        <button type="button" className="button button-outline" aria-pressed>
-          {copy.oneOff}
-        </button>
-        <button type="button" className="button button-outline" disabled>
-          {copy.monthly}
-        </button>
-        <button type="button" className="button button-outline" disabled>
-          {copy.yearly}
-        </button>
-      </div>
-      <p className="donate-note">{copy.recurringLater}</p>
+      <ChoiceChips
+        labelId="donate-frequency"
+        options={[
+          { id: "once", label: copy.oneOff, pressed: true },
+          { id: "month", label: copy.monthly, disabled: true },
+          { id: "year", label: copy.yearly, disabled: true },
+        ]}
+      />
+      <p className="ui-hint">{copy.recurringLater}</p>
 
       <h2 id="donate-methods">{copy.methods}</h2>
-      <div
-        className="donate-chips"
-        role="group"
-        aria-labelledby="donate-methods"
-      >
-        <button type="button" className="button button-outline" aria-pressed>
-          {copy.bankTransfer}
-        </button>
-        {[copy.card, copy.jazzCash, copy.easyPaisa].map((method) => (
-          <button
-            key={method}
-            type="button"
-            className="button button-outline"
-            disabled
-          >
-            {method}
-          </button>
-        ))}
-      </div>
+      <ChoiceChips
+        labelId="donate-methods"
+        options={[
+          { id: "bank", label: copy.bankTransfer, pressed: true },
+          { id: "card", label: copy.card, disabled: true },
+          { id: "jazz", label: copy.jazzCash, disabled: true },
+          { id: "easy", label: copy.easyPaisa, disabled: true },
+        ]}
+      />
       <p>{copy.bankTransferHelp}</p>
-      <p className="donate-note">{copy.onlineLater}</p>
+      <p className="ui-hint">{copy.onlineLater}</p>
     </div>
   );
 }

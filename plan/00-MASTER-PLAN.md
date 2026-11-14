@@ -1,6 +1,6 @@
 # Tazkiyah master plan
 
-**Status:** Phase 0 in progress · **Last updated:** 2026-11-07 · **Owner:** Sami
+**Status:** Phase 0 in progress · **Last updated:** 2026-11-14 · **Owner:** Sami
 
 This is the source of truth for Tazkiyah. Every agent and developer reads it first. If two documents disagree, the master plan wins, and the specialist document is fixed.
 

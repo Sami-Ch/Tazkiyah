@@ -43,6 +43,8 @@ type GivingCopy = {
   easyPaisa: string;
   onlineLater: string;
   tellOffice: string;
+  sampleAccounts: string;
+  checkDetails: string;
 };
 
 export const givingCopy = {
@@ -96,6 +98,9 @@ export const givingCopy = {
     onlineLater:
       "Online payment is not set up yet. Please use a bank transfer.",
     tellOffice: "Tell the office about your transfer",
+    sampleAccounts:
+      "These bank details are sample data. They are not an account you can transfer to. The madrasa will publish the real account from its settings.",
+    checkDetails: "Please check the amount.",
   },
   ur: {
     title: "مرکز العظیم کو عطیہ دیں",
@@ -147,5 +152,8 @@ export const givingCopy = {
     onlineLater:
       "آن لائن ادائیگی ابھی ترتیب نہیں دی گئی۔ براہ کرم بینک منتقلی استعمال کریں۔",
     tellOffice: "اپنی منتقلی کے بارے میں دفتر کو بتائیں",
+    sampleAccounts:
+      "یہ بینک تفصیلات نمونہ ہیں۔ ان پر رقم منتقل نہ کریں۔ مدرسہ اصل اکاؤنٹ اپنی ترتیبات سے شائع کرے گا۔",
+    checkDetails: "براہ کرم رقم چیک کریں۔",
   },
 } satisfies Record<Locale, GivingCopy>;

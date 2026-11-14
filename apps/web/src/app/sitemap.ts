@@ -36,6 +36,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...entries("", routing.locales),
     ...entries("/contact", routing.locales),
     ...entries("/causes", routing.locales),
+    ...entries("/transparency", routing.locales),
+    ...entries("/donor-wall", routing.locales),
     ...entries("/donate", routing.locales),
     ...pages
       .filter(({ slug }) => slug !== "home")

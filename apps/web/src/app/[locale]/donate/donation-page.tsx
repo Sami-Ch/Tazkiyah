@@ -1,9 +1,13 @@
 import type { Locale } from "@tazkiyah/i18n/routing";
 import { headers } from "next/headers";
 import { setRequestLocale } from "next-intl/server";
-import { Icon } from "@/components/icon";
+import { Alert, Button } from "@/design/ui";
 import { givingCopy } from "@/institutes/giving-copy";
-import { donationPurposes, type DonationPurpose } from "@/institutes/giving";
+import {
+  bankDetailsAreSample,
+  donationPurposes,
+  type DonationPurpose,
+} from "@/institutes/giving";
 import { institute } from "@/institutes/markaz-al-azeem";
 import { pageTranslation } from "@/institutes/site-pages";
 import { getPublishedBankAccounts, getPublishedCauses } from "@/server/auth";
@@ -51,13 +55,13 @@ export async function DonationPage({
         <p>{copy.intro}</p>
       </header>
       <div className="donate-grid">
-        <section className="donate-panel" aria-labelledby="donate-purpose">
+        <section className="ui-card" aria-labelledby="donate-purpose">
           <h2 id="donate-purpose">{copy.purpose}</h2>
           <ul className="donate-purposes" role="list">
             {donationPurposes.map((type) => (
               <li key={type}>
                 <a
-                  className="button button-outline"
+                  className="ui-button ui-button-secondary"
                   href={donationHref(
                     locale,
                     type,
@@ -111,11 +115,14 @@ export async function DonationPage({
             {copy.exploreCauses}
           </a>
         </section>
-        <section className="donate-panel" aria-labelledby="donate-accounts">
+        <section className="ui-card" aria-labelledby="donate-accounts">
           <DonationAmountForm locale={locale} />
           <h2 id="donate-accounts">{copy.accounts}</h2>
           {accounts.length ? (
             <>
+              {accounts.some((account) =>
+                bankDetailsAreSample(account.label),
+              ) && <Alert tone="warning">{copy.sampleAccounts}</Alert>}
               <p>{copy.transferNote}</p>
               {accounts.map((account) => {
                 const label = pageTranslation(account.label, locale);
@@ -131,7 +138,7 @@ export async function DonationPage({
                   { label: copy.branch, value: account.branch },
                 ];
                 return (
-                  <div className="donate-bank-card" key={account.id}>
+                  <div className="ui-card donate-bank-card" key={account.id}>
                     <h3>
                       {label ? (
                         <bdi lang={label.language}>{label.text}</bdi>
@@ -159,14 +166,11 @@ export async function DonationPage({
               })}
             </>
           ) : (
-            <p>
+            <Alert tone="info">
               {bankAccounts.length ? copy.noMatchingAccounts : copy.noAccounts}
-            </p>
+            </Alert>
           )}
-          <a className="button button-primary" href={`/${locale}/contact`}>
-            <Icon name="map" />
-            {copy.tellOffice}
-          </a>
+          <Button href={`/${locale}/contact`}>{copy.tellOffice}</Button>
           <a className="donate-explore" href={`/${locale}/contact`}>
             {copy.visit}
           </a>

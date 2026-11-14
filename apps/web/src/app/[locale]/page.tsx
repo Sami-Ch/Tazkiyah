@@ -15,6 +15,7 @@ import { defaultHomeFacts } from "@/institutes/home-facts";
 import { homeFactKeys, pageTranslation } from "@/institutes/site-pages";
 import { readPublishedPages } from "@/server/public-pages";
 import { publicPageMetadata, publicSiteOrigin } from "@/server/public-site";
+import { HomeLedger } from "./home-ledger";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]">) {
   const locale = requireLocale((await params).locale);
@@ -96,18 +97,18 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
               <p className="published-page-note">{t("sitePages.fallback")}</p>
             )}
             <div className="hero-actions">
-              <a className="button button-primary" href="#community">
-                {t("home.explore")}
+              <a className="button button-primary" href={`/${locale}/donate`}>
+                {t("navigation.donate")}
                 <Icon name="arrow" />
               </a>
               <a
                 className="button button-outline"
-                href={film ? "#campus-film" : "#visit"}
+                href={film ? "#campus-film" : `/${locale}/causes`}
               >
-                <Icon name={film ? "play" : "map"} />
+                <Icon name={film ? "play" : "arrow"} />
                 {film
                   ? t(sample ? "campus.watchSample" : "campus.watch")
-                  : t("home.visit")}
+                  : t("giving.explore")}
               </a>
             </div>
           </div>
@@ -247,6 +248,8 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             {t("giving.explore")}
           </a>
         </section>
+
+        <HomeLedger locale={locale} />
 
         {hasCampusSection(campusMedia) && (
           <section

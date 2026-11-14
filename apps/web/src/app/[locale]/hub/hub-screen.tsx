@@ -173,7 +173,7 @@ export function HubScreen({
         {result.code !== "module_off" && result.code !== "denied" && (
           <button
             type="button"
-            className="button button-outline"
+            className="ui-button ui-button-secondary"
             onClick={() => {
               setResult({ state: "loading" });
               setVersion((value) => value + 1);
@@ -197,7 +197,7 @@ export function HubScreen({
               return (
                 <li key={item.id}>
                   <a
-                    className="hub-card"
+                    className="ui-card hub-card"
                     href={`/${locale}/hub?class=${item.id}`}
                   >
                     {name ? (
@@ -214,7 +214,7 @@ export function HubScreen({
           <p role="status">{copy.emptyClasses}</p>
         )}
         <a
-          className="button button-outline"
+          className="ui-button ui-button-secondary"
           href={`/${locale}/hub?class=madrasa`}
         >
           {copy.madrasa}
@@ -258,7 +258,7 @@ export function HubScreen({
             <textarea name="body" required maxLength={4000} dir="auto" />
           </label>
           <button
-            className="button button-primary"
+            className="ui-button ui-button-primary"
             type="submit"
             disabled={busy}
           >
@@ -271,7 +271,7 @@ export function HubScreen({
             {result.threads.map((thread) => (
               <li key={thread.id}>
                 <a
-                  className="hub-card"
+                  className="ui-card hub-card"
                   href={`/${locale}/hub?thread=${thread.id}`}
                 >
                   <bdi lang={thread.language} dir="auto">
@@ -334,7 +334,7 @@ export function HubScreen({
             />
           </label>
           <button
-            className="button button-primary"
+            className="ui-button ui-button-primary"
             type="submit"
             disabled={busy}
           >
@@ -382,7 +382,7 @@ function ReportForm({ locale, postId }: { locale: Locale; postId: string }) {
     return (
       <button
         type="button"
-        className="button button-outline"
+        className="ui-button ui-button-secondary"
         onClick={() => setOpen(true)}
       >
         {copy.report}
@@ -427,7 +427,7 @@ function ReportForm({ locale, postId }: { locale: Locale; postId: string }) {
         {copy.reportNote}
         <textarea name="note" maxLength={300} dir="auto" />
       </label>
-      <button className="button button-outline" type="submit">
+      <button className="ui-button ui-button-secondary" type="submit">
         {copy.sendReport}
       </button>
       {status && <p role="status">{status}</p>}

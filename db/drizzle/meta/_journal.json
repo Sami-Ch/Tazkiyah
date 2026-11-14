@@ -425,22 +425,29 @@
     {
       "idx": 60,
       "version": "7",
-      "when": 1794445200000,
-      "tag": "0060_donor_spent_trail",
+      "when": 1794500000000,
+      "tag": "0060_public_content_read",
       "breakpoints": true
     },
     {
       "idx": 61,
       "version": "7",
-      "when": 1794445300000,
-      "tag": "0061_sponsor_page",
+      "when": 1794501000000,
+      "tag": "0065_donor_spent_trail",
       "breakpoints": true
     },
     {
       "idx": 62,
       "version": "7",
-      "when": 1794445400000,
-      "tag": "0062_class_hub",
+      "when": 1794502000000,
+      "tag": "0066_sponsor_page",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1794503000000,
+      "tag": "0067_class_hub",
       "breakpoints": true
     }
   ]

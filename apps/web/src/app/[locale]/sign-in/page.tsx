@@ -12,7 +12,7 @@ export default async function SignInPage({
 
   return (
     <section className="shell sign-in-section" aria-labelledby="sign-in-title">
-      <div className="sign-in-card">
+      <div className="ui-card sign-in-card">
         <h1 id="sign-in-title">{common.signIn.heading}</h1>
         <SignInForm copy={common.signIn} locale={locale} />
       </div>

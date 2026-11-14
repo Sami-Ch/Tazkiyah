@@ -3,6 +3,14 @@ import type { LocalizedPageText } from "./site-pages";
 export const donationPurposes = ["general", "sadaqah", "zakat"] as const;
 export type DonationPurpose = (typeof donationPurposes)[number];
 
+export function bankDetailsAreSample(
+  label: { en?: string; ur?: string } | null | undefined,
+) {
+  return Object.values(label ?? {}).some(
+    (text) => typeof text === "string" && /sample|نمونہ/i.test(text),
+  );
+}
+
 export type PublishedBankAccount = {
   id: string;
   label: LocalizedPageText;

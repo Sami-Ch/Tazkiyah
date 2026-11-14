@@ -62,7 +62,7 @@ export function SponsorScreen({ locale }: { locale: Locale }) {
         <p role="alert">{error}</p>
         <button
           type="button"
-          className="button button-outline"
+          className="ui-button ui-button-secondary"
           onClick={() => {
             setError("");
             setChildren(null);
@@ -133,7 +133,7 @@ function ChildCard({ child, locale }: { child: Child; locale: Locale }) {
   }
 
   return (
-    <article className="sponsor-card">
+    <article className="ui-card sponsor-card">
       <header>
         <h2>
           <bdi>{child.persona_name}</bdi>
@@ -260,7 +260,7 @@ function ChildCard({ child, locale }: { child: Child; locale: Locale }) {
             />
           </label>
           <button
-            className="button button-primary"
+            className="ui-button ui-button-primary"
             type="submit"
             disabled={busy}
           >

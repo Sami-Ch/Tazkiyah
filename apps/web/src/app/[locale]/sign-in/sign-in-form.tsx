@@ -4,6 +4,7 @@ import type common from "@tazkiyah/i18n/messages/en/common.json";
 import type { Locale } from "@tazkiyah/i18n/routing";
 import { useEffect, useState, type FormEvent } from "react";
 import { authRequest } from "@/components/auth-request";
+import { Button, ErrorSummary, TextField } from "@/design/ui";
 
 type Copy = typeof common.signIn;
 type Mode = "loading" | "credentials" | "totp" | "backup" | "signed-in";
@@ -120,60 +121,53 @@ export function SignInForm({ copy, locale }: { copy: Copy; locale: Locale }) {
       {mode === "credentials" ? (
         <>
           <p>{copy.intro}</p>
-          <label>
-            {copy.identifier}
-            <input
-              name="identifier"
-              dir="auto"
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={254}
-              required
-            />
-          </label>
-          <label>
-            {copy.password}
-            <input
-              name="password"
-              type="password"
-              dir="auto"
-              autoComplete="current-password"
-              maxLength={128}
-              required
-            />
-          </label>
+          <TextField
+            id="sign-in-identifier"
+            name="identifier"
+            label={copy.identifier}
+            dir="auto"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            maxLength={254}
+            required
+          />
+          <TextField
+            id="sign-in-password"
+            name="password"
+            label={copy.password}
+            type="password"
+            dir="auto"
+            autoComplete="current-password"
+            maxLength={128}
+            required
+          />
         </>
       ) : mode === "signed-in" ? (
         <>
           <p role="status">
             {copy.signedIn} <bdi>{name}</bdi>
           </p>
-          <a className="button button-outline" href={continueHref}>
+          <Button href={continueHref} variant="secondary">
             {copy.continue}
-          </a>
+          </Button>
         </>
       ) : (
-        <label>
-          {mode === "totp" ? copy.totp : copy.backup}
-          <input
-            name="code"
-            dir="ltr"
-            autoComplete="one-time-code"
-            autoCapitalize="none"
-            inputMode={mode === "totp" ? "numeric" : "text"}
-            maxLength={mode === "totp" ? 6 : 64}
-            pattern={mode === "totp" ? "[0-9]{6}" : undefined}
-            required
-          />
-        </label>
+        <TextField
+          id="sign-in-code"
+          name="code"
+          label={mode === "totp" ? copy.totp : copy.backup}
+          dir="ltr"
+          autoComplete="one-time-code"
+          autoCapitalize="none"
+          inputMode={mode === "totp" ? "numeric" : "text"}
+          maxLength={mode === "totp" ? 6 : 64}
+          pattern={mode === "totp" ? "[0-9]{6}" : undefined}
+          required
+        />
       )}
-      {error && (
-        <p className="sign-in-error" role="alert">
-          {error}
-        </p>
-      )}
-      <button className="button button-primary" disabled={busy}>
+      {error && <ErrorSummary title={error} />}
+      <Button type="submit" disabled={busy}>
         {busy
           ? copy.loading
           : mode === "signed-in"
@@ -181,7 +175,7 @@ export function SignInForm({ copy, locale }: { copy: Copy; locale: Locale }) {
             : mode === "credentials"
               ? copy.heading
               : copy.verify}
-      </button>
+      </Button>
       {mode === "credentials" && (
         <div className="sign-in-alternatives">
           <a href={`/${locale}/forgot-password`}>{copy.forgotPassword}</a>
@@ -190,9 +184,9 @@ export function SignInForm({ copy, locale }: { copy: Copy; locale: Locale }) {
       )}
       {(mode === "totp" || mode === "backup") && (
         <div className="sign-in-alternatives">
-          <button
-            className="button button-outline"
+          <Button
             type="button"
+            variant="secondary"
             disabled={busy}
             onClick={() => {
               setMode(mode === "totp" ? "backup" : "totp");
@@ -200,10 +194,10 @@ export function SignInForm({ copy, locale }: { copy: Copy; locale: Locale }) {
             }}
           >
             {mode === "totp" ? copy.useBackup : copy.useTotp}
-          </button>
-          <button
-            className="button button-outline"
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
             disabled={busy}
             onClick={() => {
               setMode("credentials");
@@ -211,7 +205,7 @@ export function SignInForm({ copy, locale }: { copy: Copy; locale: Locale }) {
             }}
           >
             {copy.backToSignIn}
-          </button>
+          </Button>
         </div>
       )}
     </form>

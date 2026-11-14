@@ -489,23 +489,41 @@ Sami will deploy the current Next.js app to Vercel and chose Resend for account 
 
 ## D-143
 
+2026-11-14 · Frontend · Public design system
+
+The public shell and pages use Direction A. `themeStyle()` writes the institute theme onto `<html>`. When the database answers, the theme and enabled modules come from `public_api.institute_public`. Otherwise the seeded Night and Paper theme is used. Tasks that depended on all of P0-E1 were narrowed to P0-E1-T01, because the rest of that epic is Cloudflare, DNS and hosted secrets.
+
+The self-hosted Noto Naskh Arabic variable file is 94,032 bytes, about 2 KB over the 90 KB Urdu budget. It stays, so Urdu buttons can be real bold rather than a second face. Noto Nastaliq Urdu is not downloaded. Public Urdu headings use it only when the phone already has the font (`local()`, `font-display: optional`). Naskh is the fallback and keeps the taller line height.
+
+The component gallery is `/{lang}/design` and is `noindex`, so other work can reuse it without a staff login. The planned admin-only `/_design` path can replace it later.
+
+`/{lang}/transparency` lists raised and spent for every public cause. The sitemap did not name that path. The home page and each cause page already required the same figures from `public_api.cause_summary` and `public_api.cause_spending`, and one page holds them together.
+
+`tazkiyah_auth` may select `public_api.public_posts` and `public_api.public_teachers`, and may execute `app.module_enabled` and `app.persona_work_may_show`. That is the role the public site already uses. The views still hide student identity. A visitor's report does not write `post_reports`, because REQ-MOD-008 is still proposed. The button goes to the contact page and asks people not to send a child's details.
+
+A spending row shows its date, amount and description. Receipt photos stay off the page until a public media URL exists. The view has a storage key, and R2 is not configured here.
+
+Amount chips and the form error summary are added for the donate flow (D-145). The settings switch, toasts, a phone bottom sheet and the walkthrough stepper stay open.
+
+## D-144
+
 2026-11-14 · Build agent (P2-E2-T05) · The donor trail reads spending that `app.match_spending()` already writes
 
 P2-E2-T05 depended on P2-E2-T01, the staff batch form, which is still open for the staff workspace. The matching function itself is done (P2-E2-T40). The private trail only reads *spent* and *reported* events; it does not record spending. A receipt photo is included only when the spending entry, the file and the face flag all say it may be shown. Options: wait for the staff form; show events that already exist. Reason: a donor cannot see where money went until the page reads the events, and waiting on a form in another workstream would hide purchases that are already matched.
 
-## D-144
+## D-145
 
 2026-11-14 · Build agent (P1-E1-T08) · Bank transfer stays the only way to give
 
 The donate page now asks for an amount and shows card, JazzCash and Easypaisa as unavailable. No gateway keys are stored or required. The "tell us about your transfer" form stays blocked because `transfer_notices` waits on proposed REQ-DON-015 (P1-E3-T46, Q-08). Until that is approved, the page asks the donor to tell the office, which is the fallback in 02 §12.1. Guest trail email (P1-E3-T05) stays blocked on the email service (P1-E3-T30). P5-E2-T01 and P5-E3-T01 stay blocked until a gateway is chosen and credentials exist. Options: invent a notice table; leave the notice blocked and show bank instructions. Reason: rule 4 says not to build on an unapproved requirement, and rule 8 says not to add payment secrets.
 
-## D-145
+## D-146
 
 2026-11-14 · Build agent (P4-E1-T02, P4-E2-T02, P4-E3-T01, P4-E3-T02) · The sponsor page reads matches; it does not create them
 
 The sponsor page depended on the staff matching form (P4-E1-T01). Matching is an admin insert, and `app.sponsor_child_view()` already returns only that donor's active sponsorships. The page shows the empty state until a match exists. Full-profile fields come from the same view, which hides them when consent is withdrawn. Child photographs are omitted until private short-lived image addresses exist (P2-E1-T30); showing a public URL would break child safety. Sponsor messages are screened with `app.has_contact_details` and have no child recipient. The staff inbox is left for the staff workspace, because only admins may reply (D-141). Options: wait for the matching screen; build the sponsor page on the existing view. Reason: the view is the safety boundary, and a sponsor with a match should be able to see it without this workstream editing the staff area.
 
-## D-146
+## D-147
 
 2026-11-14 · Build agent (P3-E3-T01) · The web app reaches the hub through `identity` functions
 

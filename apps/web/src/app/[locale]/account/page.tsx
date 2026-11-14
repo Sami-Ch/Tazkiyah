@@ -38,7 +38,7 @@ export default async function AccountPage({
 
   return (
     <section className="shell sign-in-section" aria-labelledby="account-title">
-      <div className="sign-in-card">
+      <div className="ui-card sign-in-card">
         <h1 id="account-title">{account.heading}</h1>
         {access.state === "allowed" ? (
           <>
