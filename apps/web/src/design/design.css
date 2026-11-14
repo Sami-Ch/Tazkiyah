@@ -363,6 +363,18 @@ html:lang(ur) .ui-field-error {
   margin: 0;
 }
 
+.ui-card > :is(form, .ui-table-wrap, .ui-actions, p, ul, dl) {
+  align-self: stretch;
+  inline-size: 100%;
+}
+
+.ui-form {
+  display: grid;
+  gap: var(--space-3);
+  align-self: stretch;
+  inline-size: 100%;
+}
+
 .ui-pattern {
   display: flex;
   align-items: flex-end;
@@ -574,6 +586,11 @@ html:lang(ur) .ui-progress p {
   padding-block: var(--space-6) var(--space-8);
 }
 
+.staff-stack {
+  display: grid;
+  gap: var(--space-6);
+}
+
 .public-intro {
   display: grid;
   gap: var(--space-3);
@@ -611,7 +628,8 @@ html:lang(ur) .ui-progress p {
   text-decoration: none;
 }
 
-.filter-row a[aria-current="true"] {
+.filter-row a[aria-current="true"],
+.filter-row a[aria-current="page"] {
   border-color: var(--color-primary, var(--navy));
   background: var(--color-primary, var(--navy));
   color: var(--color-on-primary, var(--on-navy));

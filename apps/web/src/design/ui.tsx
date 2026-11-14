@@ -1,4 +1,10 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 import type { Locale } from "@tazkiyah/i18n/routing";
 import { formatAmount } from "./format";
 
@@ -10,6 +16,8 @@ export function Button({
   children,
   type = "button",
   disabled,
+  name,
+  value,
   onClick,
 }: {
   href?: string;
@@ -17,7 +25,9 @@ export function Button({
   children: ReactNode;
   type?: "button" | "submit";
   disabled?: boolean;
-  onClick?: () => void;
+  name?: string;
+  value?: string;
+  onClick?: ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
 }) {
   const className = `ui-button ui-button-${variant}`;
   if (href) {
@@ -32,6 +42,8 @@ export function Button({
       className={className}
       type={type}
       disabled={disabled}
+      name={name}
+      value={value}
       onClick={onClick}
     >
       {children}
@@ -82,16 +94,21 @@ export function SelectField({
   label,
   hint,
   children,
+  ...select
 }: {
   id: string;
   label: string;
   hint?: string;
   children: ReactNode;
-}) {
+} & SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <div className="ui-field">
       <label htmlFor={id}>{label}</label>
-      <select id={id} aria-describedby={hint ? `${id}-hint` : undefined}>
+      <select
+        id={id}
+        aria-describedby={hint ? `${id}-hint` : undefined}
+        {...select}
+      >
         {children}
       </select>
       {hint && (
@@ -103,18 +120,55 @@ export function SelectField({
   );
 }
 
-export function CheckboxField({
+export function TextAreaField({
   id,
   label,
-  defaultChecked,
+  hint,
+  error,
+  ...area
 }: {
   id: string;
   label: string;
-  defaultChecked?: boolean;
-}) {
+  hint?: string;
+  error?: string;
+} & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const described = [hint ? `${id}-hint` : "", error ? `${id}-error` : ""]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    <div className="ui-field">
+      <label htmlFor={id}>{label}</label>
+      <textarea
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={described || undefined}
+        {...area}
+      />
+      {hint && (
+        <p className="ui-hint" id={`${id}-hint`}>
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p className="ui-field-error" id={`${id}-error`}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function CheckboxField({
+  id,
+  label,
+  ...input
+}: {
+  id: string;
+  label: string;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "id">) {
   return (
     <label className="ui-check" htmlFor={id}>
-      <input id={id} type="checkbox" defaultChecked={defaultChecked} />
+      <input id={id} type="checkbox" {...input} />
       <span>{label}</span>
     </label>
   );
