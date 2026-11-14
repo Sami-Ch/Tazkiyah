@@ -10,12 +10,14 @@ export type ClassMember = {
   name?: string;
   persona: string | null;
   real_name: string | null;
+  status?: string;
 };
 
 export type ClassRoom = {
   id: string;
   name: Partial<Record<Locale, string>>;
   year_label: string | null;
+  kind?: "class" | "alumni";
   archived: boolean;
   manage_students: boolean;
   manage_teachers: boolean;
@@ -123,6 +125,24 @@ export async function manageClass(
       result?.code === "unavailable"
     )
       return privateJson(result, 409);
+    return invalid();
+  }
+
+  if (body.action === "leave" || body.action === "reset") {
+    const userId = body.userId;
+    if (typeof userId !== "string" || !uuid.test(userId)) return invalid();
+    const {
+      rows: [result],
+    } = await tx.execute<{ code: string }>(
+      body.action === "leave"
+        ? sql`select identity.mark_student_left(${sessionId}::uuid, ${userId}::uuid) as code`
+        : sql`select identity.reset_persona(${sessionId}::uuid, ${userId}::uuid) as code`,
+    );
+    const code = result?.code ?? "denied";
+    if (code === "left" || code === "reset" || code === "already_left")
+      return privateJson({ code });
+    if (code === "denied" || code === "not_found")
+      return privateJson({ code }, 403);
     return invalid();
   }
 

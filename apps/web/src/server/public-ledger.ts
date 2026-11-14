@@ -133,7 +133,10 @@ function postRow(row: Record<string, unknown>): PublicPost | undefined {
     post_type: row.post_type as PublicPostType,
     language: row.language,
     title: typeof row.title === "string" ? row.title : null,
+    summary: typeof row.summary === "string" ? row.summary : null,
     body: row.body,
+    youtube_id: typeof row.youtube_id === "string" ? row.youtube_id : null,
+    hub_label: row.hub_label === "lesson" || row.hub_label === "resource" ? row.hub_label : null,
     published_at:
       typeof row.published_at === "string" ? row.published_at : null,
     author_kind: row.author_kind,
@@ -175,7 +178,7 @@ export async function readPublicWork(tx: AuthQuery, search: URLSearchParams) {
 
   const { take } = listWindow(search.get("shown"));
   const { rows } = await tx.execute<Record<string, unknown>>(sql`
-    select id, post_type, language, title, body, published_at::text, author_kind,
+    select id, post_type, language, title, summary, body, youtube_id, hub_label, published_at::text, author_kind,
       persona_name, teacher_name,
       case when author_kind = 'teacher' then teacher_id end as teacher_id,
       is_verified, verified_by_name
@@ -190,7 +193,7 @@ export async function readPublicWork(tx: AuthQuery, search: URLSearchParams) {
         or (${tab} = 'article' and post_type = 'article')
         or (${tab} = 'audio' and post_type = 'audio')
         or (${tab} = 'video' and post_type in ('video', 'vlog'))
-        or (${tab} = 'resource' and post_type = 'slides'))
+        or (${tab} = 'resource' and (post_type = 'slides' or hub_label = 'resource')))
     order by published_at desc nulls last, id desc
     limit ${id ? 1 : take + 1}
   `);

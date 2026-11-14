@@ -61,7 +61,10 @@ export type PublicPost = {
   post_type: PublicPostType;
   language: Locale;
   title: string | null;
+  summary: string | null;
   body: string;
+  youtube_id: string | null;
+  hub_label: string | null;
   published_at: string | null;
   author_kind: "persona" | "teacher";
   persona_name: string | null;
