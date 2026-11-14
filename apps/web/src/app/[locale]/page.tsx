@@ -16,7 +16,6 @@ import { pageTranslation } from "@/institutes/site-pages";
 import { readPublishedPages } from "@/server/public-pages";
 import { publicPageMetadata, publicSiteOrigin } from "@/server/public-site";
 import { AddressMap } from "@/components/address-map";
-import { CountUp } from "@/design/count-up";
 import { StarRule } from "@/design/ornament";
 import { showSampleBadge } from "@/institutes/public-story";
 import { HomeLedger } from "./home-ledger";
@@ -119,10 +118,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             <ul className="hero-stats">
               {heroFacts.map((fact) => (
                 <li key={fact.key}>
-                  <CountUp
-                    value={fact.value}
-                    label={number.format(fact.value)}
-                  />
+                  <bdi>{number.format(fact.value)}</bdi>
                   <span>{fact.label}</span>
                 </li>
               ))}

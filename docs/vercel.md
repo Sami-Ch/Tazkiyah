@@ -16,6 +16,9 @@ Set these variables in the Vercel environment for the database and domain you in
 | `RESEND_API_KEY` | A Resend sending key for the verified sending domain |
 | `AUTH_EMAIL_FROM` | A verified Resend sender such as `accounts@notify.azeem-lateef.com` |
 | `AUTH_EMAIL_REPLY_TO` | Optional. The madrasa's reply address. |
+| `TAZKIYAH_CONTENT_MODE` | `preview` or `production`. `production` hides the sample badge. Leave unset to follow `NODE_ENV`. |
+| `BETTER_AUTH_LOCAL_ORIGIN` | Local only, such as `http://localhost:3000`. Leave unset on Vercel. |
+| `BETTER_AUTH_LOCAL_INSTITUTE_DOMAIN` | Local only. The institute domain that local host should resolve to. Leave unset on Vercel. |
 
 Use the database setup and administrator bootstrap in the [README](../README.md#run-database-migrations). Migrations use the direct administrative connection outside Vercel. Configure the restricted runtime connection after migrating. To test database-backed pages on a stable `*.vercel.app` hostname, add that exact hostname as a secondary domain in `app.institute_domains` on the preview database. Keep production and preview credentials separate. Vercel supplies the HTTPS and client IP headers when system environment variables are enabled. [Vercel monorepo setup](https://vercel.com/docs/monorepos) · [Vercel request headers](https://vercel.com/docs/headers/request-headers)
 
@@ -30,5 +33,34 @@ The app queues a receipt when staff confirm the recipient email while recording 
 | `RECEIPT_EMAIL_REPLY_TO` | Optional. The madrasa's reply address. |
 | `RECEIPT_EMAIL_LINK_KEY` | A stable random 32-byte secret encoded as 64 hexadecimal characters |
 | `CRON_SECRET` | A separate random secret used to authorize job requests |
+| `RECEIPT_EMAIL_PROVIDER` | `resend` for the Cloudflare scheduled handler. The Vercel route does not read it. |
+| `MIGRATION_DATABASE_URL` | Direct administrator connection used by `npm run db:migrate` outside Vercel. |
+| `AUTH_HYPERDRIVE` | Cloudflare Worker binding for the auth connection. Not a Vercel variable. |
+| `RECEIPT_JOBS_HYPERDRIVE` | Cloudflare Worker binding for the receipt-job connection. Not a Vercel variable. |
 
 Schedule `GET /api/jobs/receipt-email` with `Authorization: Bearer <CRON_SECRET>`. A successful invocation returns `204`. Vercel Cron sends that header automatically when `CRON_SECRET` is configured. The plan calls for a 15-minute sweep. Vercel Hobby Cron runs at most once daily, so the repository leaves scheduling configurable. A separate scheduler can call the same endpoint. Receipt links use the institute's primary domain. [Vercel Cron authorization](https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs) · [Vercel Cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing)
+
+`NODE_ENV` and `VERCEL` are set by the host. Leave them out of `.env`.
+
+## Every variable the code reads
+
+- `MIGRATION_DATABASE_URL`
+- `AUTH_DATABASE_URL`
+- `RECEIPT_JOBS_DATABASE_URL`
+- `BETTER_AUTH_SECRET`
+- `BETTER_AUTH_LOCAL_ORIGIN`
+- `BETTER_AUTH_LOCAL_INSTITUTE_DOMAIN`
+- `RESEND_API_KEY`
+- `AUTH_EMAIL_FROM`
+- `AUTH_EMAIL_REPLY_TO`
+- `RECEIPT_EMAIL_FROM`
+- `RECEIPT_EMAIL_REPLY_TO`
+- `RECEIPT_EMAIL_LINK_KEY`
+- `RECEIPT_EMAIL_PROVIDER`
+- `CRON_SECRET`
+- `PUBLIC_SITE_ORIGINS`
+- `TAZKIYAH_CONTENT_MODE`
+- `AUTH_HYPERDRIVE`
+- `RECEIPT_JOBS_HYPERDRIVE`
+- `NODE_ENV`
+- `VERCEL`
