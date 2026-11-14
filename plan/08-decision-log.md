@@ -492,3 +492,9 @@ Sami will deploy the current Next.js app to Vercel and chose Resend for account 
 2026-11-14 · Build agent (P2-E2-T05) · The donor trail reads spending that `app.match_spending()` already writes
 
 P2-E2-T05 depended on P2-E2-T01, the staff batch form, which is still open for the staff workspace. The matching function itself is done (P2-E2-T40). The private trail only reads *spent* and *reported* events; it does not record spending. A receipt photo is included only when the spending entry, the file and the face flag all say it may be shown. Options: wait for the staff form; show events that already exist. Reason: a donor cannot see where money went until the page reads the events, and waiting on a form in another workstream would hide purchases that are already matched.
+
+## D-144
+
+2026-11-14 · Build agent (P1-E1-T08) · Bank transfer stays the only way to give
+
+The donate page now asks for an amount and shows card, JazzCash and Easypaisa as unavailable. No gateway keys are stored or required. The "tell us about your transfer" form stays blocked because `transfer_notices` waits on proposed REQ-DON-015 (P1-E3-T46, Q-08). Until that is approved, the page asks the donor to tell the office, which is the fallback in 02 §12.1. Guest trail email (P1-E3-T05) stays blocked on the email service (P1-E3-T30). P5-E2-T01 and P5-E3-T01 stay blocked until a gateway is chosen and credentials exist. Options: invent a notice table; leave the notice blocked and show bank instructions. Reason: rule 4 says not to build on an unapproved requirement, and rule 8 says not to add payment secrets.

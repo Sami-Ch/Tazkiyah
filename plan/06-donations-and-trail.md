@@ -902,12 +902,12 @@ The bilingual admin cause form saves the optional scholar name and the spending 
 | P1-E3-T02 | Phone-friendly admin form to record a bank transfer, with duplicate warning and large-amount confirmation | done | P1-E3-T01, P1-E5, P0-E5 | REQ-DON-008, REQ-PAY-001 |
 | P1-E3-T03 | Receipt numbering per institute per year (§14.1) | done | P1-E3-T01 | REQ-DON-010 |
 | P1-E3-T04 | Guest donors and private trail-link tokens: create, hash, revoke (§11.2) | done | P1-E3-T01 | REQ-DPR-001, REQ-DPR-002, REQ-SEC-004 |
-| P1-E3-T05 | Email the private link to a new guest donor when their first donation is received | todo | P1-E3-T04, P1-E3-T30 | REQ-DPR-002, REQ-LNG-011 |
+| P1-E3-T05 | Email the private link to a new guest donor when their first donation is received | blocked | P1-E3-T04, P1-E3-T30 | REQ-DPR-002, REQ-LNG-011 |
 | P1-E3-T06 | Anonymity read layer: name fields hidden for anonymous donations outside donor and finance roles (§10.4) | todo | P1-E3-T01 | REQ-DPR-006, REQ-DPR-009, REQ-SEC-008 |
-| P1-E3-T07 | Public transfer notice form creating *notified* donations (§4.2) | todo | P1-E3-T01, P1-E1-T08 | REQ-DON-001, REQ-DON-002, REQ-DON-003, REQ-DON-004, REQ-DPR-001, REQ-DPR-006 |
+| P1-E3-T07 | Public transfer notice form creating *notified* donations (§4.2) | blocked | P1-E3-T46, P1-E1-T08 | REQ-DON-001, REQ-DON-002, REQ-DON-003, REQ-DON-004, REQ-DPR-001, REQ-DPR-006 |
 | P1-E3-T08 | Admin queue to confirm, reject or expire transfer notices | todo | P1-E3-T07, P1-E3-T02 | REQ-DON-008, REQ-PAY-001 |
 | P1-E3-T09 | Reverse a donation before any spending, with a reason; receipt marked cancelled (§15.2, §15.3) | done | P1-E3-T01, P1-E3-T03 | REQ-DON-012, REQ-TRL-003 |
-| P1-E3-T10 | Recurring pledges: create from the notice form or by admin, and link recorded payments (§13.1) | todo | P1-E3-T02, P1-E3-T07 | REQ-DON-003 |
+| P1-E3-T10 | Recurring pledges: create from the notice form or by admin, and link recorded payments (§13.1) | blocked | P1-E3-T02, P1-E3-T07 | REQ-DON-003 |
 | P1-E3-T11 | "Expected this month" list and pledge lapsing after 3 missed periods | todo | P1-E3-T10 | REQ-DON-003 |
 | P1-E3-T12 | Bank statement reconciliation screen (§15.1) | done | P1-E3-T02, P1-E3-T09 | REQ-DON-008, REQ-DON-012, REQ-PAY-001 |
 

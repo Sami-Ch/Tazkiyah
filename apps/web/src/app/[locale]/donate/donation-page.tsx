@@ -8,6 +8,7 @@ import { institute } from "@/institutes/markaz-al-azeem";
 import { pageTranslation } from "@/institutes/site-pages";
 import { getPublishedBankAccounts, getPublishedCauses } from "@/server/auth";
 import { CopyBankField } from "./copy-bank-field";
+import { DonationAmountForm } from "./donation-amount-form";
 import "./donate.css";
 
 function donationHref(locale: Locale, purpose: DonationPurpose, slug?: string) {
@@ -111,6 +112,7 @@ export async function DonationPage({
           </a>
         </section>
         <section className="donate-panel" aria-labelledby="donate-accounts">
+          <DonationAmountForm locale={locale} />
           <h2 id="donate-accounts">{copy.accounts}</h2>
           {accounts.length ? (
             <>
@@ -163,6 +165,9 @@ export async function DonationPage({
           )}
           <a className="button button-primary" href={`/${locale}/contact`}>
             <Icon name="map" />
+            {copy.tellOffice}
+          </a>
+          <a className="donate-explore" href={`/${locale}/contact`}>
             {copy.visit}
           </a>
         </section>

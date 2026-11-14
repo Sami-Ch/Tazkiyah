@@ -915,14 +915,14 @@ The local Worker serves bilingual sign-in and staff pages. The server checks the
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P5-E2-T01 | Card provider adapter behind `PaymentProvider`: hosted checkout, signed webhook, one-off donations (to be detailed later) | todo | P5-E1-T02, P1-E3-T31 | REQ-PAY-003, REQ-PAY-006 |
+| P5-E2-T01 | Card provider adapter behind `PaymentProvider`: hosted checkout, signed webhook, one-off donations (to be detailed later) | blocked | P5-E1-T02, P1-E3-T31 | REQ-PAY-003, REQ-PAY-006 |
 | P5-E2-T02 | Recurring monthly and yearly card donations through the gateway's subscriptions; renewal and cancel events (to be detailed later) | todo | P5-E2-T01 | REQ-PAY-003, REQ-DON-003 |
 
 ### P5-E3 JazzCash and Easypaisa one-off donations (to be detailed later)
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P5-E3-T01 | Wallet provider adapters behind `PaymentProvider` for one-off gifts (to be detailed later) | todo | P5-E1-T02, P1-E3-T31 | REQ-PAY-004, REQ-PAY-006 |
+| P5-E3-T01 | Wallet provider adapters behind `PaymentProvider` for one-off gifts (to be detailed later) | blocked | P5-E1-T02, P1-E3-T31 | REQ-PAY-004, REQ-PAY-006 |
 | P5-E3-T02 | Offer the monthly reminder opt-in after a wallet gift (to be detailed later) | todo | P5-E3-T01, P4-E5-T01 | REQ-PAY-007 |
 
 ### P5-E4 and P5-E5 (owned by 06; architecture tasks, to be detailed later)
