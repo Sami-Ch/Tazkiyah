@@ -12,7 +12,11 @@ export type AdminAccess =
       canRecordTransfers: boolean;
       canReverseTransfers: boolean;
       canReconcileTransfers: boolean;
+      canRecordSpending: boolean;
       canCreateStudents: boolean;
+      canManageClasses: boolean;
+      canModerate: boolean;
+      canMatchSponsors: boolean;
       twoFactorVerified: boolean;
     }
   | { state: "signed-out" | "denied" | "enroll" | "unavailable" };
@@ -113,7 +117,13 @@ export async function checkWorkspaceAccess(
     canRecordTransfers: can(actor, "donation.record"),
     canReverseTransfers: can(actor, "donation.reverse"),
     canReconcileTransfers: can(actor, "donation.reconcile"),
+    canRecordSpending: can(actor, "spending.record"),
     canCreateStudents: can(actor, "student_account.create"),
+    canManageClasses: can(actor, "class.create"),
+    canModerate: ["teacher", "editor", "admin"].some((role) =>
+      account.roles.includes(role),
+    ),
+    canMatchSponsors: can(actor, "sponsorship.match"),
     twoFactorVerified: requireMfa,
   } as const;
   if (!requireMfa) return allowed;

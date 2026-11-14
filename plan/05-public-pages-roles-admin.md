@@ -758,7 +758,7 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E5-T01 | Admin shell: `/admin` layout, phone-first navigation, menu by role, staff-only guard returning not found | todo | P0-E5-T51, P0-E4 | REQ-ROL-002, REQ-LNG-001 |
+| P1-E5-T01 | Admin shell: `/admin` layout, phone-first navigation, menu by role, staff-only guard returning not found | done | P0-E5-T51, P0-E4 | REQ-ROL-002, REQ-LNG-001 |
 | P1-E5-T02 | Admin form kit: amount field, date defaulting to today, Urdu/English text pair, camera photo field, save-and-add-another, on-phone draft and one-time submit key | todo | P1-E5-T01 | REQ-LNG-009, REQ-LNG-012, REQ-ACC-004 |
 | P1-E5-T03 | Institute settings screen: identity, contact, bank accounts, principal, spending batch mode | in progress | P1-E5-T02, P0-E2 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-008 |
 | P1-E5-T04 | Module switches screen and module gating of menus, routes, home blocks and hub links | todo | P1-E5-T03 | REQ-ROL-010 |
@@ -767,7 +767,9 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 | P1-E5-T07 | Audit log writer called by every staff change, with redaction of donor names and emails, student real names and secrets | todo | P0-E2 | REQ-ROL-008, REQ-DPR-009, REQ-SEC-008 |
 | P1-E5-T08 | Audit log screen: list, filters in a bottom sheet, entry detail, admin only | in progress | P1-E5-T07, P1-E5-T01 | REQ-ROL-009 |
 | P1-E5-T09 | Automated checks: each admin action writes exactly one audit entry, and no donor name, donor email or student real name is ever in `audit_log` | todo | P1-E5-T07 | REQ-ROL-008, REQ-DPR-009, REQ-SEC-008 |
-| P1-E5-T10 | Admin dashboard: two quick actions and tiles with counts, each tile appearing when its phase ships | todo | P1-E5-T01 | REQ-TRL-013, REQ-ROL-007 |
+| P1-E5-T10 | Admin dashboard: two quick actions and tiles with counts, each tile appearing when its phase ships | in progress | P1-E5-T01 | REQ-TRL-013, REQ-ROL-007 |
+
+2026-11-14 · P1-E5-T01: the staff workspace has its own navigation under the public header ([`admin/layout.tsx`](../apps/web/src/app/[locale]/admin/layout.tsx), [`staff-links.ts`](../apps/web/src/app/[locale]/admin/staff-links.ts)). Links follow 05 §8.0: finance sees donations and the bank check, an editor sees site pages, an admin sees the directory, causes, audit and donor links. The shared design-system shell (P0-E4) is another workstream, so this menu is a staff-local primitive ([D-143](08-decision-log.md#d-143)). Each existing screen still returns not found when the role cannot open it. Quick actions for recording a transfer and spending are on the workspace home; count tiles stay with P1-E5-T10. Urdu wording awaits review (Q-20).
 
 ### P3-E8 Public student work and teacher work pages (owner 05)
 

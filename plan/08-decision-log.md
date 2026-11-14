@@ -486,3 +486,9 @@ Four points, each the narrower reading. **Sponsor view:** 04 filters `app.sponso
 2026-11-12 · Sami · Vercel handoff and Resend email
 
 Sami will deploy the current Next.js app to Vercel and chose Resend for account emails and donor receipts (Q-06). The handoff adds Vercel request handling and an authenticated receipt job endpoint using the existing outbox. The [Vercel handoff](../docs/vercel.md) describes the project settings and database roles for this release.
+
+## D-143
+
+2026-11-14 · Build agent (P1-E5-T01) · Staff navigation before the shared design system, Sami may reverse
+
+P1-E5-T01 depends on P0-E4 and P0-E5-T51, which are still open, and another agent owns the design system and public shell. The staff menu is therefore a small primitive inside `/admin`, using the institute tokens already on the page (`--navy`, `--paper`, `--surface`). It does not add components to the public header. Options: wait for P0-E4; build the menu inside the staff area. Reason: finance and teaching staff need a role-based menu now, and 00 §4 rule 10 keeps that change inside the staff task.

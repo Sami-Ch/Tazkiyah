@@ -495,5 +495,26 @@
       },
       "invalid": "Check the text in both languages and enter whole numbers for homepage figures."
     }
+  },
+  "staffWorkspace": {
+    "navLabel": "Staff workspace",
+    "intro": "Use the menu for the screens your role can open.",
+    "recordDonation": "Record a transfer",
+    "recordSpending": "Record spending",
+    "links": {
+      "home": "Workspace",
+      "donations": "Donations",
+      "reconciliation": "Bank check",
+      "spending": "Spending",
+      "causes": "Causes",
+      "banks": "Bank accounts",
+      "users": "People",
+      "audit": "Audit log",
+      "donorLinks": "Donor links",
+      "pages": "Site pages",
+      "classes": "Classes",
+      "moderation": "Moderation",
+      "sponsorships": "Sponsorships"
+    }
   }
 }
