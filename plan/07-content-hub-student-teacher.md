@@ -707,10 +707,10 @@ Status is `todo` for every task. Where a dependency is another document's epic (
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P3-E3-T01 | Start a thread in a class or the madrasa scope; list threads per scope; posts appear at once | todo | P3-E1-T05, P3-E1-T07 | REQ-STU-005, REQ-STU-008, REQ-MOD-001 |
-| P3-E3-T02 | Flat replies with "replying to", plus pin and lock by teachers | todo | P3-E3-T01 | REQ-STU-006 |
-| P3-E3-T03 | Post language picker (Urdu or English, default the interface language), setting direction and `lang` | todo | P3-E3-T01, P0-E3 | REQ-LNG-010, REQ-LNG-007 |
-| P3-E3-T04 | Message and question post types, with the unanswered and answered marker | todo | P3-E3-T01 | REQ-STU-005 |
+| P3-E3-T01 | Start a thread in a class or the madrasa scope; list threads per scope; posts appear at once | done | P3-E3-T40 | REQ-STU-005, REQ-STU-008, REQ-MOD-001 |
+| P3-E3-T02 | Flat replies with "replying to", plus pin and lock by teachers | done | P3-E3-T01 | REQ-STU-006 |
+| P3-E3-T03 | Post language picker (Urdu or English, default the interface language), setting direction and `lang` | done | P3-E3-T01, P0-E3 | REQ-LNG-010, REQ-LNG-007 |
+| P3-E3-T04 | Message and question post types, with the unanswered and answered marker | done | P3-E3-T01 | REQ-STU-005 |
 | P3-E3-T05 | Answer post type, accepted answer and "Teacher answer" badge | todo | P3-E3-T04 | REQ-STU-005 |
 | P3-E3-T06 | Poll creation by students and teachers: options, choice type and closing date | todo | P3-E3-T01 | REQ-STU-007 |
 | P3-E3-T07 | Poll voting, changing a vote, results display and the staff-only voter list | todo | P3-E3-T06 | REQ-STU-007 |
@@ -718,9 +718,11 @@ Status is `todo` for every task. Where a dependency is another document's epic (
 | P3-E3-T09 | Video and vlog post types with a YouTube link first and upload second | todo | P3-E3-T01, P3-E4 | REQ-STU-005, REQ-PRF-004 |
 | P3-E3-T10 | Audio and slides post types | todo | P3-E3-T01, P3-E4 | REQ-STU-005 |
 | P3-E3-T11 | Edit and delete own post, keeping earlier versions and deleted posts visible to staff | todo | P3-E3-T02 | REQ-CHS-003, REQ-ROL-008 |
-| P3-E3-T12 | Contact-detail scan on every student text field: block phones, emails and contact links, flag addresses | todo | P3-E3-T01 | REQ-CHS-002 |
+| P3-E3-T12 | Contact-detail scan on every student text field: block phones, emails and contact links, flag addresses | done | P3-E3-T01 | REQ-CHS-002 |
 | P3-E3-T13 | Teacher class feed showing all student posts and replies, including hidden, removed and deleted | todo | P3-E3-T02, P3-E3-T11 | REQ-CHS-003 |
 | P3-E3-T14 | Tell class teachers after 3 blocked contact-detail attempts by one student in 7 days | todo | P3-E3-T12 | REQ-CHS-002 |
+
+2026-11-14 · P3-E3-T01, T02, T03, T04, T12 and P3-E5-T04: [`0067_class_hub.sql`](../db/drizzle/0067_class_hub.sql) and `/hub` let a student or teacher open their classes and the madrasa, start a message or question, reply, and report a post. The post stores Urdu or English and is shown with `lang` and `dir="auto"`. Class and madrasa posts are published at once. Students are shown under the pen name; the real name is not in the response. Phone numbers, email addresses and contact links are refused. A locked thread rejects a student's reply. Pin, lock and the answered marker stay with the staff tools, and visitor reports stay blocked with P3-E5-T41. Parent consent remains a staff form (P3-E2-T01); the hub says so and does not offer a parent login ([D-147](08-decision-log.md#d-147)). The hub is hidden when its module is off.
 
 ### P3-E5 Sharing scopes, moderation and reports
 
@@ -729,7 +731,7 @@ Status is `todo` for every task. Where a dependency is another document's epic (
 | P3-E5-T01 | Scope rules: class or madrasa at creation, replies inherit, `community` reserved and rejected | todo | P3-E3-T01 | REQ-STU-008, REQ-MIR-004 |
 | P3-E5-T02 | Admin list of teachers who may widen scopes; widen and narrow actions with audit entries | todo | P3-E5-T01 | REQ-MOD-007, REQ-ROL-008 |
 | P3-E5-T03 | Hide, unhide and remove class and madrasa posts (inside state) | todo | P3-E3-T13 | REQ-MOD-002 |
-| P3-E5-T04 | Report button with reasons for logged-in users and rate-limited visitors | todo | P3-E3-T01 | REQ-STU-011, REQ-MOD-005 |
+| P3-E5-T04 | Report button with reasons for logged-in users and rate-limited visitors | done | P3-E3-T01 | REQ-STU-011, REQ-MOD-005 |
 | P3-E5-T05 | Moderation queue with priority order, filtered by role and class | done | P3-E5-T04, P3-E3-T12 | REQ-MOD-005, REQ-CHS-002 |
 | P3-E5-T06 | Take down any post with a reason and remove it from public pages within one minute | todo | P3-E5-T03, P0-E1 | REQ-CHS-004, REQ-MOD-006 |
 | P3-E5-T07 | Public request: draft, preview and submit by the author, or a teacher suggestion the author accepts | todo | P3-E5-T01, P3-E2-T03 | REQ-MOD-003, REQ-MOD-004 |
@@ -738,7 +740,7 @@ Status is `todo` for every task. Where a dependency is another document's epic (
 | P3-E5-T10 | Report thresholds that hide or take down posts automatically until reviewed | todo | P3-E5-T05, P3-E5-T06 | REQ-MOD-005, REQ-CHS-004 |
 | P3-E5-T11 | Post moderation history and audit entries for every moderation action | todo | P3-E5-T03, P3-E5-T06, P3-E5-T08 | REQ-ROL-008 |
 
-2026-11-14 · P3-E5-T05 and T08: [`/admin/moderation`](../apps/web/src/app/[locale]/admin/moderation/page.tsx) lists submitted posts the signed-in person may approve. Approve is refused without public-work consent, and also when a photo is flagged as showing a face and face consent is missing. Reject needs a note and writes an audit row that does not store a student's real name ([`0063_staff_moderation.sql`](../db/drizzle/0063_staff_moderation.sql)). Reports, takedown and restore stay open (P3-E5-T04, T06, T41). Tests: [`db/test/staff_moderation.sql`](../db/test/staff_moderation.sql).
+2026-11-14 · P3-E5-T05 and T08: [`/admin/moderation`](../apps/web/src/app/[locale]/admin/moderation/page.tsx) lists submitted posts the signed-in person may approve. Approve is refused without public-work consent, and also when a photo is flagged as showing a face and face consent is missing. Reject needs a note and writes an audit row that does not store a student's real name ([`0063_staff_moderation.sql`](../db/drizzle/0063_staff_moderation.sql)). Visitor reports, takedown and restore stay open (P3-E5-T06, T41). Logged-in reports are P3-E5-T04. Tests: [`db/test/staff_moderation.sql`](../db/test/staff_moderation.sql).
 
 ### P3-E6 Teacher hub and verified articles
 

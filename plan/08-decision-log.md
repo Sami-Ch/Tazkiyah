@@ -503,10 +503,34 @@ The component gallery is `/{lang}/design` and is `noindex`, so other work can re
 
 A spending row shows its date, amount and description. Receipt photos stay off the page until a public media URL exists. The view has a storage key, and R2 is not configured here.
 
-Amount chips, the settings switch, the form error summary, toasts, a phone bottom sheet and the walkthrough stepper are still open. They belong with the donate flow and the onboarding tasks.
+Amount chips and the form error summary are added for the donate flow (D-145). The settings switch, toasts, a phone bottom sheet and the walkthrough stepper stay open.
 
 ## D-144
 
+2026-11-14 · Build agent (P2-E2-T05) · The donor trail reads spending that `app.match_spending()` already writes
+
+P2-E2-T05 depended on P2-E2-T01, the staff batch form. The matching function itself is done (P2-E2-T40), and the staff form is now done in the staff workspace. The private trail only reads *spent* and *reported* events; it does not record spending. A receipt photo is included only when the spending entry, the file and the face flag all say it may be shown. Options: wait for the staff form; show events that already exist. Reason: a donor cannot see where money went until the page reads the events, and waiting on a form in another workstream would hide purchases that are already matched.
+
+## D-145
+
+2026-11-14 · Build agent (P1-E1-T08) · Bank transfer stays the only way to give
+
+The donate page now asks for an amount and shows card, JazzCash and Easypaisa as unavailable. No gateway keys are stored or required. The "tell us about your transfer" form stays blocked because `transfer_notices` waits on proposed REQ-DON-015 (P1-E3-T46, Q-08). Until that is approved, the page asks the donor to tell the office, which is the fallback in 02 §12.1. Guest trail email (P1-E3-T05) stays blocked on the email service (P1-E3-T30). P5-E2-T01 and P5-E3-T01 stay blocked until a gateway is chosen and credentials exist. Options: invent a notice table; leave the notice blocked and show bank instructions. Reason: rule 4 says not to build on an unapproved requirement, and rule 8 says not to add payment secrets.
+
+## D-146
+
+2026-11-14 · Build agent (P4-E1-T02, P4-E2-T02, P4-E3-T01, P4-E3-T02) · The sponsor page reads matches; it does not create them
+
+The sponsor page reads matches created by the staff form (P4-E1-T01, now done). Matching is an admin insert, and `app.sponsor_child_view()` already returns only that donor's active sponsorships. The page shows the empty state until a match exists. Full-profile fields come from the same view, which hides them when consent is withdrawn. Child photographs are omitted until private short-lived image addresses exist (P2-E1-T30); showing a public URL would break child safety. Sponsor messages are screened with `app.has_contact_details` and have no child recipient. The staff inbox is left for the staff workspace, because only admins may reply (D-141). Options: wait for the matching screen; build the sponsor page on the existing view. Reason: the view is the safety boundary, and a sponsor with a match should be able to see it without this workstream editing the staff area.
+
+## D-147
+
+2026-11-14 · Build agent (P3-E3-T01) · The web app reaches the hub through `identity` functions
+
+The site connects as `tazkiyah_auth`, which cannot insert threads under the `tazkiyah_app` policies. `identity.read_hub`, `identity.start_hub_thread`, `identity.reply_hub_thread` and `identity.report_hub_post` check the session, then apply the same author, scope, module and contact-detail rules. A student is stored as their persona. The response has the pen name or a staff name, never a user id or a persona link. `community` scope is rejected. Options: grant the app role to the auth login; keep definer functions. Reason: the auth login stays narrow, and child safety stays in one place (00 §4 rules 9 and 11). Pin, lock and the staff consent form are left for the staff workspace.
+
+## D-148
+
 2026-11-14 · Build agent (P1-E5-T01) · Staff workspace uses the shared design system, Sami may reverse
 
-The staff menu and workspace screens live inside `/admin` and reuse `apps/web/src/design` (buttons, fields, tables, amount and date formatters, and the public tokens). Role-based links stay in the staff area. Options: keep a private staff stylesheet; use the shared components. Reason: the design system landed in the public branch, and one set of components keeps Urdu and English staff screens on the same type, colour, and money formatting.
+The staff menu and workspace screens live inside `/admin` and reuse `apps/web/src/design` (buttons, fields, tables, amount and date formatters, and the public tokens). Role-based links stay in the staff area. The shared button carries both a click handler for the donor screens and `name`/`value` for staff forms, so neither area keeps a second button. Options: keep a private staff stylesheet; use the shared components. Reason: the design system landed in the public branch, and one set of components keeps Urdu and English staff screens on the same type, colour, and money formatting.

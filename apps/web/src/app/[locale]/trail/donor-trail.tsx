@@ -6,21 +6,24 @@ import { Fragment, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { authRequest } from "@/components/auth-request";
 import { givingCopy } from "@/institutes/giving-copy";
-import { formatPkr, type DonationType } from "@/institutes/manual-donations";
+import { formatAmount } from "@/design/format";
+import { type DonationType } from "@/institutes/manual-donations";
 import { receiptAmountInWords } from "@/institutes/receipt-amount";
 import {
   pageTranslation,
   type LocalizedPageText,
 } from "@/institutes/site-pages";
-import { donationState } from "./donation-state";
+import { donationState, unspentPaisa } from "./donation-state";
 import { trailCopy } from "./trail-copy";
 
 type TrailCursor = { recorded_at: string; id: string };
 type TrailEvent = {
-  event_type: "received" | "allocated";
+  event_type: "received" | "allocated" | "spent" | "reported";
   occurred_on: string;
   amount_paisa: string;
   cause_title: LocalizedPageText | null;
+  description?: LocalizedPageText | null;
+  receipt_key?: string | null;
 };
 type TrailDonation = TrailCursor & {
   receipt_number: string;
@@ -115,6 +118,13 @@ async function readTrail(
   }
 }
 
+function formatMoney(value: string | bigint, locale: Locale) {
+  return formatAmount(
+    typeof value === "bigint" ? value : BigInt(value),
+    locale,
+  );
+}
+
 function TrailDate({
   value,
   locale,
@@ -129,6 +139,16 @@ function TrailDate({
     timeZone: issueDate ? "Asia/Karachi" : "UTC",
   }).format(new Date(value));
   return <time dateTime={value}>{formatted}</time>;
+}
+
+function receiptPhoto(key: string | null | undefined) {
+  const parts = key?.split("/");
+  if (
+    !parts?.length ||
+    parts.some((part) => !part || part === "." || part === "..")
+  )
+    return null;
+  return `https://media.azeem-lateef.com/${parts.map(encodeURIComponent).join("/")}`;
 }
 
 function CauseTitle({
@@ -255,7 +275,7 @@ function Receipt({
                 <div>
                   <dt>{copy.amount}</dt>
                   <dd>
-                    <bdi>{formatPkr(donation.amount_paisa, locale)}</bdi>
+                    <bdi>{formatMoney(donation.amount_paisa, locale)}</bdi>
                   </dd>
                 </div>
                 <div>
@@ -342,7 +362,7 @@ function DonationStateLine({
   const copy = trailCopy[locale];
   const state = donationState(donation);
   const money = (value: bigint) => (
-    <bdi>{formatPkr(value.toString(), locale)}</bdi>
+    <bdi>{formatMoney(value.toString(), locale)}</bdi>
   );
   const causes = (titles: (LocalizedPageText | null)[]) =>
     titles.map((title, index) => (
@@ -446,7 +466,7 @@ function DonationRecord({
           <div>
             <dt>{copy.amount}</dt>
             <dd>
-              <bdi>{formatPkr(donation.amount_paisa, locale)}</bdi>
+              <bdi>{formatMoney(donation.amount_paisa, locale)}</bdi>
             </dd>
           </div>
           <div>
@@ -467,31 +487,64 @@ function DonationRecord({
           </div>
         </dl>
         {donation.events.length > 0 && (
-          <details className="trail-events">
+          <details className="trail-events" open>
             <summary>{copy.activity}</summary>
             <ol>
-              {donation.events.map((event, index) => (
-                <li key={index}>
-                  <strong>{copy[event.event_type]}</strong>
-                  <p>
-                    <TrailDate value={event.occurred_on} locale={locale} />
-                    {" · "}
-                    <bdi>{formatPkr(event.amount_paisa, locale)}</bdi>
-                    {event.event_type === "allocated" && (
-                      <>
-                        {" · "}
-                        <CauseTitle title={event.cause_title} locale={locale} />
-                      </>
+              {donation.events.map((event, index) => {
+                const description = pageTranslation(
+                  event.description ?? undefined,
+                  locale,
+                );
+                const photo = receiptPhoto(event.receipt_key);
+                return (
+                  <li key={index}>
+                    <strong>{copy[event.event_type]}</strong>
+                    <p>
+                      <TrailDate value={event.occurred_on} locale={locale} />
+                      {" · "}
+                      <bdi>{formatMoney(event.amount_paisa, locale)}</bdi>
+                      {event.event_type !== "received" && event.cause_title && (
+                        <>
+                          {" · "}
+                          <CauseTitle
+                            title={event.cause_title}
+                            locale={locale}
+                          />
+                        </>
+                      )}
+                    </p>
+                    {description && (
+                      <p lang={description.language} dir="auto">
+                        {description.text}
+                      </p>
                     )}
-                  </p>
-                </li>
-              ))}
+                    {photo && (
+                      <Image
+                        src={photo}
+                        width={320}
+                        height={180}
+                        alt={copy.receiptPhoto}
+                        unoptimized
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                  </li>
+                );
+              })}
             </ol>
+            {unspentPaisa(donation) > 0n && (
+              <p>
+                {copy.waiting.replace(
+                  "{amount}",
+                  formatMoney(unspentPaisa(donation), locale),
+                )}
+              </p>
+            )}
           </details>
         )}
         <button
           type="button"
-          className="button button-outline"
+          className="ui-button ui-button-secondary"
           aria-label={`${copy.printReceipt} ${donation.receipt_number}`}
           onClick={onPrint}
         >
@@ -499,7 +552,7 @@ function DonationRecord({
         </button>
         {showTrailLink && donation.public_ref && (
           <a
-            className="button button-outline"
+            className="ui-button ui-button-secondary"
             href={`/${locale}/account/donations/${donation.public_ref}`}
           >
             {copy.viewTrail}
@@ -594,7 +647,7 @@ function TrailResults({
           {result.state === "unavailable" && (
             <button
               type="button"
-              className="button button-outline"
+              className="ui-button ui-button-secondary"
               onClick={() => {
                 setResult({ state: "loading" });
                 setRetry(retry + 1);
@@ -614,7 +667,7 @@ function TrailResults({
         <nav className="trail-pagination" aria-label={copy.pages}>
           <button
             type="button"
-            className="button button-outline"
+            className="ui-button ui-button-secondary"
             disabled={cursors.length === 1 || result.state === "loading"}
             onClick={() => moveTo(cursors.slice(0, -1))}
           >
@@ -625,7 +678,7 @@ function TrailResults({
           </p>
           <button
             type="button"
-            className="button button-outline"
+            className="ui-button ui-button-secondary"
             disabled={!nextCursor}
             onClick={() => nextCursor && moveTo([...cursors, nextCursor])}
           >
@@ -649,7 +702,7 @@ export function DonorTrail({ locale }: { locale: Locale }) {
         <p>{copy.privacy}</p>
         <a href={`/${locale}/signup`}>{copy.createAccount}</a>
         <a
-          className="button button-outline"
+          className="ui-button ui-button-secondary"
           href={`/${alternate}/trail${token ? `#${token}` : ""}`}
           hrefLang={alternate}
           lang={alternate}
@@ -719,7 +772,7 @@ export function AccountDonorTrail({
       {!donationRef && (
         <div className="trail-toolbar">
           <button
-            className="button button-outline"
+            className="ui-button ui-button-secondary"
             type="button"
             disabled={busy}
             onClick={() => void claim()}

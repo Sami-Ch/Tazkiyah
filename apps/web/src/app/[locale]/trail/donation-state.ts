@@ -68,3 +68,16 @@ export function donationState<Cause>(donation: {
   if (spent < amount) return { kind: "partly_spent", spent, total: amount };
   return reported >= amount ? { kind: "reported" } : { kind: "spent" };
 }
+
+export function unspentPaisa(donation: {
+  amount_paisa: string;
+  events: { event_type: string; amount_paisa: string }[];
+}) {
+  const spent = donation.events.reduce(
+    (sum, event) =>
+      event.event_type === "spent" ? sum + BigInt(event.amount_paisa) : sum,
+    0n,
+  );
+  const amount = BigInt(donation.amount_paisa);
+  return amount > spent ? amount - spent : 0n;
+}

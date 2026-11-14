@@ -87,6 +87,24 @@ begin
       40000, null, false, 7)
   ) as draft(slug, title_en, title_ur, summary_en, summary_ur, target_rupees, stock_month, public_receipt, sort_order)
   on conflict (institute_id, slug) do nothing;
+
+  -- Sample details only. Replace this row from institute settings before asking anyone to transfer money.
+  insert into app.institute_bank_accounts (
+    institute_id, label, bank_name, account_title, account_number, iban, branch,
+    for_donation_types, is_active, show_on_donate
+  ) values (
+    markaz_id,
+    '{"en":"Sample account","ur":"نمونہ اکاؤنٹ"}',
+    'Sample bank',
+    'Sample account title',
+    '00000000000000',
+    'PK00SAMP0000000000000000',
+    'Sahiwal',
+    array['zakat', 'sadaqah', 'general'],
+    true,
+    true
+  )
+  on conflict do nothing;
 end
 $seed$;
 

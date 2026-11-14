@@ -744,8 +744,8 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 | P1-E1-T05 | Causes list page: filter chips, cause cards with progress and type labels, all-needs card, closed campaigns | done | P1-E1-T02, P1-E2 | REQ-PUB-001, REQ-DON-005, REQ-LNG-012 |
 | P1-E1-T06 | Cause page: money box, Zakat line, story, Donate; closed, archived and draft states; empty spending block | done | P1-E1-T05 | REQ-PUB-003, REQ-DON-006, REQ-DON-007, REQ-ROL-005 |
 | P1-E1-T07 | Home page: hero, active causes with progress, facts strip, contact strip; later blocks hidden until their phase | done | P1-E1-T05 | REQ-PUB-002, REQ-PUB-007 |
-| P1-E1-T08 | Donate page: cause or all-needs choice, type with Zakat filter, amount, bank details with copy buttons | in progress | P1-E1-T06, P1-E5-T03 | REQ-PUB-008, REQ-DON-001, REQ-DON-002, REQ-DON-004 |
-| P1-E1-T09 | "Tell us about your transfer" form on the donate page and its thank-you state | todo | P1-E1-T08, P1-E3-T07 | REQ-DPR-001, REQ-DPR-006, REQ-PAY-001, REQ-PAY-007 |
+| P1-E1-T08 | Donate page: cause or all-needs choice, type with Zakat filter, amount, bank details with copy buttons | done | P1-E1-T06, P1-E5-T03 | REQ-PUB-008, REQ-DON-001, REQ-DON-002, REQ-DON-004 |
+| P1-E1-T09 | "Tell us about your transfer" form on the donate page and its thank-you state | blocked | P1-E1-T08, P1-E3-T46 | REQ-DPR-001, REQ-DPR-006, REQ-PAY-001, REQ-PAY-007 |
 | P1-E1-T10 | Contact page from institute settings, with tap-to-call, WhatsApp and static map link | done | P1-E1-T02, P1-E5-T03 | REQ-PUB-006 |
 | P1-E1-T11 | Login and create-donor-account pages, with two-factor step for staff and role-based landing | in progress | P0-E5 | REQ-DPR-004, REQ-SEC-003, REQ-STU-001, REQ-ROL-003 |
 | P1-E1-T12 | Account page: profile, language, password, two-factor, donor links | in progress | P1-E1-T11 | REQ-DPR-004, REQ-LNG-004 |
@@ -754,6 +754,8 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 | P1-E1-T15 | Phase 1 public check: "Wheat stock" in both languages, a recorded guest donation, and the new total on the cause page | in progress | P1-E1-T06, P1-E2-T50, P1-E3, P1-E4 | REQ-PUB-003, REQ-DON-009 |
 
 2026-11-12 · The bilingual sign-in flow now links to donor signup and password recovery. The signed-in account page shows the user's name and roles and requires students to change their starting password. Admins and finance officers still use the existing two-factor gate, and editors reach the admin workspace after sign-in. Hosted email verification, account editing, and donor links still need verification or implementation.
+
+2026-11-14 · P1-E1-T08: the donate page adds an amount, with preset chips and another amount in whole rupees, and keeps one-off bank transfer as the only way to give. Monthly, yearly, card, JazzCash and Easypaisa are shown and cannot be selected, because no payment credentials are configured ([D-145](08-decision-log.md#d-145)). The donor is asked to tell the office. The transfer-notice form (P1-E1-T09) stays blocked with P1-E3-T46.
 
 ### P1-E5 Admin area shell and audit log (owner 05)
 
@@ -770,7 +772,7 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 | P1-E5-T09 | Automated checks: each admin action writes exactly one audit entry, and no donor name, donor email or student real name is ever in `audit_log` | todo | P1-E5-T07 | REQ-ROL-008, REQ-DPR-009, REQ-SEC-008 |
 | P1-E5-T10 | Admin dashboard: two quick actions and tiles with counts, each tile appearing when its phase ships | in progress | P1-E5-T01 | REQ-TRL-013, REQ-ROL-007 |
 
-2026-11-14 · P1-E5-T01: the staff workspace has its own navigation under the public header ([`admin/layout.tsx`](../apps/web/src/app/[locale]/admin/layout.tsx), [`staff-links.ts`](../apps/web/src/app/[locale]/admin/staff-links.ts)). Links follow 05 §8.0: finance sees donations and the bank check, an editor sees site pages, an admin sees the directory, causes, audit and donor links. The menu uses the shared design-system chips ([D-144](08-decision-log.md#d-144)). Each existing screen still returns not found when the role cannot open it. Quick actions for recording a transfer and spending are on the workspace home; count tiles stay with P1-E5-T10. Urdu wording awaits review (Q-20).
+2026-11-14 · P1-E5-T01: the staff workspace has its own navigation under the public header ([`admin/layout.tsx`](../apps/web/src/app/[locale]/admin/layout.tsx), [`staff-links.ts`](../apps/web/src/app/[locale]/admin/staff-links.ts)). Links follow 05 §8.0: finance sees donations and the bank check, an editor sees site pages, an admin sees the directory, causes, audit and donor links. The menu uses the shared design-system chips ([D-148](08-decision-log.md#d-148)). Each existing screen still returns not found when the role cannot open it. Quick actions for recording a transfer and spending are on the workspace home; count tiles stay with P1-E5-T10. Urdu wording awaits review (Q-20).
 
 ### P3-E8 Public student work and teacher work pages (owner 05)
 

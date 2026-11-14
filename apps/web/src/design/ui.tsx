@@ -312,3 +312,56 @@ export function DataTable({
 export function PatternMark() {
   return <div className="ui-pattern" aria-hidden="true" />;
 }
+
+export function ChoiceChips({
+  labelId,
+  options,
+}: {
+  labelId: string;
+  options: {
+    id: string;
+    label: ReactNode;
+    pressed?: boolean;
+    disabled?: boolean;
+    onSelect?: () => void;
+  }[];
+}) {
+  return (
+    <div className="ui-chips" role="group" aria-labelledby={labelId}>
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          className="ui-chip"
+          aria-pressed={option.pressed || undefined}
+          disabled={option.disabled}
+          onClick={option.onSelect}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function ErrorSummary({
+  title,
+  errors = [],
+}: {
+  title: string;
+  errors?: string[];
+}) {
+  if (!title && errors.length === 0) return null;
+  return (
+    <div className="ui-error-summary" role="alert">
+      <p>{title}</p>
+      {errors.length > 0 && (
+        <ul>
+          {errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

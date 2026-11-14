@@ -58,6 +58,41 @@
   font-size: 0.9375rem;
 }
 
+.donate-amount h2 {
+  margin-block-start: 0;
+}
+
+.donate-amount label {
+  display: grid;
+  gap: 0.35rem;
+  margin-block: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.donate-amount input {
+  min-block-size: 3rem;
+  padding-inline: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+}
+
+.donate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0 1rem;
+}
+
+.donate-chips [aria-pressed="true"] {
+  background: var(--navy);
+  color: var(--on-navy);
+}
+
+.donate-chips button:disabled {
+  opacity: 0.55;
+}
+
 .donate-causes {
   display: grid;
   gap: 0.35rem;
