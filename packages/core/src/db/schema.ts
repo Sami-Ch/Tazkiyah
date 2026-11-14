@@ -998,6 +998,7 @@ export const donors = app
       legalName: text("legal_name"),
       phone: text(),
       displayName: text("display_name"),
+      publicRef: text("public_ref").notNull().default(sql`app.new_public_ref()`),
       photoMediaId: uuid("photo_media_id"),
       profileLinks: jsonb("profile_links").default([]).notNull(),
       profilePublic: boolean("profile_public").default(false).notNull(),
@@ -1015,6 +1016,8 @@ export const donors = app
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.email),
       unique().on(table.instituteId, table.userId),
+      unique("donors_public_ref").on(table.instituteId, table.publicRef),
+      check("donors_public_ref_check", sql`public_ref ~ '^[a-z2-7]{10}$'`),
       foreignKey({
         columns: [table.instituteId, table.userId],
         foreignColumns: [users.instituteId, users.id],
@@ -1325,7 +1328,6 @@ export const donations = app
         "donations_replaces_check",
         sql`replaces_donation_id is null or (id <> replaces_donation_id and method = 'bank_transfer')`,
       ),
-      check("donations_anonymity_check", sql`is_anonymous`),
       manualDonationIsolation(),
       // 04 §6.4: the donor (account or trail token) reads their own
       // donations, through granted columns only (app.donor_trail).
@@ -2212,7 +2214,7 @@ export const consentRecords = app
       check(
         "consent_records_guardian_check",
         sql`length(guardian_name) between 1 and 120 and guardian_name = btrim(guardian_name)
-          and guardian_relation in ('father', 'mother', 'guardian', 'other')`,
+          and guardian_relation in ('father', 'mother', 'guardian', 'other', 'principal')`,
       ),
       check(
         "consent_records_method_check",

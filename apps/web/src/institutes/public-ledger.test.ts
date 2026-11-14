@@ -41,5 +41,29 @@ it("never keeps a donor name on an anonymous wall row", () => {
     cause_title: { en: "Wheat stock" },
   });
   expect(entry?.donor_label).toBeNull();
+  expect(entry?.profile_ref).toBeNull();
+  expect(entry?.trail_public).toBe(false);
   expect(entry && "donor_id" in entry).toBe(false);
+});
+
+it("links a named wall row only to a public profile and a public trail", () => {
+  const named = donorWallEntry({
+    public_ref: "abcdefghij",
+    amount_paisa: "100",
+    given_on: "2026-11-01",
+    donor_label: "Sample",
+    profile_ref: "klmnopqrst",
+    trail_public: true,
+  });
+  expect(named?.profile_ref).toBe("klmnopqrst");
+  expect(named?.trail_public).toBe(true);
+  const unlabeled = donorWallEntry({
+    public_ref: "abcdefghij",
+    amount_paisa: "100",
+    given_on: "2026-11-01",
+    donor_label: "  ",
+    profile_ref: "klmnopqrst",
+    trail_public: true,
+  });
+  expect(unlabeled?.profile_ref).toBeNull();
 });

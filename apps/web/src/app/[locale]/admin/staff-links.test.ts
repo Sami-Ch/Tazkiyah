@@ -9,11 +9,15 @@ const none: StaffLinkAccess = {
   canRecordTransfers: false,
   canReconcileTransfers: false,
   canRecordSpending: false,
+  canSplitAllNeeds: false,
+  canPublishReports: false,
   canInvite: false,
   canEditPages: false,
   canManageClasses: false,
   canModerate: false,
   canMatchSponsors: false,
+  canRecordConsent: false,
+  canPostUpdates: false,
   canEditSettings: false,
   canSwitchModules: false,
 };
@@ -23,11 +27,14 @@ function ids(access: Partial<StaffLinkAccess>) {
 }
 
 it("gives a teacher the class list and keeps finance screens away", () => {
-  expect(ids({ canManageClasses: true, canModerate: true })).toEqual([
-    "home",
-    "classes",
-    "moderation",
-  ]);
+  expect(
+    ids({
+      canManageClasses: true,
+      canModerate: true,
+      canRecordConsent: true,
+      canPostUpdates: true,
+    }),
+  ).toEqual(["home", "classes", "moderation", "consent", "progress"]);
 });
 
 it("gives a finance officer donations and the bank check", () => {
@@ -36,8 +43,16 @@ it("gives a finance officer donations and the bank check", () => {
       canRecordTransfers: true,
       canReconcileTransfers: true,
       canRecordSpending: true,
+      canPublishReports: true,
     }),
-  ).toEqual(["home", "donations", "pledges", "reconciliation", "spending"]);
+  ).toEqual([
+    "home",
+    "donations",
+    "pledges",
+    "reconciliation",
+    "spending",
+    "reports",
+  ]);
 });
 
 it("gives an editor site pages and the moderation queue", () => {
@@ -54,11 +69,15 @@ it("gives an admin the screens that exist in the workspace", () => {
       canRecordTransfers: true,
       canReconcileTransfers: true,
       canRecordSpending: true,
+      canPublishReports: true,
+      canSplitAllNeeds: true,
       canInvite: true,
       canEditPages: true,
       canManageClasses: true,
       canModerate: true,
       canMatchSponsors: true,
+      canRecordConsent: true,
+      canPostUpdates: true,
       canEditSettings: true,
       canSwitchModules: true,
     }),
@@ -68,6 +87,8 @@ it("gives an admin the screens that exist in the workspace", () => {
     "pledges",
     "reconciliation",
     "spending",
+    "reports",
+    "allNeeds",
     "causes",
     "banks",
     "users",
@@ -76,6 +97,8 @@ it("gives an admin the screens that exist in the workspace", () => {
     "pages",
     "classes",
     "moderation",
+    "consent",
+    "progress",
     "sponsorships",
     "settings",
     "modules",

@@ -564,3 +564,63 @@ The Markaz seed includes a draft cause `platform-running-costs`. It is ongoing, 
 2026-11-14 · Build agent · Expected pledges are a finance list, not a public form
 
 `identity.refresh_expected_pledges` is for a finance or admin session. It lists active pledges with no recorded payment in the current Asia/Karachi period, and it lapses a pledge after three missed periods, because there is no scheduled-job credential. The screen does not create pledges. Public pledge creation, and linking a transfer from the donate page, stay out until Q-08 is approved. Options: a cron job; lapse when staff open the list. Reason: the list has to be right when staff look at it, and a job would need a credential this release does not have (REQ-DON-003, admin side only).
+
+## D-155
+
+2026-11-14 · Build agent (REQ-DPR-005) · A public donor profile is addressed by `donors.public_ref`
+
+The public page is `/{lang}/donors/{public_ref}`. The reference is the same ten-character alphabet as a donation's `public_ref`, generated in the database, and it is not derived from the display name. Options: a slug of the display name; a random public reference. Reason: two donors may choose the same display name, and renaming the profile must not change the address.
+
+## D-156
+
+2026-11-14 · Build agent (REQ-ROL-006) · The all-needs screen previews the same FIFO split it saves
+
+`identity.preview_all_needs_split` walks the unallocated pool in credit-date then receipt-number order and does not lock the pool. Saving calls `app.split_all_needs`, which takes the lock and writes the allocations. There is no reverse-split function, so the screen does not offer one. Options: a separate preview allocator; call the same order the save uses. Reason: a preview that disagrees with the save would place different gifts than the administrator just confirmed.
+
+## D-157
+
+2026-11-14 · Build agent (REQ-TRL-012) · A weekly spending report covers seven days, inclusive
+
+A daily report has equal start and end dates. A weekly report ends six days after it starts. A custom report may use any end date on or after the start. Publishing calls `app.publish_spending_report`, which writes one `reported` event per donation for the matched total. Options: any date range the table check allows; a fixed seven-day week. Reason: the table only requires the end to be on or after the start, and a week the staff can explain is seven days.
+
+## D-158
+
+2026-11-14 · Build agent (REQ-TRL-008, REQ-TRL-009, REQ-DPR-006) · Public trails live at `/{lang}/trail/{public_ref}`
+
+The private guest page stays `/{lang}/trail` and remains `noindex`. A trail that is not public answers 404. The donor and a guest-link holder may name a gift or make its trail public, and may turn either choice back. Staff may only make a named gift anonymous or a public trail private, and that change is audited. Recording still starts anonymous unless the person recording ticks the name. Options: publish the private `/trail` page; add the public reference as its own path. Reason: the private link must stay unlisted, and staff must not be able to put a donor's name on the wall.
+
+## D-159
+
+2026-11-14 · Build agent (REQ-DPR-005) · A public profile shows an initial until file storage exists
+
+Profile photos and receipt photos stay off the public pages. The profile shows the first character of the display name and says that a photo waits on file storage. Links must be `https` and are rendered `nofollow`. The profile lists only gifts that are not anonymous, and a public profile may be empty. The anonymity scan allows the chosen display name and still rejects the legal name, email, phone, bank reference and gift type. Options: block public profiles until object storage exists; publish the name and links now. Reason: object storage is not configured, and the name and links do not need it.
+
+## D-165
+
+2026-11-14 · Build agent · Staff record parent consent without a guardian account, Sami may reverse
+
+REQ-CHS-006 is a staff form. Teachers record `public_work`, `real_name` and `face` for students they teach; an admin may record those for any student. A record that is not about an orphan is active as soon as it is saved, which is how `app.consent_status` already reads it. Full-profile consent stays with the principal (D-166). The paper scan stays empty: `form_media_id` needs a private upload, and that storage does not exist yet (D-146). The guardian list gains `principal`, because 07 §5.1 names the principal as the orphans' guardian and the old check only allowed father, mother, guardian and other. Notes and the guardian's name are refused when they contain a phone number, email address or social link. Options: a guardian login; a staff form with no scan. Reason: the requirement says there is no guardian account, and a scan without private storage would put a child's form on a public address (00 §4 rule 9).
+
+## D-166
+
+2026-11-14 · Build agent · The principal assigns the second sign-off, Sami may reverse
+
+REQ-ORP-004 is the principal, who is the admin named in `institute_settings.principal_user_id`. That person opens full-profile consent, assigns any active teacher, and signs. Another admin can still match a sponsor, and cannot assign or open that consent. The assigned teacher signs from the consent page even when they are not an admin, so the control is not only on the sponsorship board. A non-withdrawn full-profile record blocks a second one for the same sponsorship (`already`). Options: any admin assigns; only the principal. Reason: 07 §5.1 makes the principal the guardian, and a second admin should not sign in their place (00 §4 rule 9).
+
+## D-167
+
+2026-11-14 · Build agent · The staff inbox stays with admins, Sami may reverse
+
+REQ-ORP-007's sponsor message already exists (D-141, D-146). The staff inbox is the missing half. D-141 still holds: only an admin reads and replies, because there is no table of chosen teachers. Opening the sponsorship board marks `to_madrasa` messages read. A reply is `to_sponsor`, in Urdu or English, and `app.has_contact_details` blocks a phone number, email address or social link. A child is never the sender or the recipient. Teachers do not see the inbox. Options: let every teacher of the child read the thread; admins only. Reason: messages about an orphan should reach as few people as possible until the admin can choose (D-141, 00 §4 rule 9).
+
+## D-168
+
+2026-11-14 · Build agent · Progress notes are text, and sponsors read them, Sami may reverse
+
+REQ-ORP-008 lets an admin or a teacher of the child write a progress note for a sponsorship that has not ended. The note is Urdu, English, or both. An admin's note is published by the existing trigger. A teacher's note waits until an admin publishes it (06 §12.3). The note is refused when it contains the child's real name or contact details. There is no photograph: private media storage does not exist yet (D-146), and the insert has no `media_id`. Sponsors already read published notes on their page. They do not write them; the row policies and 06 §12.3 give writing to staff. Options: a sponsor composer; staff write and sponsors read. Reason: the requirement names the admin and the teacher, and a photo without private storage would expose a child (00 §4 rule 9).
+
+## D-169
+
+2026-11-14 · Build agent · Hide, remove, takedown and widening follow the moderation trigger, Sami may reverse
+
+The staff queue could only approve or reject a public request. Hide sets `hidden_at` and can be undone. There is no `removed` column. Remove, for a class or madrasa post, and takedown, for a public post, both set `moderation_state` to `taken_down`, which is the only transition that hides the post from its author. The public states shown are draft, submitted, approved, published and taken down. Restoring a public post returns it to `submitted` for a fresh approval; any other post returns to `published`. The trigger allows only an admin to restore, which is stricter than the permission matrix, so a teacher is not offered restore. The trigger also refuses an editor or a finance officer a takedown, so the queue does not offer them one either. Widening is still an approval of a submitted request whose target is `madrasa`. An admin can mark a teacher with `user_roles.can_widen_scope`. That flag is not a new role, so changing it does not end the teacher's session. A teacher without the flag cannot approve a madrasa request. Visitor reports (REQ-MOD-005, REQ-MOD-008) stay out of this queue. Options: add a `removed` column; use the takedown the trigger already enforces. Reason: a second column would disagree with the trigger, and the trigger is the safety boundary (00 §4 rule 9).

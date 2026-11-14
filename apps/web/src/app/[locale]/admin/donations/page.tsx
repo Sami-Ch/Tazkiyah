@@ -5,6 +5,7 @@ import { requireLocale } from "@/i18n/locale";
 import { karachiDate } from "@/institutes/manual-donations";
 import { getDonationWorkspace } from "@/server/auth";
 import { DonationReversalForm } from "./donation-reversal-form";
+import { DonationVisibilityForm } from "./donation-visibility-form";
 import { ManualDonationForm } from "./manual-donation-form";
 import "../../sign-in/sign-in.css";
 import "./manual-donations.css";
@@ -83,6 +84,7 @@ export default async function DonationsPage({
               <p>{copy.noTransfers}</p>
             )}
           </section>
+          <DonationVisibilityForm copy={copy} />
           <DonationReversalForm
             locale={locale}
             copy={common.donationReversal}

@@ -133,6 +133,8 @@ export async function recordDonation(
     confirmLarge,
     confirmSimilar,
     replacesReceipt,
+    named,
+    wallName,
   } = input as Record<string, unknown>;
   const rupees = typeof amount === "string" ? asciiDigits(amount) : "";
   const replacement =
@@ -163,7 +165,12 @@ export async function recordDonation(
     (replacesReceipt !== undefined && typeof replacesReceipt !== "string") ||
     (replacement !== "" && !receiptPattern.test(replacement)) ||
     typeof confirmLarge !== "boolean" ||
-    typeof confirmSimilar !== "boolean"
+    typeof confirmSimilar !== "boolean" ||
+    (named !== undefined && typeof named !== "boolean") ||
+    (wallName !== undefined &&
+      (typeof wallName !== "string" ||
+        wallName.trim().length > 80 ||
+        /\p{Cc}/u.test(wallName)))
   )
     return invalid();
 
@@ -191,9 +198,26 @@ export async function recordDonation(
       ${sessionId}::uuid, ${operation}::uuid, ${bank}::uuid, ${reference.trim()},
       ${date}::date, ${(BigInt(rupees) * 100n).toString()}::bigint, ${type},
       ${cause || null}::uuid, ${email.trim().toLowerCase() || null}, ${language},
-      true, ${confirmLarge}, ${confirmSimilar}, ${replacement || null}::text
+      ${named !== true}, ${confirmLarge}, ${confirmSimilar}, ${replacement || null}::text
     )
   `);
+  if (
+    result?.code === "recorded" &&
+    named === true &&
+    typeof wallName === "string" &&
+    wallName.trim() &&
+    result.donation_id
+  ) {
+    const {
+      rows: [namedGift],
+    } = await tx.execute<{ code: string }>(sql`
+      select identity.attach_wall_name(
+        ${sessionId}::uuid, ${result.donation_id}::uuid, ${wallName.trim()}
+      ) as code
+    `);
+    if (namedGift?.code === "invalid")
+      throw new Error("Wall name was rejected after the gift was checked.");
+  }
   switch (result?.code) {
     case "recorded":
     case "existing":
