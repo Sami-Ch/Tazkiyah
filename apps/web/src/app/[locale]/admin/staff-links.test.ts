@@ -31,7 +31,7 @@ it("gives a finance officer donations and the bank check", () => {
       canReconcileTransfers: true,
       canRecordSpending: true,
     }),
-  ).toEqual(["home", "donations", "reconciliation"]);
+  ).toEqual(["home", "donations", "reconciliation", "spending"]);
 });
 
 it("gives an editor site pages", () => {
@@ -57,6 +57,7 @@ it("gives an admin the screens that exist in the workspace", () => {
     "home",
     "donations",
     "reconciliation",
+    "spending",
     "causes",
     "banks",
     "users",

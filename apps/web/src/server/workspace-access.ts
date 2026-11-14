@@ -120,9 +120,9 @@ export async function checkWorkspaceAccess(
     canRecordSpending: can(actor, "spending.record"),
     canCreateStudents: can(actor, "student_account.create"),
     canManageClasses: can(actor, "class.create"),
-    canModerate: ["teacher", "editor", "admin"].some((role) =>
-      account.roles.includes(role),
-    ),
+    canModerate: (
+      ["teacher", "editor", "admin"] as const satisfies readonly Role[]
+    ).some((role) => account.roles.includes(role)),
     canMatchSponsors: can(actor, "sponsorship.match"),
     twoFactorVerified: requireMfa,
   } as const;

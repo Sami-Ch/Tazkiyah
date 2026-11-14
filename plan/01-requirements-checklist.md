@@ -26,16 +26,16 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-TRL-001 Every donation has trail events of received, allocated, spent and reported. MUST → 06 §8
 - [ ] REQ-TRL-002 Trail events are append-only and are never edited or deleted. MUST → 04 §9
 - [ ] REQ-TRL-003 A correction is recorded as a new reversing event that points to the event it corrects. MUST → 04 §9
-- [ ] REQ-TRL-004 A spending entry draws on the oldest unspent donations in its cause first. MUST → 06 §8
+- [x] REQ-TRL-004 A spending entry draws on the oldest unspent donations in its cause first. MUST → 06 §8
 - [ ] REQ-TRL-005 One spending entry can draw on several donations, and one donation can be split across several spending entries. MUST → 06 §8
 - [ ] REQ-TRL-006 Zakat money is matched only to spending in Zakat-eligible causes. MUST → 06 §6
 - [ ] REQ-TRL-007 Donor can see, for each of their donations, which spending entries it paid for and how much. MUST → 06 §8
 - [ ] REQ-TRL-008 A donation's trail is private by default. MUST → 06 §10
 - [ ] REQ-TRL-009 Donor can make the trail of a donation public. MUST → 06 §10
 - [ ] REQ-TRL-010 Each cause page shows aggregated spending without any donor identity. MUST → 05 §5
-- [ ] REQ-TRL-011 A spending entry records amount, date, description and an optional receipt or photo. MUST → 06 §9
+- [x] REQ-TRL-011 A spending entry records amount, date, description and an optional receipt or photo. MUST → 06 §9
 - [ ] REQ-TRL-012 Admin can publish a daily or weekly report that groups spending entries. SHOULD → 06 §9
-- [ ] REQ-TRL-013 Admin can see the unspent balance of each cause. MUST → 06 §9
+- [x] REQ-TRL-013 Admin can see the unspent balance of each cause. MUST → 06 §9
 - [x] REQ-TRL-014 The allocation model can record a future transfer from a platform fund to an institute without a schema change. MUST → 04 §9
 
 ## Donor profiles

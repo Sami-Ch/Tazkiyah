@@ -931,19 +931,21 @@ P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals p
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P2-E1-T01 | Phone-friendly spending entry form saving drafts in a daily or weekly batch (§9.1, §9.2) | todo | P1-E2-T01, P1-E5 | REQ-TRL-011, REQ-ROL-007 |
-| P2-E1-T02 | Receipt photo on a spending entry, with public or private setting from the cause default | todo | P2-E1-T01, P1-E2-T03, P2-E1-T30 | REQ-TRL-011, REQ-ROL-007, REQ-PRF-002 |
-| P2-E1-T03 | "Record batch": drafts become final and FIFO runs | todo | P2-E1-T01, P2-E2-T01 | REQ-TRL-004, REQ-TRL-011 |
-| P2-E1-T04 | Reverse a spending entry with a reason, releasing its matches | todo | P2-E1-T03, P2-E2-T03 | REQ-TRL-003 |
-| P2-E1-T05 | Admin view of unspent balance per cause by type, shortfalls and all-needs pools (§9.4) | todo | P2-E2-T01 | REQ-TRL-013 |
+| P2-E1-T01 | Phone-friendly spending entry form saving drafts in a daily or weekly batch (§9.1, §9.2) | done | P1-E2-T01, P1-E5 | REQ-TRL-011, REQ-ROL-007 |
+| P2-E1-T02 | Receipt photo on a spending entry, with public or private setting from the cause default | blocked | P2-E1-T01, P1-E2-T03, P2-E1-T30 | REQ-TRL-011, REQ-ROL-007, REQ-PRF-002 |
+| P2-E1-T03 | "Record batch": drafts become final and FIFO runs | done | P2-E1-T01, P2-E2-T01 | REQ-TRL-004, REQ-TRL-011 |
+| P2-E1-T04 | Reverse a spending entry with a reason, releasing its matches | done | P2-E1-T03, P2-E2-T03 | REQ-TRL-003 |
+| P2-E1-T05 | Admin view of unspent balance per cause by type, shortfalls and all-needs pools (§9.4) | done | P2-E2-T01 | REQ-TRL-013 |
+
+2026-11-14 · P2-E1-T01, T03, T04 and T05: finance staff save spending drafts, see unspent money by cause and type plus all-needs pools, record a batch through `app.match_spending`, and reverse a recorded entry ([`0060_staff_spending.sql`](../db/drizzle/0060_staff_spending.sql), [`/admin/spending`](../apps/web/src/app/[locale]/admin/spending/page.tsx)). An amount larger than the unspent balance stays a draft. The batch is daily until institute settings store the weekly choice (P1-E5-T03). P2-E1-T02 stays blocked: receipt photos need object storage (P2-E1-T30). P2-E2-T01 and P2-E2-T03 are the existing ledger functions, now called from this screen. Shortfalls that spend money which has not arrived yet stay proposed (P2-E2-T02). Tests: [`db/test/staff_spending.sql`](../db/test/staff_spending.sql).
 
 ### P2-E2 First-in-first-out matching
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P2-E2-T01 | FIFO matching for one cause with a per-cause lock, writing spend allocations and *spent* events (§8.4) | todo | P1-E3-T01, P2-E1-T01 | REQ-TRL-001, REQ-TRL-004, REQ-TRL-005 |
+| P2-E2-T01 | FIFO matching for one cause with a per-cause lock, writing spend allocations and *spent* events (§8.4) | done | P1-E3-T01, P2-E1-T01 | REQ-TRL-001, REQ-TRL-004, REQ-TRL-005 |
 | P2-E2-T02 | Shortfalls: entries larger than unspent money, filled by the next money in (§8.5) *(needs approval)* | todo | P2-E2-T01 | REQ-TRL-004, REQ-TRL-016 (proposed) |
-| P2-E2-T03 | Reversals after spending: release matches and re-run FIFO (§15.3) | todo | P2-E2-T01, P1-E3-T09 | REQ-DON-012, REQ-TRL-003 |
+| P2-E2-T03 | Reversals after spending: release matches and re-run FIFO (§15.3) | done | P2-E2-T01, P1-E3-T09 | REQ-DON-012, REQ-TRL-003 |
 | P2-E2-T04 | Automated tests: the §8.6 worked example as a fixture, plus the six money rules in §8.3 | todo | P2-E2-T02, P2-E2-T03 | REQ-TRL-004, REQ-TRL-005, REQ-TRL-006, REQ-TRL-007 |
 | P2-E2-T05 | Donor trail shows *spent* and *reported* events, with description, share and public receipt photo | todo | P2-E2-T01, P1-E4-T01 | REQ-TRL-007, REQ-ORP-009 |
 

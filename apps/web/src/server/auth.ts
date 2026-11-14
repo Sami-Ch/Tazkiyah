@@ -75,6 +75,11 @@ import {
 } from "./workspace-access";
 import { authEmailSender, emailPaths, sendAuthEmail } from "./auth-email";
 import { createStudentAccount, setFirstPassword } from "./student-accounts";
+import {
+  manageSpending,
+  readSpendingWorkspace,
+  type SpendingWorkspace,
+} from "./spending";
 
 const authSchema = {
   user: users,
@@ -105,6 +110,7 @@ const postEndpoints = new Set([
   "/manual-donation",
   "/donation-reversal",
   "/bank-reconciliation",
+  "/spending",
   "/bank-account",
   "/donor-trail",
   "/account-trail",
@@ -211,6 +217,12 @@ export function getBankWorkspace(headers: Headers): Promise<BankWorkspace> {
   return readWorkspace<BankWorkspace>(headers, "/bank-settings");
 }
 
+export function getSpendingWorkspace(
+  headers: Headers,
+): Promise<SpendingWorkspace> {
+  return readWorkspace<SpendingWorkspace>(headers, "/spending-workspace");
+}
+
 export function getStatementWorkspace(
   headers: Headers,
 ): Promise<StatementWorkspace> {
@@ -271,6 +283,7 @@ async function readWorkspace<
     | AuditWorkspace
     | DonationWorkspace
     | BankWorkspace
+    | SpendingWorkspace
     | StatementWorkspace,
 >(
   headers: Headers,
@@ -628,6 +641,8 @@ async function runAuth(request: Request, path: string) {
           path === "/bank-account" ||
           path === "/manual-donation-workspace" ||
           path === "/manual-donation" ||
+          path === "/spending-workspace" ||
+          path === "/spending" ||
           path === "/donation-reversal" ||
           path === "/bank-reconciliation" ||
           path === "/bank-reconciliation-workspace" ||
@@ -699,6 +714,21 @@ async function runAuth(request: Request, path: string) {
             return path === "/bank-account"
               ? writeBankAccount(tx, request, session.session.id)
               : readBankWorkspace(tx, session.session.id);
+          }
+          if (path === "/spending-workspace" || path === "/spending") {
+            if (path === "/spending-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canRecordSpending
+            )
+              return path === "/spending"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/spending"
+              ? manageSpending(tx, request, session.session.id)
+              : readSpendingWorkspace(tx, session.session.id);
           }
           if (
             path === "/manual-donation-workspace" ||

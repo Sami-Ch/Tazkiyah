@@ -42,6 +42,8 @@ export function staffLinks(
       href: `${root}/donations/reconciliation`,
     });
   }
+  if (access.canRecordSpending)
+    links.push({ id: "spending", href: `${root}/spending` });
   if (access.canInvite) {
     links.push(
       { id: "causes", href: `${root}/causes` },

@@ -516,5 +516,74 @@
       "moderation": "Moderation",
       "sponsorships": "Sponsorships"
     }
+  },
+  "staffSpending": {
+    "heading": "Spending",
+    "intro": "Save today's purchases as drafts, then record the batch. Recording matches the oldest unspent gifts in that cause first.",
+    "batch": "Open batch",
+    "balances": "Unspent by cause",
+    "pools": "All-needs money still waiting to be split",
+    "noPools": "No all-needs money is waiting.",
+    "noCauses": "There is no active or closed cause to spend from yet.",
+    "noDrafts": "No drafts are waiting.",
+    "noEntries": "Nothing has been recorded in the last 90 days.",
+    "cause": "Cause",
+    "chooseCause": "Choose a cause",
+    "amount": "Amount in rupees",
+    "date": "Date of the purchase",
+    "descriptionUr": "Description in Urdu",
+    "descriptionEn": "Description in English",
+    "descriptionHint": "One language is enough. The other can be added later.",
+    "receiptPublic": "The receipt may be shown on the public cause page",
+    "receiptLater": "A photo of the receipt can be attached once file storage is connected.",
+    "save": "Save draft",
+    "saveAnother": "Saved. You can add another.",
+    "overBalance": "This amount is more than the unspent money. It stays a draft until the cause can cover it.",
+    "recordOne": "Record and match",
+    "recordAll": "Record open drafts",
+    "recorded": "Recorded and matched to older gifts.",
+    "nothingOpen": "There is no draft to record.",
+    "notDraft": "That line is no longer a draft.",
+    "reverse": "Reverse",
+    "reason": "Reason",
+    "chooseReason": "Choose a reason",
+    "note": "Note",
+    "noteHint": "Required when the reason is “Other”.",
+    "reversed": "The entry was reversed and its matches were released.",
+    "notRecorded": "Only a recorded entry can be reversed.",
+    "recent": "Recent entries",
+    "drafts": "Drafts",
+    "matched": "Matched",
+    "unspent": "Unspent",
+    "status": "Status",
+    "gifts": "gifts",
+    "types": {
+      "zakat": "Zakat",
+      "sadaqah": "Sadaqah",
+      "general": "General"
+    },
+    "poolsNames": {
+      "zakat": "Zakat pool",
+      "general": "Other all-needs"
+    },
+    "statuses": {
+      "draft": "Draft",
+      "recorded": "Recorded",
+      "reversed": "Reversed"
+    },
+    "reasons": {
+      "recorded_twice": "Recorded twice",
+      "wrong_details": "Wrong details",
+      "wrong_type": "Wrong type of gift",
+      "wrong_donor": "Wrong donor",
+      "transfer_returned": "Transfer returned",
+      "refund_to_donor": "Refund to the donor",
+      "moved_to_another_cause": "Moved to another cause",
+      "other": "Other"
+    },
+    "invalid": "Check the amount, date and description.",
+    "denied": "Sign in with a verified finance or administrator account.",
+    "unavailable": "Spending could not be saved. Try again.",
+    "pending": "Please wait…"
   }
 }
