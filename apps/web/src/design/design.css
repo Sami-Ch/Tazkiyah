@@ -644,7 +644,22 @@ html:lang(ur) .ui-progress p {
   gap: var(--space-2);
 }
 
-.filter-row a {
+.state-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.filter-row button {
+  font: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.filter-row :is(a, button) {
   display: inline-flex;
   align-items: center;
   min-block-size: 2.75rem;
@@ -655,8 +670,9 @@ html:lang(ur) .ui-progress p {
   text-decoration: none;
 }
 
-.filter-row a[aria-current="true"],
-.filter-row a[aria-current="page"] {
+.filter-row :is(a, button)[aria-current="true"],
+.filter-row :is(a, button)[aria-current="page"],
+.filter-row button[aria-selected="true"] {
   border-color: var(--color-primary, var(--navy));
   background: var(--color-primary, var(--navy));
   color: var(--color-on-primary, var(--on-navy));

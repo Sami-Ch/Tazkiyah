@@ -118,6 +118,16 @@ import {
   type ModerationWorkspace,
 } from "./moderation";
 import {
+  manageConsent,
+  readConsentWorkspace,
+  type ConsentWorkspace,
+} from "./consent";
+import {
+  manageProgress,
+  readProgressWorkspace,
+  type ProgressWorkspace,
+} from "./progress";
+import {
   manageSponsorship,
   readSponsorshipWorkspace,
   type SponsorshipWorkspace,
@@ -159,6 +169,8 @@ const postEndpoints = new Set([
   "/donor-profile",
   "/class",
   "/moderation",
+  "/consent",
+  "/progress",
   "/sponsorship",
   "/bank-account",
   "/donor-trail",
@@ -278,6 +290,18 @@ export function getModerationWorkspace(
   headers: Headers,
 ): Promise<ModerationWorkspace> {
   return readWorkspace<ModerationWorkspace>(headers, "/moderation-workspace");
+}
+
+export function getConsentWorkspace(
+  headers: Headers,
+): Promise<ConsentWorkspace> {
+  return readWorkspace<ConsentWorkspace>(headers, "/consent-workspace");
+}
+
+export function getProgressWorkspace(
+  headers: Headers,
+): Promise<ProgressWorkspace> {
+  return readWorkspace<ProgressWorkspace>(headers, "/progress-workspace");
 }
 
 export function getClassWorkspace(headers: Headers): Promise<ClassWorkspace> {
@@ -423,6 +447,8 @@ async function readWorkspace<
     | DonorProfileWorkspace
     | ClassWorkspace
     | ModerationWorkspace
+    | ConsentWorkspace
+    | ProgressWorkspace
     | SponsorshipWorkspace
     | StatementWorkspace,
 >(
@@ -885,6 +911,10 @@ async function runAuth(request: Request, path: string) {
           path === "/class" ||
           path === "/moderation-workspace" ||
           path === "/moderation" ||
+          path === "/consent-workspace" ||
+          path === "/consent" ||
+          path === "/progress-workspace" ||
+          path === "/progress" ||
           path === "/sponsorship-workspace" ||
           path === "/sponsorship" ||
           path === "/donation-reversal" ||
@@ -958,6 +988,36 @@ async function runAuth(request: Request, path: string) {
             return path === "/bank-account"
               ? writeBankAccount(tx, request, session.session.id)
               : readBankWorkspace(tx, session.session.id);
+          }
+          if (path === "/consent-workspace" || path === "/consent") {
+            if (path === "/consent-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canRecordConsent
+            )
+              return path === "/consent"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/consent"
+              ? manageConsent(tx, request, session.session.id)
+              : readConsentWorkspace(tx, session.session.id);
+          }
+          if (path === "/progress-workspace" || path === "/progress") {
+            if (path === "/progress-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canPostUpdates
+            )
+              return path === "/progress"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/progress"
+              ? manageProgress(tx, request, session.session.id)
+              : readProgressWorkspace(tx, session.session.id);
           }
           if (path === "/sponsorship-workspace" || path === "/sponsorship") {
             if (path === "/sponsorship-workspace" && access.state !== "allowed")

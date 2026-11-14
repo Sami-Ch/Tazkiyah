@@ -13,6 +13,8 @@ export type StaffLinkId =
   | "pages"
   | "classes"
   | "moderation"
+  | "consent"
+  | "progress"
   | "sponsorships";
 
 /** Role flags already resolved by the permission matrix. */
@@ -27,6 +29,8 @@ export type StaffLinkAccess = {
   canManageClasses: boolean;
   canModerate: boolean;
   canMatchSponsors: boolean;
+  canRecordConsent: boolean;
+  canPostUpdates: boolean;
 };
 
 export type StaffLink = { id: StaffLinkId; href: string };
@@ -66,6 +70,10 @@ export function staffLinks(
     links.push({ id: "classes", href: `${root}/classes` });
   if (access.canModerate)
     links.push({ id: "moderation", href: `${root}/moderation` });
+  if (access.canRecordConsent)
+    links.push({ id: "consent", href: `${root}/consent` });
+  if (access.canPostUpdates)
+    links.push({ id: "progress", href: `${root}/progress` });
   if (access.canMatchSponsors) {
     links.push({ id: "sponsorships", href: `${root}/sponsorships` });
   }

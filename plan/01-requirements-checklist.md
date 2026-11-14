@@ -56,11 +56,11 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [x] REQ-ORP-001 Admin can match a sponsor to one orphan. MUST → 06 §12
 - [x] REQ-ORP-002 By default, a sponsor sees only the orphan's persona name, age and progress updates. MUST → 06 §12
 - [x] REQ-ORP-003 A sponsor sees the orphan's full profile only after guardian consent with two sign-offs. MUST → 06 §12
-- [ ] REQ-ORP-004 The principal can assign the second sign-off to any teacher. MUST → 06 §12
+- [x] REQ-ORP-004 The principal can assign the second sign-off to any teacher. MUST → 06 §12
 - [x] REQ-ORP-005 A full profile is visible only to the matched sponsor and never on public pages. MUST → 06 §12
 - [x] REQ-ORP-006 Withdrawing consent hides the full profile from the sponsor at once. MUST → 06 §12
 - [x] REQ-ORP-007 A sponsor can message the madrasa about the child, and there is no direct sponsor-to-child contact. MUST → 06 §12
-- [ ] REQ-ORP-008 Admin or a teacher can post a progress update for a sponsored orphan. SHOULD → 06 §12
+- [x] REQ-ORP-008 Admin or a teacher can post a progress update for a sponsored orphan. SHOULD → 06 §12
 - [ ] REQ-ORP-009 Sponsorship donations follow the same trail rules as other donations. MUST → 06 §12
 
 ## Student hub
@@ -137,9 +137,9 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-CHS-001 Students' real names and faces are hidden by default everywhere. MUST → 07 §12
 - [x] REQ-CHS-002 Posts containing phone numbers, email addresses or street addresses are blocked or flagged for a teacher. MUST → 07 §12
 - [ ] REQ-CHS-003 Teachers can see every student-to-student post and reply in their classes. MUST → 07 §12
-- [ ] REQ-CHS-004 Admin can take down any post immediately. MUST → 07 §8
+- [x] REQ-CHS-004 Admin can take down any post immediately. MUST → 07 §8
 - [x] REQ-CHS-005 A parent consent record exists before any of a student's work becomes public. MUST → 07 §5
-- [ ] REQ-CHS-006 Parent consent is recorded by staff on a light form, with no guardian account. MUST → 07 §5
+- [x] REQ-CHS-006 Parent consent is recorded by staff on a light form, with no guardian account. MUST → 07 §5
 
 ## Performance
 
@@ -175,12 +175,12 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 ## Moderation
 
 - [x] REQ-MOD-001 Class and madrasa posts appear immediately without approval. MUST → 07 §8
-- [ ] REQ-MOD-002 Teachers and admins can hide or remove any class or madrasa post. MUST → 07 §8
+- [x] REQ-MOD-002 Teachers and admins can hide or remove any class or madrasa post. MUST → 07 §8
 - [x] REQ-MOD-003 Making a post public needs approval from the class teacher or the principal. MUST → 07 §8
-- [ ] REQ-MOD-004 A post going public moves through the states draft, submitted, approved, published and taken down. MUST → 07 §8
+- [x] REQ-MOD-004 A post going public moves through the states draft, submitted, approved, published and taken down. MUST → 07 §8
 - [ ] REQ-MOD-005 Reported posts enter a moderation queue for teachers and admins. MUST → 07 §8
 - [ ] REQ-MOD-006 A taken-down post disappears from public pages within one minute (proposed target, D-027). SHOULD → 07 §8
-- [ ] REQ-MOD-007 Only admins or teachers chosen by the admin can widen a post's scope. MUST → 07 §7
+- [x] REQ-MOD-007 Only admins or teachers chosen by the admin can widen a post's scope. MUST → 07 §7
 
 ## Multi-institute readiness
 
