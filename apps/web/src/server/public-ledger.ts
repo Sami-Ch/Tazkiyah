@@ -51,7 +51,7 @@ export async function readPublicOverview(tx: AuthQuery) {
   `);
   const { rows: wall } = await tx.execute<Record<string, unknown>>(sql`
     select w.public_ref, w.amount_paisa::text, w.given_on::text, w.donor_label,
-      c.slug as cause_slug, c.title as cause_title
+      w.profile_ref, w.trail_public, c.slug as cause_slug, c.title as cause_title
     from public_api.donor_wall w
     left join public_api.causes c on c.id = w.cause_id
     order by w.given_on desc, w.public_ref desc
@@ -104,7 +104,7 @@ export async function readDonorWall(tx: AuthQuery, search: URLSearchParams) {
   const { take } = listWindow(search.get("shown"));
   const { rows } = await tx.execute<Record<string, unknown>>(sql`
     select w.public_ref, w.amount_paisa::text, w.given_on::text, w.donor_label,
-      c.slug as cause_slug, c.title as cause_title
+      w.profile_ref, w.trail_public, c.slug as cause_slug, c.title as cause_title
     from public_api.donor_wall w
     left join public_api.causes c on c.id = w.cause_id
     where (${cause}::text is null or c.slug = ${cause})

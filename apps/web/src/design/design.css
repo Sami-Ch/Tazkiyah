@@ -727,6 +727,24 @@ html:lang(ur) .money-pair dt {
   border-block-end: 1px solid var(--color-border, var(--border));
 }
 
+.wall-row .ui-amount {
+  justify-self: start;
+  inline-size: max-content;
+}
+
+.profile-mark {
+  display: grid;
+  place-items: center;
+  inline-size: 4.5rem;
+  block-size: 4.5rem;
+  margin: 0;
+  border: 1px solid var(--color-border, var(--border));
+  border-radius: var(--radius-lg, 0.75rem);
+  background: var(--color-surface, var(--surface));
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
 .design-gallery {
   display: grid;
   gap: var(--space-7);

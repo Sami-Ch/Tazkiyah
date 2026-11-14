@@ -8,6 +8,7 @@ import { requireLocale } from "@/i18n/locale";
 import { institute } from "@/institutes/markaz-al-azeem";
 import { pageTranslation } from "@/institutes/site-pages";
 import { getDonorWall, getPublicOverview } from "@/server/auth";
+import { WallName } from "./wall-name";
 import { publicPageMetadata, publicSiteOrigin } from "@/server/public-site";
 
 export const dynamic = "force-dynamic";
@@ -107,7 +108,15 @@ export default async function DonorWallPage({
             return (
               <li className="wall-row" key={entry.public_ref}>
                 <Amount paisa={entry.amount_paisa} locale={locale} />
-                <bdi>{entry.donor_label ?? t("anonymous")}</bdi>
+                <WallName
+                  locale={locale}
+                  label={entry.donor_label}
+                  anonymous={t("anonymous")}
+                  profileRef={entry.profile_ref}
+                  trailPublic={entry.trail_public}
+                  publicRef={entry.public_ref}
+                  viewTrail={t("viewTrail")}
+                />
                 <span>
                   {entry.cause_slug ? (
                     <a href={`/${locale}/causes/${entry.cause_slug}`}>
