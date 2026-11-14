@@ -421,6 +421,13 @@
       "when": 1794444532903,
       "tag": "0059_printable_donation_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1794500000000,
+      "tag": "0060_public_content_read",
+      "breakpoints": true
     }
   ]
 }
