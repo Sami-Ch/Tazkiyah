@@ -482,41 +482,55 @@
       "idx": 68,
       "version": "7",
       "when": 1794684000000,
-      "tag": "0070_transparency_controls",
+      "tag": "0068_institute_workspace",
       "breakpoints": true
     },
     {
       "idx": 69,
       "version": "7",
       "when": 1794685000000,
-      "tag": "0071_public_donor_faces",
+      "tag": "0069_projects_and_pledges",
       "breakpoints": true
     },
     {
       "idx": 70,
       "version": "7",
       "when": 1794686000000,
-      "tag": "0072_hub_persona_onboarding",
+      "tag": "0070_transparency_controls",
       "breakpoints": true
     },
     {
       "idx": 71,
       "version": "7",
       "when": 1794687000000,
-      "tag": "0073_hub_posts",
+      "tag": "0071_public_donor_faces",
       "breakpoints": true
     },
     {
       "idx": 72,
       "version": "7",
       "when": 1794688000000,
-      "tag": "0074_staff_safeguarding",
+      "tag": "0072_hub_persona_onboarding",
       "breakpoints": true
     },
     {
       "idx": 73,
       "version": "7",
       "when": 1794689000000,
+      "tag": "0073_hub_posts",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794690000000,
+      "tag": "0074_staff_safeguarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1794691000000,
       "tag": "0075_staff_post_actions",
       "breakpoints": true
     }

@@ -192,6 +192,7 @@ export const instituteSettings = app
         .notNull(),
       receiptPrefix: text("receipt_prefix").notNull(),
       communityEnabled: boolean("community_enabled").default(false).notNull(),
+      spendingBatchMode: text("spending_batch_mode").default("weekly").notNull(),
       updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
         .defaultNow()
         .notNull(),
@@ -885,6 +886,9 @@ export const causes = app
       revision: uuid().defaultRandom().notNull(),
       listedAsProject: boolean("listed_as_project").default(false).notNull(),
       category: text(),
+      plannedStart: date("planned_start"),
+      whyItMatters: localizedText("why_it_matters"),
+      costLines: localizedText("cost_lines"),
       displayOrder: smallint("display_order").default(0).notNull(),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
@@ -918,6 +922,14 @@ export const causes = app
       check(
         "causes_zakat_approval_check",
         sql`accepts_zakat or zakat_approved_by is null`,
+      ),
+      check(
+        "causes_project_listed_check",
+        sql`not listed_as_project or category in ('facilities', 'education', 'community', 'technology')`,
+      ),
+      check(
+        "causes_planned_start_check",
+        sql`planned_start is null or (extract(day from planned_start) = 1 and planned_start >= date '2000-01-01' and planned_start < date '2100-01-01')`,
       ),
       check(
         "causes_type_rules_check",

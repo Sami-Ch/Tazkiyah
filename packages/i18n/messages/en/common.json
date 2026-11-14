@@ -273,6 +273,7 @@
     "donorWall": "Donor wall",
     "studentWork": "Student work",
     "teacherWork": "Teacher work",
+    "newProjects": "New projects",
     "donate": "Donate",
     "menu": "Menu",
     "language": "اردو",
@@ -622,7 +623,10 @@
       "allNeeds": "Split all-needs gifts across causes.",
       "reports": "Publish a daily or weekly spending report.",
       "consent": "Record a parent's permission. There is no guardian login.",
-      "progress": "Write a progress note for a sponsored child. Photographs stay off this form."
+      "progress": "Write a progress note for a sponsored child. Photographs stay off this form.",
+      "pledges": "See who promised a gift this month.",
+      "settings": "Set the institute’s phone, email, theme and principal.",
+      "modules": "Open or close student work, teacher work and new projects."
     },
     "links": {
       "home": "Workspace",
@@ -641,7 +645,10 @@
       "allNeeds": "All needs",
       "reports": "Reports",
       "consent": "Consent",
-      "progress": "Progress notes"
+      "progress": "Progress notes",
+      "pledges": "Expected gifts",
+      "settings": "Institute",
+      "modules": "Modules"
     }
   },
   "staffAllNeeds": {
@@ -1093,6 +1100,8 @@
     "filterAll": "All",
     "filterMonth": "Month",
     "apply": "Show",
+    "newProjectsTitle": "New projects",
+    "newProjectsSoon": "New projects will be announced here.",
     "studentWorkTitle": "Student work",
     "studentWorkIntro": "Published work appears under a student's chosen name, after a teacher has approved it.",
     "studentWorkEmpty": "Student work will appear here once teachers approve it.",
@@ -1134,5 +1143,129 @@
       "audio": "Audio",
       "slides": "Slides"
     }
+  },
+  "instituteSettings": {
+    "heading": "Institute settings",
+    "back": "Back to staff workspace",
+    "intro": "These details are shown on the public site. Bank accounts stay on their own screen. Leave a field empty when the institute has not confirmed it.",
+    "identity": "Name and theme",
+    "nameEn": "Name in English",
+    "nameUr": "Name in Urdu",
+    "shortEn": "Short name in English",
+    "shortUr": "Short name in Urdu",
+    "parentEn": "Parent body in English",
+    "parentUr": "Parent body in Urdu",
+    "theme": "Theme",
+    "themes": {
+      "night-and-paper": "Night and paper",
+      "garden-and-clay": "Garden and clay"
+    },
+    "domain": "Primary domain",
+    "noDomain": "No domain is saved yet.",
+    "logoSaved": "A logo file is already saved. This screen does not replace the file.",
+    "logoMissing": "No logo file is saved yet.",
+    "founded": "Year founded",
+    "contact": "Contact",
+    "addressEn": "Address in English",
+    "addressUr": "Address in Urdu",
+    "phone": "Phone",
+    "whatsapp": "WhatsApp",
+    "whatsappHint": "Use the country code, for example +92…",
+    "email": "Email",
+    "map": "Map link",
+    "mapHint": "An https link that opens the address in a map.",
+    "visitingEn": "Visiting times in English",
+    "visitingUr": "Visiting times in Urdu",
+    "people": "Principal",
+    "principal": "Principal",
+    "noPrincipal": "No principal selected",
+    "money": "Spending batches",
+    "batch": "How spending is recorded",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "banks": "Bank accounts",
+    "save": "Save institute settings",
+    "pending": "Saving…",
+    "results": {
+      "updated": "Institute settings saved.",
+      "invalid": "Check the phone, email, map link and both languages.",
+      "denied": "A verified administrator session is required.",
+      "unavailable": "Institute settings are temporarily unavailable. Try again."
+    }
+  },
+  "moduleSwitches": {
+    "heading": "Modules",
+    "back": "Back to staff workspace",
+    "intro": "Switching a module off hides its public pages. Causes, gifts and class work stay in the records.",
+    "student_hub": "Student hub",
+    "teacher_hub": "Teacher hub",
+    "new_projects": "New projects",
+    "effects": {
+      "student_hub": "Hides student work from the menu, the home page and its public address.",
+      "teacher_hub": "Hides teacher work from the menu, the home page and its public address.",
+      "new_projects": "Hides the new projects page and its menu link. Project causes stay on the causes list."
+    },
+    "confirm": "I understand that switching a module off hides those public pages.",
+    "save": "Save modules",
+    "pending": "Saving…",
+    "results": {
+      "updated": "Modules saved.",
+      "confirm": "Tick the confirmation before switching a module off.",
+      "invalid": "Choose only the modules listed here.",
+      "denied": "A verified administrator session is required.",
+      "unavailable": "Modules are temporarily unavailable. Try again."
+    }
+  },
+  "expectedPledges": {
+    "heading": "Expected this month",
+    "back": "Back to staff workspace",
+    "intro": "Active promises with no recorded transfer in the current month or year. A promise drops off after three missed periods. Visitors cannot start a promise on the site yet.",
+    "empty": "No promise is waiting for a transfer in this period.",
+    "donor": "Donor",
+    "noName": "No name on record",
+    "cause": "Cause",
+    "allNeeds": "All needs",
+    "amount": "Amount",
+    "frequency": "Frequency",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "period": "This period",
+    "anonymous": "Public wall stays anonymous",
+    "named": "Donor asked to be named",
+    "types": {
+      "general": "General",
+      "sadaqah": "Sadaqah",
+      "zakat": "Zakat"
+    }
+  },
+  "newProjects": {
+    "title": "New projects",
+    "intro": "Work the madrasa is starting next. Every project is also a giving cause, with the same trail.",
+    "empty": "New projects will be announced here.",
+    "all": "All",
+    "categories": {
+      "facilities": "Facilities",
+      "education": "Education",
+      "community": "Community service",
+      "technology": "Technology"
+    },
+    "stages": {
+      "raising": "Raising",
+      "funded": "Funded",
+      "closed": "Closed"
+    },
+    "planned": "Planned start",
+    "why": "Why this matters",
+    "costs": "What it will cost",
+    "read": "Read more",
+    "donate": "Donate",
+    "technologyTitle": "Technology costs",
+    "technologyBody": "Running costs for this site are sponsored for now. A published technology project will be listed here, with its own trail.",
+    "noTechnology": "No technology project is published.",
+    "updatesTitle": "Updates",
+    "updatesBody": "Email updates are not being sent yet. There is no signup on this page.",
+    "past": "Past projects",
+    "raised": "Raised",
+    "spent": "Spent"
   }
 }

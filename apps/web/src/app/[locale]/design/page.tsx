@@ -106,6 +106,8 @@ export default async function DesignGallery({
           canMatchSponsors: true,
           canRecordConsent: true,
           canPostUpdates: true,
+          canEditSettings: true,
+          canSwitchModules: true,
         })}
         names={
           {
@@ -126,6 +128,9 @@ export default async function DesignGallery({
             consent: t("staffWorkspace.links.consent"),
             progress: t("staffWorkspace.links.progress"),
             sponsorships: t("staffWorkspace.links.sponsorships"),
+            pledges: t("staffWorkspace.links.pledges"),
+            settings: t("staffWorkspace.links.settings"),
+            modules: t("staffWorkspace.links.modules"),
           } satisfies Record<StaffLinkId, string>
         }
         blurbs={{
@@ -145,6 +150,9 @@ export default async function DesignGallery({
           consent: t("staffWorkspace.blurbs.consent"),
           progress: t("staffWorkspace.blurbs.progress"),
           sponsorships: t("staffWorkspace.blurbs.sponsorships"),
+          pledges: t("staffWorkspace.blurbs.pledges"),
+          settings: t("staffWorkspace.blurbs.settings"),
+          modules: t("staffWorkspace.blurbs.modules"),
         }}
         stats={[]}
       />

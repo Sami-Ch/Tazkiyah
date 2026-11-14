@@ -9,6 +9,7 @@ import {
   getPublicOverview,
   getPublicWork,
   getPublishedCauses,
+  getPublishedProjects,
 } from "@/server/auth";
 import { CauseProgress } from "./causes/cause-progress";
 import { WallName } from "./donor-wall/wall-name";
@@ -38,6 +39,11 @@ export async function HomeLedger({ locale }: { locale: Locale }) {
         )
       : Promise.resolve(null),
   ]);
+  const projects = overview?.modules.includes("new_projects")
+    ? (await getPublishedProjects(requestHeaders)).filter(
+        (project) => project.status === "active",
+      )
+    : [];
   const spending = (overview?.spending ?? []).slice(0, 3);
   const wall = overview?.wall ?? [];
   const causeName = (id: string) => {
@@ -83,6 +89,39 @@ export async function HomeLedger({ locale }: { locale: Locale }) {
           </ul>
         )}
       </section>
+
+      {projects.length > 0 && (
+        <section aria-labelledby="home-projects-title">
+          <div className="section-head">
+            <h2 id="home-projects-title">{t("newProjectsTitle")}</h2>
+            <Button href={`/${locale}/new-projects`} variant="quiet">
+              {t("read")}
+            </Button>
+          </div>
+          <ul className="cause-grid">
+            {projects.slice(0, 3).map((project) => {
+              const title = pageTranslation(project.title, locale);
+              if (!title) return null;
+              return (
+                <li className="ui-card" key={project.id}>
+                  <h3
+                    lang={title.language}
+                    dir={title.language === "ur" ? "rtl" : "ltr"}
+                  >
+                    {title.text}
+                  </h3>
+                  <Button
+                    href={`/${locale}/causes/${project.slug}`}
+                    variant="secondary"
+                  >
+                    {copy.view}
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {spending.length > 0 && (
         <section aria-labelledby="home-spent-title">

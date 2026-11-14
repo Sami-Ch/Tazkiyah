@@ -132,6 +132,18 @@ import {
   readSponsorshipWorkspace,
   type SponsorshipWorkspace,
 } from "./sponsorships";
+import {
+  readInstituteWorkspace,
+  readModuleWorkspace,
+  readPledgeWorkspace,
+  saveInstituteSettings,
+  saveModuleSwitches,
+  type InstituteWorkspace,
+  type ModuleWorkspace,
+  type PledgeWorkspace,
+} from "./institute-workspace";
+import { readPublishedProjects } from "./projects";
+import type { PublicProject } from "@/institutes/projects";
 
 const authSchema = {
   user: users,
@@ -173,6 +185,8 @@ const postEndpoints = new Set([
   "/progress",
   "/sponsorship",
   "/bank-account",
+  "/institute-settings",
+  "/module-switches",
   "/donor-trail",
   "/account-trail",
   "/claim-guest-donations",
@@ -278,6 +292,27 @@ export function getDonationWorkspace(
 
 export function getBankWorkspace(headers: Headers): Promise<BankWorkspace> {
   return readWorkspace<BankWorkspace>(headers, "/bank-settings");
+}
+
+export function getInstituteWorkspace(
+  headers: Headers,
+): Promise<InstituteWorkspace> {
+  return readWorkspace<InstituteWorkspace>(headers, "/institute-settings");
+}
+
+export function getModuleWorkspace(headers: Headers): Promise<ModuleWorkspace> {
+  return readWorkspace<ModuleWorkspace>(headers, "/module-switches");
+}
+
+export function getPledgeWorkspace(headers: Headers): Promise<PledgeWorkspace> {
+  return readWorkspace<PledgeWorkspace>(headers, "/expected-pledges");
+}
+
+export async function getPublishedProjects(
+  headers: Headers,
+): Promise<PublicProject[]> {
+  const response = await instituteRequest(headers, "/projects-public");
+  return response.ok ? response.json() : [];
 }
 
 export function getSponsorshipWorkspace(
@@ -450,7 +485,10 @@ async function readWorkspace<
     | ConsentWorkspace
     | ProgressWorkspace
     | SponsorshipWorkspace
-    | StatementWorkspace,
+    | StatementWorkspace
+    | InstituteWorkspace
+    | ModuleWorkspace
+    | PledgeWorkspace,
 >(
   headers: Headers,
   path: string,
@@ -547,9 +585,10 @@ async function runAuth(request: Request, path: string) {
     path === "/bank-accounts-public" ||
     path === "/public-overview" ||
     path === "/donor-wall-public" ||
+    path === "/public-work" ||
+    path === "/projects-public" ||
     path === "/public-trail" ||
-    path === "/donor-profile-public" ||
-    path === "/public-work";
+    path === "/donor-profile-public";
   if (!host || (!publicContent && (!ip || !secret || secret.length < 32))) {
     return jsonError("Authentication is unavailable.", 503);
   }
@@ -610,6 +649,7 @@ async function runAuth(request: Request, path: string) {
         if (path === "/site-pages-public") return readPublishedSitePages(tx);
         if (path === "/contact-public")
           return readPublishedInstituteContact(tx);
+        if (path === "/projects-public") return readPublishedProjects(tx);
         if (path === "/bank-accounts-public")
           return readPublishedBankAccounts(tx);
         if (path === "/causes-public")
@@ -899,6 +939,9 @@ async function runAuth(request: Request, path: string) {
           path === "/student-account" ||
           path === "/bank-settings" ||
           path === "/bank-account" ||
+          path === "/institute-settings" ||
+          path === "/module-switches" ||
+          path === "/expected-pledges" ||
           path === "/manual-donation-workspace" ||
           path === "/manual-donation" ||
           path === "/spending-workspace" ||
@@ -977,6 +1020,32 @@ async function runAuth(request: Request, path: string) {
               session.session.id,
               publicUrl.origin,
             );
+          }
+          if (path === "/institute-settings") {
+            if (access.state !== "allowed") return privateJson(access);
+            if (!session || !access.canEditSettings)
+              return request.method === "GET"
+                ? privateJson({ state: "denied" })
+                : privateJson({ code: "denied" }, 403);
+            return request.method === "GET"
+              ? readInstituteWorkspace(tx, session.session.id)
+              : saveInstituteSettings(tx, request, session.session.id);
+          }
+          if (path === "/module-switches") {
+            if (access.state !== "allowed") return privateJson(access);
+            if (!session || !access.canSwitchModules)
+              return request.method === "GET"
+                ? privateJson({ state: "denied" })
+                : privateJson({ code: "denied" }, 403);
+            return request.method === "GET"
+              ? readModuleWorkspace(tx, session.session.id)
+              : saveModuleSwitches(tx, request, session.session.id);
+          }
+          if (path === "/expected-pledges") {
+            if (access.state !== "allowed") return privateJson(access);
+            if (!session || !access.canRecordTransfers)
+              return privateJson({ state: "denied" });
+            return readPledgeWorkspace(tx, session.session.id);
           }
           if (path === "/bank-settings" || path === "/bank-account") {
             if (path === "/bank-settings" && access.state !== "allowed")

@@ -1,0 +1,56 @@
+.institute-screen {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.institute-screen h1,
+.institute-screen h2 {
+  margin: 0;
+}
+
+.institute-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.institute-screen form,
+.module-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.module-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.module-list li,
+.pledge-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface);
+}
+
+.pledge-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pledge-card dl {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  margin: 0;
+}
+
+.pledge-card dd {
+  margin: 0;
+}

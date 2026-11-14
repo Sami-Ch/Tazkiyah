@@ -11,6 +11,7 @@ import {
   type CauseKind,
   type EditableCause,
 } from "@/institutes/causes";
+import { projectCategories } from "@/institutes/projects";
 import { pageTranslation } from "@/institutes/site-pages";
 
 const languages = { en: "English", ur: "اردو" } as const;
@@ -363,6 +364,104 @@ export function CauseManager({
           </p>
         )}
       </form>
+      {editing && editing.status !== "archived" && (
+        <form
+          className="sign-in-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const fields = new FormData(event.currentTarget);
+            const pair = (name: string) => ({
+              en: fields.get(`${name}-en`),
+              ur: fields.get(`${name}-ur`),
+            });
+            const planned = String(fields.get("planned") ?? "");
+            void send(
+              {
+                action: "project",
+                id: editing.id,
+                revision: editing.revision,
+                show: fields.has("show"),
+                category: fields.get("category") ?? "",
+                planned,
+                why: pair("why"),
+                costs: pair("costs"),
+              },
+              "form",
+            ).then((saved) => {
+              if (saved) setEditing(undefined);
+            });
+          }}
+        >
+          <h2>{copy.projectTitle}</h2>
+          <p>{copy.projectHelp}</p>
+          <label className="cause-zakat">
+            <input
+              type="checkbox"
+              name="show"
+              defaultChecked={editing.listed_as_project}
+            />
+            {copy.showProject}
+          </label>
+          <div className="cause-field-grid">
+            <label>
+              {copy.projectCategory}
+              <select
+                name="category"
+                defaultValue={editing.category ?? ""}
+              >
+                <option value="">{copy.projectNone}</option>
+                {projectCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {copy.projectCategories[category]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {copy.plannedStart}
+              <input
+                type="date"
+                name="planned"
+                max="2099-12-01"
+                defaultValue={editing.planned_start ?? ""}
+              />
+              <span>{copy.plannedHelp}</span>
+            </label>
+          </div>
+          <div className="page-editor-languages">
+            {(Object.keys(languages) as Locale[]).map((language) => (
+              <fieldset key={language}>
+                <legend lang={language}>{languages[language]}</legend>
+                <label>
+                  {copy.why}
+                  <textarea
+                    name={`why-${language}`}
+                    lang={language}
+                    dir={language === "ur" ? "rtl" : "ltr"}
+                    maxLength={600}
+                    rows={3}
+                    defaultValue={editing.why_it_matters?.[language]}
+                  />
+                </label>
+                <label>
+                  {copy.costs}
+                  <textarea
+                    name={`costs-${language}`}
+                    lang={language}
+                    dir={language === "ur" ? "rtl" : "ltr"}
+                    maxLength={800}
+                    rows={3}
+                    defaultValue={editing.cost_lines?.[language]}
+                  />
+                </label>
+              </fieldset>
+            ))}
+          </div>
+          <button className="button button-primary" disabled={pending} type="submit">
+            {pending ? copy.working : copy.saveProject}
+          </button>
+        </form>
+      )}
       <section aria-labelledby="admin-causes-list">
         <h2 id="admin-causes-list">{copy.list}</h2>
         {causes.length ? (
@@ -383,6 +482,7 @@ export function CauseManager({
                       <p>
                         {labels.kinds[cause.cause_type]} ·{" "}
                         {labels.status[cause.status]}
+                        {cause.listed_as_project ? ` · ${copy.onProjects}` : ""}
                       </p>
                       <bdi dir="ltr">{cause.slug}</bdi>
                       {cause.status === "closed" &&

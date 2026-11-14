@@ -535,6 +535,36 @@ The site connects as `tazkiyah_auth`, which cannot insert threads under the `taz
 
 The staff menu and workspace screens live inside `/admin` and reuse `apps/web/src/design` (buttons, fields, tables, amount and date formatters, and the public tokens). Role-based links stay in the staff area. The shared button carries both a click handler for the donor screens and `name`/`value` for staff forms, so neither area keeps a second button. Options: keep a private staff stylesheet; use the shared components. Reason: the design system landed in the public branch, and one set of components keeps Urdu and English staff screens on the same type, colour, and money formatting.
 
+## D-150
+
+2026-11-14 · Build agent · Staff edit institute settings from the site
+
+`/admin/settings` lets an admin with a fresh two-factor session edit the institute name, short name, parent body, address, phone, WhatsApp, email, map link, visiting times, founded year, theme direction and principal, plus the daily or weekly spending batch (D-013). The direction is one of the two approved themes. The database stores the full theme object, and staff do not type colours. The logo file and the primary domain are shown and stay read-only. Bank accounts stay on the existing bank-account screen, which this page links to. Visiting times are published inside the existing public contact object, so the contact page can show them. Options: a colour picker and a logo upload; a direction plus the fields that can be typed. Reason: the two directions are already the approved themes, and a logo file needs media storage that is not part of this screen (REQ-MIR-001, REQ-PUB-006).
+
+## D-151
+
+2026-11-14 · Build agent · Module switches ask before anything is hidden
+
+`/admin/settings/modules` is limited to `modules.switch`. Turning a module on saves immediately. Turning one off asks for confirmation and does not delete student work, teacher work or project causes. The public menu and the home teaser include new projects only when `new_projects` is on. The public path is `/new-projects`, the path this task named. `/{lang}/new-projects` is not found while the module is off. Options: `/projects` as 05 wrote it; `/new-projects` as the task named it. Reason: the public nav already hides student and teacher work from the module list, and the new page follows that same switch (REQ-ROL-010).
+
+## D-152
+
+2026-11-14 · Build agent · A project is a cause with extra fields
+
+Project fields are saved by `identity.set_cause_project`. `identity.create_cause` and `identity.edit_cause` keep their signatures, so other work does not have to change its calls. The projects page introduction lives in the translation catalogue. A new `site_pages` slug would rewrite the shared page editor. The technology section says running costs are sponsored until a technology project is published. Newsletter signup is not built, because there is no email sender (the same gap as D-145). Options: extend the cause functions; add a project-only save. Reason: the cause functions are shared, and the projects page only needs the extra columns (REQ-PUB-001, REQ-DON-013).
+
+## D-153
+
+2026-11-14 · Build agent · Platform running costs stay a sample draft
+
+The Markaz seed includes a draft cause `platform-running-costs`. It is ongoing, monthly, Zakat off, listed as a technology project, and the wording is marked as sample. It is not on the public projects page until an admin publishes it. Options: publish a real appeal; leave a draft. Reason: the running-cost figures are not confirmed, and a draft lets the principal replace the sample text before anyone sees it (P4-E4, REQ-DON-013).
+
+## D-154
+
+2026-11-14 · Build agent · Expected pledges are a finance list, not a public form
+
+`identity.refresh_expected_pledges` is for a finance or admin session. It lists active pledges with no recorded payment in the current Asia/Karachi period, and it lapses a pledge after three missed periods, because there is no scheduled-job credential. The screen does not create pledges. Public pledge creation, and linking a transfer from the donate page, stay out until Q-08 is approved. Options: a cron job; lapse when staff open the list. Reason: the list has to be right when staff look at it, and a job would need a credential this release does not have (REQ-DON-003, admin side only).
+
 ## D-155
 
 2026-11-14 · Build agent (REQ-DPR-005) · A public donor profile is addressed by `donors.public_ref`
