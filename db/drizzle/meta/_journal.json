@@ -477,6 +477,20 @@
       "when": 1794683000000,
       "tag": "0067_class_hub",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1794684000000,
+      "tag": "0070_transparency_controls",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1794685000000,
+      "tag": "0071_public_donor_faces",
+      "breakpoints": true
     }
   ]
 }

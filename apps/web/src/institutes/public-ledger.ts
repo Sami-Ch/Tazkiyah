@@ -39,6 +39,8 @@ export type DonorWallEntry = {
   amount_paisa: string;
   given_on: string;
   donor_label: string | null;
+  profile_ref: string | null;
+  trail_public: boolean;
   cause_slug: string | null;
   cause_title: LocalizedPageText | null;
 };
@@ -144,11 +146,20 @@ export function donorWallEntry(
     return undefined;
   if (typeof row.given_on !== "string") return undefined;
   const label = row.donor_label;
+  const named = typeof label === "string" && label.trim() ? label : null;
+  const profile =
+    named &&
+    typeof row.profile_ref === "string" &&
+    /^[a-z2-7]{10}$/.test(row.profile_ref)
+      ? row.profile_ref
+      : null;
   return {
     public_ref: row.public_ref,
     amount_paisa: row.amount_paisa,
     given_on: row.given_on,
-    donor_label: typeof label === "string" && label.trim() ? label : null,
+    donor_label: named,
+    profile_ref: profile,
+    trail_public: row.trail_public === true,
     cause_slug: typeof row.cause_slug === "string" ? row.cause_slug : null,
     cause_title: row.cause_title ? localized(row.cause_title) : null,
   };
