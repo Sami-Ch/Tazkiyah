@@ -97,6 +97,14 @@ export default async function ContactPage({
             <Icon name="map" />
             {copy.directions}
           </a>
+          {contact?.visiting?.[locale] && (
+            <p>
+              <strong>{copy.visiting}</strong>{" "}
+              <span lang={locale} dir={locale === "ur" ? "rtl" : "ltr"}>
+                {contact.visiting[locale]}
+              </span>
+            </p>
+          )}
           <AddressMap
             query={
               addressQuery ||

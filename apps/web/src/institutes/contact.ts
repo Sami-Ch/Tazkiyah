@@ -9,6 +9,7 @@ export type PublishedInstituteContact = {
   phone?: ContactLink;
   whatsapp?: ContactLink;
   email?: ContactLink;
+  visiting?: LocalizedPageText;
 };
 
 const contactMethods = ["phone", "whatsapp", "email"] as const;
@@ -24,6 +25,7 @@ export const contactCopy = {
     address: "Institute address",
     directions: "Open in maps",
     mapTitle: "Map of the published address",
+    visiting: "Visiting times",
     reachUs: "Get in touch",
     phone: "Call the institute",
     whatsapp: "Message on WhatsApp",
@@ -38,6 +40,7 @@ export const contactCopy = {
     address: "ادارے کا پتا",
     directions: "نقشے میں دیکھیں",
     mapTitle: "شائع شدہ پتے کا نقشہ",
+    visiting: "ملاقات کے اوقات",
     reachUs: "رابطہ کریں",
     phone: "ادارے کو فون کریں",
     whatsapp: "واٹس ایپ پر پیغام بھیجیں",
@@ -89,5 +92,25 @@ export function parseInstituteContact(
       ? parsedMap.href
       : undefined;
 
-  return { address, mapUrl, phone, whatsapp, email };
+  const visitingRecord =
+    fields.visiting && typeof fields.visiting === "object"
+      ? (fields.visiting as Record<string, unknown>)
+      : undefined;
+  const visiting = {
+    ...(typeof visitingRecord?.en === "string" && visitingRecord.en.trim()
+      ? { en: visitingRecord.en.trim() }
+      : {}),
+    ...(typeof visitingRecord?.ur === "string" && visitingRecord.ur.trim()
+      ? { ur: visitingRecord.ur.trim() }
+      : {}),
+  };
+
+  return {
+    address,
+    mapUrl,
+    phone,
+    whatsapp,
+    email,
+    ...(visiting.en || visiting.ur ? { visiting } : {}),
+  };
 }

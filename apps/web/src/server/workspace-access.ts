@@ -17,6 +17,8 @@ export type AdminAccess =
       canManageClasses: boolean;
       canModerate: boolean;
       canMatchSponsors: boolean;
+      canEditSettings: boolean;
+      canSwitchModules: boolean;
       twoFactorVerified: boolean;
     }
   | { state: "signed-out" | "denied" | "enroll" | "unavailable" };
@@ -124,6 +126,8 @@ export async function checkWorkspaceAccess(
       ["teacher", "editor", "admin"] as const satisfies readonly Role[]
     ).some((role) => account.roles.includes(role)),
     canMatchSponsors: can(actor, "sponsorship.match"),
+    canEditSettings: can(actor, "settings.edit"),
+    canSwitchModules: can(actor, "modules.switch"),
     twoFactorVerified: requireMfa,
   } as const;
   if (!requireMfa) return allowed;

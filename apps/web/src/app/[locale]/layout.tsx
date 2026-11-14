@@ -59,11 +59,13 @@ export default async function LocaleLayout({
     donorWall: t("navigation.donorWall"),
     studentWork: t("navigation.studentWork"),
     teacherWork: t("navigation.teacherWork"),
+    newProjects: t("navigation.newProjects"),
     visit: t("navigation.visit"),
   };
   const links = shellLinks(locale, labels, {
     students: overview ? overview.modules.includes("student_hub") : true,
     teachers: overview ? overview.modules.includes("teacher_hub") : true,
+    projects: overview ? overview.modules.includes("new_projects") : false,
   });
   const footerLinks = [
     ...links,

@@ -6,6 +6,7 @@ import {
   type EditableCause,
   type PublishedCause,
 } from "@/institutes/causes";
+import { isProjectCategory } from "@/institutes/projects";
 import { privateJson } from "./staff-invitations";
 import type { AdminAccess, AuthQuery } from "./workspace-access";
 
@@ -33,7 +34,8 @@ export async function readCauseWorkspace(tx: AuthQuery, sessionId: string) {
   const { rows } = await tx.execute<EditableCause>(sql`
     select id, slug, cause_type, title, summary, body, status, starts_on::text, ends_on::text,
       target_paisa::text, target_period, stock_year_start_month, accepts_zakat,
-      revision, has_recorded_allocations, zakat_approved_by, receipt_public_by_default
+      revision, has_recorded_allocations, zakat_approved_by, receipt_public_by_default,
+      listed_as_project, category, planned_start::text, why_it_matters, cost_lines
     from identity.read_causes(${sessionId})
   `);
   return privateJson({
@@ -165,6 +167,27 @@ export async function writeCause(
       action === "create"
         ? sql`select identity.create_cause(${sessionId}::uuid, ${slug}, ${values}) as outcome`
         : sql`select identity.edit_cause(${sessionId}::uuid, ${id}::uuid, ${revision}::uuid, ${values}) as outcome`;
+  } else if (action === "project") {
+    const category = data.category === "" ? null : data.category;
+    const planned = data.planned === "" ? null : data.planned;
+    const why = localizedPair(data.why, 600, true);
+    const costs = localizedPair(data.costs, 800, true);
+    const month =
+      planned === null ||
+      (typeof planned === "string" && /^[0-9]{4}-[0-9]{2}-01$/.test(planned));
+    if (
+      typeof data.show !== "boolean" ||
+      (data.show && !isProjectCategory(category)) ||
+      (category !== null && !isProjectCategory(category)) ||
+      !month ||
+      why === undefined ||
+      costs === undefined
+    )
+      return invalid();
+    query = sql`select identity.set_cause_project(
+      ${sessionId}::uuid, ${id}::uuid, ${revision}::uuid, ${data.show},
+      ${category}, ${planned}::date, ${sql.param(why)}::jsonb, ${sql.param(costs)}::jsonb
+    ) as outcome`;
   } else if (
     action === "publish" ||
     action === "close" ||

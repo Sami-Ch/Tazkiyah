@@ -11,7 +11,10 @@ export type StaffLinkId =
   | "pages"
   | "classes"
   | "moderation"
-  | "sponsorships";
+  | "sponsorships"
+  | "pledges"
+  | "settings"
+  | "modules";
 
 /** Role flags already resolved by the permission matrix. */
 export type StaffLinkAccess = {
@@ -23,6 +26,8 @@ export type StaffLinkAccess = {
   canManageClasses: boolean;
   canModerate: boolean;
   canMatchSponsors: boolean;
+  canEditSettings: boolean;
+  canSwitchModules: boolean;
 };
 
 export type StaffLink = { id: StaffLinkId; href: string };
@@ -34,8 +39,12 @@ export function staffLinks(
 ): StaffLink[] {
   const root = `/${locale}/admin`;
   const links: StaffLink[] = [{ id: "home", href: root }];
-  if (access.canRecordTransfers)
-    links.push({ id: "donations", href: `${root}/donations` });
+  if (access.canRecordTransfers) {
+    links.push(
+      { id: "donations", href: `${root}/donations` },
+      { id: "pledges", href: `${root}/pledges` },
+    );
+  }
   if (access.canReconcileTransfers) {
     links.push({
       id: "reconciliation",
@@ -61,6 +70,10 @@ export function staffLinks(
   if (access.canMatchSponsors) {
     links.push({ id: "sponsorships", href: `${root}/sponsorships` });
   }
+  if (access.canEditSettings)
+    links.push({ id: "settings", href: `${root}/settings` });
+  if (access.canSwitchModules)
+    links.push({ id: "modules", href: `${root}/settings/modules` });
   return links;
 }
 

@@ -279,6 +279,85 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     enrolledAdmin = browser;
   });
 
+  it("saves institute settings and asks before a module is switched off", async () => {
+    const saved = await enrolledAdmin.post("/institute-settings", {
+      name: { en: "Markaz Al Azeem", ur: "مرکز العظیم" },
+      shortName: { en: "", ur: "" },
+      parent: { en: "Jama Masjid Al-Azeem", ur: "جامع مسجد العظیم" },
+      address: {
+        en: "92/6-R Road, Sahiwal, Punjab, Pakistan",
+        ur: "92/6-R روڈ، ساہیوال، پنجاب، پاکستان",
+      },
+      visiting: { en: "", ur: "" },
+      phone: "+92 300 0000000",
+      whatsapp: "",
+      email: "office@example.test",
+      map: "",
+      theme: "night-and-paper",
+      founded: 2019,
+      batch: "weekly",
+      principal: staff.admin,
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.json).toEqual({ code: "updated" });
+    const workspace = await auth.getInstituteWorkspace(enrolledAdmin.headers());
+    expect(workspace).toMatchObject({
+      state: "allowed",
+      settings: { contact: { email: "office@example.test", phone: "+92 300 0000000" } },
+    });
+
+    const switched = await enrolledAdmin.post("/module-switches", {
+      modules: ["new_projects"],
+      confirm: false,
+    });
+    expect(switched.status).toBe(200);
+    const hidden = await enrolledAdmin.post("/module-switches", {
+      modules: [],
+      confirm: false,
+    });
+    expect(hidden.status).toBe(409);
+    expect(hidden.json).toEqual({ code: "confirm" });
+    const restored = await enrolledAdmin.post("/module-switches", {
+      modules: [],
+      confirm: true,
+    });
+    expect(restored.status).toBe(200);
+    await enrolledAdmin.post("/institute-settings", {
+      name: { en: "Markaz Al Azeem", ur: "مرکز العظیم" },
+      shortName: { en: "", ur: "" },
+      parent: { en: "Jama Masjid Al-Azeem", ur: "جامع مسجد العظیم" },
+      address: {
+        en: "92/6-R Road, Sahiwal, Punjab, Pakistan",
+        ur: "92/6-R روڈ، ساہیوال، پنجاب، پاکستان",
+      },
+      visiting: { en: "", ur: "" },
+      phone: "",
+      whatsapp: "",
+      email: "",
+      map: "https://www.google.com/maps/search/?api=1&query=Jama%20Masjid%20Al-Azeem%2C%2092%2F6-R%20Road%2C%20Sahiwal",
+      theme: "night-and-paper",
+      founded: 2019,
+      batch: "weekly",
+      principal: null,
+    });
+
+    const editor = new Browser();
+    await editor.post("/sign-in/email", {
+      email: "editor@example.test",
+      password,
+    });
+    expect(await auth.getInstituteWorkspace(editor.headers())).toEqual({
+      state: "denied",
+    });
+    expect(await auth.getPledgeWorkspace(editor.headers())).toEqual({
+      state: "denied",
+    });
+    expect(await auth.getPledgeWorkspace(enrolledAdmin.headers())).toMatchObject({
+      state: "allowed",
+      pledges: [],
+    });
+  });
+
   it("asks for a code at every later sign-in", async () => {
     const browser = new Browser();
     const signIn = await browser.post("/sign-in/email", {
@@ -292,7 +371,7 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
   it("saves cause donation settings through the admin API and exposes the scholar after publication", async () => {
     const seeded = await auth.getCauseWorkspace(enrolledAdmin.headers());
     if (seeded.state !== "allowed") throw new Error("Missing admin access");
-    expect(seeded.causes).toHaveLength(7);
+    expect(seeded.causes).toHaveLength(8);
     expect(
       seeded.causes.every(
         (cause) => cause.status === "draft" && !cause.accepts_zakat,

@@ -45,6 +45,11 @@ export type EditableCause = CauseDetails & {
   revision: string;
   has_recorded_allocations: boolean;
   receipt_public_by_default: boolean;
+  listed_as_project: boolean;
+  category: string | null;
+  planned_start: string | null;
+  why_it_matters: LocalizedPageText | null;
+  cost_lines: LocalizedPageText | null;
 };
 
 export type PublishedCause = CauseDetails & {

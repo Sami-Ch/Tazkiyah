@@ -17,10 +17,13 @@ export function StaffNav({
   names: Record<StaffLinkId, string>;
 }) {
   const pathname = usePathname();
+  const currentHref = links
+    .filter((link) => staffLinkIsCurrent(pathname, link.href))
+    .sort((left, right) => right.href.length - left.href.length)[0]?.href;
   return (
     <nav className="filter-row" aria-label={label}>
       {links.map((link) => {
-        const current = staffLinkIsCurrent(pathname, link.href);
+        const current = link.href === currentHref;
         return (
           <a
             key={link.id}

@@ -18,7 +18,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [x] REQ-DON-010 Every recorded donation gets a unique receipt number. MUST → 06 §14
 - [ ] REQ-DON-011 Donor receives an emailed receipt in their chosen language when a donation is recorded. SHOULD → 06 §14
 - [ ] REQ-DON-012 Admin can reverse a recorded donation with a reason, and the original record stays. MUST → 06 §15
-- [ ] REQ-DON-013 Future tech costs can be created as causes in the same way as any other cause. SHOULD → 05 §10
+- [x] REQ-DON-013 Future tech costs can be created as causes in the same way as any other cause. SHOULD → 05 §10
 - [x] REQ-DON-014 The clinic appears only as a cause and stores no patient data. MUST → 06 §5
 
 ## Trail
@@ -88,12 +88,12 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 ## Public pages
 
-- [ ] REQ-PUB-001 The site has about, facilities, daily life, causes, new projects, donor wall, student work, teacher work and contact pages. MUST → 05 §4
+- [x] REQ-PUB-001 The site has about, facilities, daily life, causes, new projects, donor wall, student work, teacher work and contact pages. MUST → 05 §4
 - [x] REQ-PUB-002 The home page shows active causes with their progress. MUST → 05 §5
 - [x] REQ-PUB-003 Each cause has a public page showing its target, amount raised, amount spent and spending entries. MUST → 05 §5
 - [x] REQ-PUB-004 The student work page shows only approved public posts, under personas. MUST → 05 §5
 - [x] REQ-PUB-005 The teacher work page shows approved teacher posts and verified articles. MUST → 05 §5
-- [ ] REQ-PUB-006 The contact page shows the madrasa's address and contact details from institute settings. MUST → 05 §5
+- [x] REQ-PUB-006 The contact page shows the madrasa's address and contact details from institute settings. MUST → 05 §5
 - [ ] REQ-PUB-007 Public pages show the logo and institute name from institute settings. MUST → 05 §5
 - [ ] REQ-PUB-008 The donate page shows the institute's bank account details from institute settings. MUST → 05 §5
 
@@ -108,7 +108,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-ROL-007 Admin can record spending entries with receipts. MUST → 06 §9
 - [ ] REQ-ROL-008 Every staff action that changes data is written to an audit log. MUST → 05 §9
 - [ ] REQ-ROL-009 Admin can view and filter the audit log. MUST → 05 §9
-- [ ] REQ-ROL-010 Admin can switch the student hub, teacher hub and new projects modules on or off. MUST → 05 §8
+- [x] REQ-ROL-010 Admin can switch the student hub, teacher hub and new projects modules on or off. MUST → 05 §8
 
 ## Payments
 
@@ -184,7 +184,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 ## Multi-institute readiness
 
-- [ ] REQ-MIR-001 Institute name, logo, theme colours, domain, contact details, bank details and enabled modules are stored as institute settings. MUST → 04 §5
+- [x] REQ-MIR-001 Institute name, logo, theme colours, domain, contact details, bank details and enabled modules are stored as institute settings. MUST → 04 §5
 - [ ] REQ-MIR-002 The request's domain selects the institute. MUST → 03 §4
 - [x] REQ-MIR-003 Adding a second institute needs no schema change. MUST → 04 §5
 - [ ] REQ-MIR-004 The post scope field can hold a future community value without a schema change. SHOULD → 04 §11

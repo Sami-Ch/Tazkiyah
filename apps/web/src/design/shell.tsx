@@ -123,6 +123,7 @@ export function shellLinks(
   modules: {
     students: boolean;
     teachers: boolean;
+    projects: boolean;
   },
 ): ShellLink[] {
   const link = (path: string, label: string) => ({
@@ -132,6 +133,9 @@ export function shellLinks(
   return [
     link("/about", labels.about),
     link("/causes", labels.causes),
+    ...(modules.projects
+      ? [link("/new-projects", labels.newProjects)]
+      : []),
     link("/transparency", labels.transparency),
     link("/donor-wall", labels.donorWall),
     ...(modules.students ? [link("/student-work", labels.studentWork)] : []),

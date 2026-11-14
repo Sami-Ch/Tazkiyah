@@ -88,6 +88,22 @@ begin
   ) as draft(slug, title_en, title_ur, summary_en, summary_ur, target_rupees, stock_month, public_receipt, sort_order)
   on conflict (institute_id, slug) do nothing;
 
+  -- Sample draft. It stays unpublished, and it does not accept Zakat (P05-15).
+  insert into app.causes (
+    institute_id, slug, cause_type, title, summary, body, target_period, status,
+    listed_as_project, category, why_it_matters, cost_lines, accepts_zakat, display_order
+  ) values (
+    markaz_id, 'platform-running-costs', 'ongoing',
+    '{"en":"Platform running costs","ur":"پلیٹ فارم کے جاری اخراجات"}',
+    '{"en":"Sample draft. Replace this text before publishing. Running costs are sponsored until the institute decides to raise them here.","ur":"نمونہ مسودہ۔ شائع کرنے سے پہلے یہ متن بدل دیں۔ جب تک ادارہ خود فیصلہ نہ کرے، جاری اخراجات کفالت میں ہیں۔"}',
+    '{"en":"Sample draft for servers, the database and keeping this site online. It is not a published appeal.","ur":"سرورز، ڈیٹابیس اور اس سائٹ کو چلانے کے لیے نمونہ مسودہ۔ یہ شائع شدہ اپیل نہیں۔"}',
+    'monthly', 'draft', true, 'technology',
+    '{"en":"Sample reason. Say why these costs matter before publishing.","ur":"نمونہ وجہ۔ شائع کرنے سے پہلے لکھیں کہ یہ اخراجات کیوں اہم ہیں۔"}',
+    '{"en":"Sample cost lines only. Replace them before publishing.","ur":"صرف نمونہ اخراجات۔ شائع کرنے سے پہلے بدل دیں۔"}',
+    false, 90
+  )
+  on conflict (institute_id, slug) do nothing;
+
   -- Sample details only. Replace this row from institute settings before asking anyone to transfer money.
   insert into app.institute_bank_accounts (
     institute_id, label, bank_name, account_title, account_number, iban, branch,

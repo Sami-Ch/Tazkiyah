@@ -14,6 +14,8 @@ const none: StaffLinkAccess = {
   canManageClasses: false,
   canModerate: false,
   canMatchSponsors: false,
+  canEditSettings: false,
+  canSwitchModules: false,
 };
 
 function ids(access: Partial<StaffLinkAccess>) {
@@ -35,7 +37,7 @@ it("gives a finance officer donations and the bank check", () => {
       canReconcileTransfers: true,
       canRecordSpending: true,
     }),
-  ).toEqual(["home", "donations", "reconciliation", "spending"]);
+  ).toEqual(["home", "donations", "pledges", "reconciliation", "spending"]);
 });
 
 it("gives an editor site pages and the moderation queue", () => {
@@ -57,10 +59,13 @@ it("gives an admin the screens that exist in the workspace", () => {
       canManageClasses: true,
       canModerate: true,
       canMatchSponsors: true,
+      canEditSettings: true,
+      canSwitchModules: true,
     }),
   ).toEqual([
     "home",
     "donations",
+    "pledges",
     "reconciliation",
     "spending",
     "causes",
@@ -72,6 +77,8 @@ it("gives an admin the screens that exist in the workspace", () => {
     "classes",
     "moderation",
     "sponsorships",
+    "settings",
+    "modules",
   ]);
 });
 
