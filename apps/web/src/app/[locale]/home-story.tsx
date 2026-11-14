@@ -1,8 +1,8 @@
 import type { Locale } from "@tazkiyah/i18n/routing";
 import { getTranslations } from "next-intl/server";
-import { CountUp } from "@/design/count-up";
+import { ProgrammeMark } from "@/design/programme-mark";
 import { StarRule } from "@/design/ornament";
-import type { HomeFacts } from "@/institutes/site-pages";
+import { showSampleBadge } from "@/institutes/public-story";
 
 const quotes = [
   ["story.quote1", "story.quote1Role"],
@@ -22,100 +22,64 @@ const steps = [
   ["story.flow3Title", "story.flow3Body"],
   ["story.flow4Title", "story.flow4Body"],
 ] as const;
+const programmeKeys = [
+  ["education", "story.educationTitle", "story.educationBody", true],
+  ["meals", "story.mealsTitle", "story.mealsBody", false],
+  ["clinic", "story.clinicTitle", "story.clinicBody", false],
+  ["orphans", "story.orphansTitle", "story.orphansBody", false],
+] as const;
+const kinds = [
+  ["zakat", "story.zakatName", "story.zakatBody"],
+  ["sadaqah", "story.sadaqahName", "story.sadaqahBody"],
+  ["general", "story.generalName", "story.generalBody"],
+] as const;
 
-export async function HomeStory({
-  locale,
-  facts,
-}: {
-  locale: Locale;
-  facts: HomeFacts;
-}) {
+function SampleFlag({ label }: { label: string }) {
+  if (!showSampleBadge()) return null;
+  return <p className="sample-flag">{label}</p>;
+}
+
+export async function HomeStory({ locale }: { locale: Locale }) {
   const t = await getTranslations("common");
-  const number = new Intl.NumberFormat(`${locale}-PK`, {
-    numberingSystem: "latn",
-  });
-  const programmes = [
-    {
-      key: "education" as const,
-      sample: true,
-      title: t("story.educationTitle"),
-      body: t("story.educationBody"),
-    },
-    {
-      key: "meals" as const,
-      sample: false,
-      title: t("story.mealsTitle"),
-      body: t("story.mealsBody"),
-    },
-    {
-      key: "clinic" as const,
-      sample: false,
-      title: t("story.clinicTitle"),
-      body: t("story.clinicBody"),
-    },
-  ];
 
   return (
     <>
       <section
-        className="story-block reveal"
+        className="band band-emerald bleed reveal"
         id="programmes"
         aria-labelledby="programmes-title"
       >
         <p className="eyebrow">{t("story.programmesLabel")}</p>
         <h2 id="programmes-title">{t("story.programmesHeading")}</h2>
         <StarRule />
-        <ol className="programme-list">
-          {programmes.map((programme, index) => (
-            <li key={programme.key}>
-              <p className="programme-index">
-                <bdi>{String(index + 1).padStart(2, "0")}</bdi>
-              </p>
-              <div>
-                <h3>{programme.title}</h3>
-                {programme.sample && (
-                  <p className="sample-flag">{t("story.sampleBadge")}</p>
-                )}
-                <p>{programme.body}</p>
-                <p className="programme-stat">
-                  <CountUp
-                    value={facts[programme.key].value}
-                    label={number.format(facts[programme.key].value)}
-                  />
-                  <span>{facts[programme.key].label[locale]}</span>
-                </p>
-              </div>
+        <ol className="programme-cards">
+          {programmeKeys.map(([name, title, body, sample]) => (
+            <li key={name}>
+              <article className="programme-card">
+                <ProgrammeMark name={name} />
+                <h3>{t(title)}</h3>
+                {sample && <SampleFlag label={t("story.sampleBadge")} />}
+                <p>{t(body)}</p>
+              </article>
             </li>
           ))}
-          <li>
-            <p className="programme-index">
-              <bdi>04</bdi>
-            </p>
-            <div>
-              <h3>{t("story.orphansTitle")}</h3>
-              <p>{t("story.orphansBody")}</p>
-            </div>
-          </li>
         </ol>
-        <a className="button button-outline" href={`/${locale}/causes`}>
-          {t("giving.explore")}
-        </a>
       </section>
 
       <section
-        className="story-block reveal"
+        className="band band-paper reveal"
         id="gift-path"
-        aria-labelledby="flow-title"
+        aria-labelledby="gift-path-title"
       >
         <p className="eyebrow">{t("story.flowLabel")}</p>
-        <h2 id="flow-title">{t("story.flowHeading")}</h2>
+        <h2 id="gift-path-title">{t("story.flowHeading")}</h2>
         <StarRule />
-        <ol className="flow-list">
+        <ol className="timeline">
           {steps.map(([title, body], index) => (
             <li key={title}>
-              <p className="programme-index">
+              <span className="timeline-node">
                 <bdi>{index + 1}</bdi>
-              </p>
+              </span>
               <h3>{t(title)}</h3>
               <p>{t(body)}</p>
             </li>
@@ -124,71 +88,65 @@ export async function HomeStory({
       </section>
 
       <section
-        className="story-block reveal"
-        id="zakat"
+        className="band band-paper reveal"
+        id="zakat-and-sadaqah"
         aria-labelledby="zakat-title"
       >
         <p className="eyebrow">{t("story.zakatLabel")}</p>
         <h2 id="zakat-title">{t("story.zakatHeading")}</h2>
         <StarRule />
-        <div className="giving-kinds">
-          <article>
-            <h3>{t("story.zakatName")}</h3>
-            <p>{t("story.zakatBody")}</p>
-          </article>
-          <article>
-            <h3>{t("story.sadaqahName")}</h3>
-            <p>{t("story.sadaqahBody")}</p>
-          </article>
-          <article>
-            <h3>{t("story.generalName")}</h3>
-            <p>{t("story.generalBody")}</p>
-          </article>
+        <div className="kind-cards">
+          {kinds.map(([kind, name, body]) => (
+            <article key={kind} className={`kind-card kind-card-${kind}`}>
+              <h3>{t(name)}</h3>
+              <p>{t(body)}</p>
+            </article>
+          ))}
         </div>
       </section>
 
-      <section className="verse reveal" aria-labelledby="verse-title">
+      <section className="verse bleed" aria-labelledby="verse-title">
         <p className="eyebrow" id="verse-title">
           {t("story.verseLabel")}
         </p>
         <StarRule />
-        <p className="verse-arabic" lang="ar" dir="rtl">
-          {t("story.verseArabic")}
-        </p>
         <blockquote>
-          <p>{t("story.verseText")}</p>
+          <p className="verse-arabic" lang="ar" dir="rtl">
+            {t("story.verseArabic")}
+          </p>
+          <p lang={locale}>{t("story.verseText")}</p>
+          <footer>
+            <cite>{t("story.verseRef")}</cite>
+          </footer>
         </blockquote>
-        <p className="verse-ref">{t("story.verseRef")}</p>
       </section>
 
       <section
-        className="story-block reveal"
+        className="band band-paper reveal"
         id="voices"
         aria-labelledby="voices-title"
       >
         <p className="eyebrow">{t("story.quotesLabel")}</p>
         <h2 id="voices-title">{t("story.quotesHeading")}</h2>
-        <p className="sample-flag">{t("story.sampleBadge")}</p>
+        <SampleFlag label={t("story.sampleBadge")} />
         <StarRule />
-        <ul className="quote-list">
-          {quotes.map(([text, role]) => (
-            <li key={text}>
-              <blockquote>
-                <p>{t(text)}</p>
-              </blockquote>
-              <p className="quote-role">{t(role)}</p>
-            </li>
+        <div className="quote-cards">
+          {quotes.map(([quote, role]) => (
+            <blockquote key={quote} className="quote-card">
+              <p>{t(quote)}</p>
+              <footer className="quote-role">{t(role)}</footer>
+            </blockquote>
           ))}
-        </ul>
+        </div>
       </section>
 
       <section
-        className="story-block reveal"
+        className="band band-emerald bleed reveal"
         id="questions"
-        aria-labelledby="faq-title"
+        aria-labelledby="questions-title"
       >
         <p className="eyebrow">{t("story.faqLabel")}</p>
-        <h2 id="faq-title">{t("story.faqHeading")}</h2>
+        <h2 id="questions-title">{t("story.faqHeading")}</h2>
         <StarRule />
         <div className="faq-list">
           {faqs.map(([question, answer]) => (

@@ -16,7 +16,9 @@ import { pageTranslation } from "@/institutes/site-pages";
 import { readPublishedPages } from "@/server/public-pages";
 import { publicPageMetadata, publicSiteOrigin } from "@/server/public-site";
 import { AddressMap } from "@/components/address-map";
+import { CountUp } from "@/design/count-up";
 import { StarRule } from "@/design/ornament";
+import { showSampleBadge } from "@/institutes/public-story";
 import { HomeLedger } from "./home-ledger";
 import { HomeStory } from "./home-story";
 
@@ -55,6 +57,18 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
   );
   const [leadPhoto, ...gallery] = campusMedia.photos;
   const { film, sample } = campusMedia;
+  const namedTitle =
+    homeTitle?.text === institute.name.en ||
+    homeTitle?.text === institute.name.ur;
+  const headline = homeTitle && !namedTitle ? homeTitle : undefined;
+  const number = new Intl.NumberFormat(`${locale}-PK`, {
+    numberingSystem: "latn",
+  });
+  const heroFacts = (["education", "meals", "clinic"] as const).map((key) => ({
+    key,
+    value: facts[key].value,
+    label: facts[key].label[locale],
+  }));
 
   return (
     <>
@@ -67,17 +81,18 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             </p>
             <h1
               id="hero-title"
-              lang={homeTitle?.language}
+              lang={headline?.language}
               dir={
-                homeTitle
-                  ? homeTitle.language === "ur"
+                headline
+                  ? headline.language === "ur"
                     ? "rtl"
                     : "ltr"
                   : undefined
               }
             >
-              {homeTitle?.text ?? institute.name[locale]}
+              {headline?.text ?? t("story.heroHeadline")}
             </h1>
+            <p className="hero-tagline">{t("story.heroTagline")}</p>
             <p
               className="hero-summary published-page-copy"
               lang={homeBody?.language}
@@ -91,11 +106,27 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             >
               {homeBody?.text ?? t("home.summary")}
             </p>
-            {[homeTitle, homeBody].some(
+            {[headline, homeBody].some(
               (field) => field && field.language !== locale,
             ) && (
               <p className="published-page-note">{t("sitePages.fallback")}</p>
             )}
+            <ul className="hero-chips">
+              <li>{t("story.chipTraced")}</li>
+              <li>{t("story.chipFees")}</li>
+              <li>{t("story.chipZakat")}</li>
+            </ul>
+            <ul className="hero-stats">
+              {heroFacts.map((fact) => (
+                <li key={fact.key}>
+                  <CountUp
+                    value={fact.value}
+                    label={number.format(fact.value)}
+                  />
+                  <span>{fact.label}</span>
+                </li>
+              ))}
+            </ul>
             <div className="hero-actions">
               <a className="button button-primary" href={`/${locale}/donate`}>
                 {t("navigation.donate")}
@@ -223,7 +254,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
           </div>
         </section>
 
-        <HomeStory locale={locale} facts={facts} />
+        <HomeStory locale={locale} />
 
         <HomeLedger locale={locale} />
 
@@ -306,7 +337,9 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             </a>
           </div>
           <div className="visit-extra">
-            <p className="sample-flag">{t("story.sampleBadge")}</p>
+            {showSampleBadge() && (
+              <p className="sample-flag">{t("story.sampleBadge")}</p>
+            )}
             <h3>{t("story.hoursLabel")}</h3>
             <p>{t("story.hoursBody")}</p>
             <AddressMap

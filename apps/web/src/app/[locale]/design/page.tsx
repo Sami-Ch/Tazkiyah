@@ -15,6 +15,8 @@ import {
   TextField,
 } from "@/design/ui";
 import { requireLocale } from "@/i18n/locale";
+import { staffLinks, type StaffLinkId } from "../admin/staff-links";
+import { StaffOverview } from "../admin/staff-overview";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -34,6 +36,53 @@ export default async function DesignGallery({
         <h1 id="design-title">{t("navigation.menu")}</h1>
         <p>{t("public.transparencyIntro")}</p>
       </header>
+      <StaffOverview
+        heading={t("staffWorkspace.overviewHeading")}
+        headingLevel="h2"
+        intro={t("staffWorkspace.intro")}
+        links={staffLinks(locale, {
+          canRecordTransfers: true,
+          canReconcileTransfers: true,
+          canRecordSpending: true,
+          canInvite: true,
+          canEditPages: true,
+          canManageClasses: true,
+          canModerate: true,
+          canMatchSponsors: true,
+        })}
+        names={
+          {
+            home: t("staffWorkspace.links.home"),
+            donations: t("staffWorkspace.links.donations"),
+            reconciliation: t("staffWorkspace.links.reconciliation"),
+            spending: t("staffWorkspace.links.spending"),
+            causes: t("staffWorkspace.links.causes"),
+            banks: t("staffWorkspace.links.banks"),
+            users: t("staffWorkspace.links.users"),
+            audit: t("staffWorkspace.links.audit"),
+            donorLinks: t("staffWorkspace.links.donorLinks"),
+            pages: t("staffWorkspace.links.pages"),
+            classes: t("staffWorkspace.links.classes"),
+            moderation: t("staffWorkspace.links.moderation"),
+            sponsorships: t("staffWorkspace.links.sponsorships"),
+          } satisfies Record<StaffLinkId, string>
+        }
+        blurbs={{
+          donations: t("staffWorkspace.blurbs.donations"),
+          reconciliation: t("staffWorkspace.blurbs.reconciliation"),
+          spending: t("staffWorkspace.blurbs.spending"),
+          causes: t("staffWorkspace.blurbs.causes"),
+          banks: t("staffWorkspace.blurbs.banks"),
+          users: t("staffWorkspace.blurbs.users"),
+          audit: t("staffWorkspace.blurbs.audit"),
+          donorLinks: t("staffWorkspace.blurbs.donorLinks"),
+          pages: t("staffWorkspace.blurbs.pages"),
+          classes: t("staffWorkspace.blurbs.classes"),
+          moderation: t("staffWorkspace.blurbs.moderation"),
+          sponsorships: t("staffWorkspace.blurbs.sponsorships"),
+        }}
+        stats={[]}
+      />
       <div className="design-row">
         <Button>{t("navigation.donate")}</Button>
         <Button variant="secondary">{t("public.showMore")}</Button>

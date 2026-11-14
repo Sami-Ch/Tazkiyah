@@ -1,8 +1,9 @@
 /**
  * Public lines that are not yet confirmed by the institute.
- * The words themselves live in packages/i18n/messages (en and ur) so both
- * languages stay in one place. Each entry below is rendered with the
- * "Sample" badge. Replace the matching strings, then remove the entry.
+ * The words themselves live in packages/i18n/messages (en and ur).
+ * Visitors see those sentences as ordinary copy. A small badge is the only
+ * sample marker, and it is hidden when content mode is production.
+ * Replace the matching strings, then remove the entry.
  */
 export const samplePublicCopy = [
   {
@@ -31,3 +32,17 @@ export const samplePublicCopy = [
       "Visiting hours are a sample. The address and map use the published institute address.",
   },
 ] as const;
+
+/**
+ * Preview shows the sample badge. Production hides it.
+ * TAZKIYAH_CONTENT_MODE=production or preview wins over NODE_ENV.
+ * With no mode set, production builds hide the badge and other builds show it.
+ */
+export function showSampleBadge(
+  env: { NODE_ENV?: string; TAZKIYAH_CONTENT_MODE?: string } = process.env,
+) {
+  const mode = env.TAZKIYAH_CONTENT_MODE?.trim().toLowerCase();
+  if (mode === "production") return false;
+  if (mode === "preview") return true;
+  return env.NODE_ENV !== "production";
+}

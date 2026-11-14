@@ -48,6 +48,9 @@ type GivingCopy = {
   reassureAccount: string;
   reassureEmail: string;
   reassureTrail: string;
+  stepsLabel: string;
+  steps: readonly [string, string, string, string];
+  summaryTitle: string;
 };
 
 export const givingCopy = {
@@ -110,6 +113,9 @@ export const givingCopy = {
       "Your email is enough. We use it to confirm the gift and to send the private trail link.",
     reassureTrail:
       "Zakat stays with causes marked for Zakat. When spending is recorded, the oldest gifts in that cause are matched first.",
+    stepsLabel: "How this gift moves",
+    steps: ["Purpose", "Cause", "Amount", "Bank transfer"],
+    summaryTitle: "This gift",
   },
   ur: {
     title: "مرکز العظیم کو عطیہ دیں",
@@ -170,5 +176,8 @@ export const givingCopy = {
       "ای میل کافی ہے۔ ہم اسی سے عطیے کی تصدیق کرتے ہیں اور نجی نشان بھیجتے ہیں۔",
     reassureTrail:
       "زکوٰۃ ان مدات میں رہتی ہے جو زکوٰۃ کے لیے نشان زد ہوں۔ خرچ درج ہونے پر اس مد کے پرانے عطیات پہلے جوڑے جاتے ہیں۔",
+    stepsLabel: "یہ عطیہ کیسے آگے بڑھتا ہے",
+    steps: ["مقصد", "مد", "رقم", "بینک منتقلی"],
+    summaryTitle: "یہ عطیہ",
   },
 } satisfies Record<Locale, GivingCopy>;
