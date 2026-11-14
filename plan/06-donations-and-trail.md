@@ -993,7 +993,7 @@ P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals p
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P4-E1-T01 | Match an account donor to one orphan; link sponsorship donations to the Orphan sponsorship cause (§12.1) | todo | P3-E1, P2-E5-T01 | REQ-ORP-001, REQ-ORP-009 |
-| P4-E1-T02 | Sponsor's private page with persona name, age and updates only (§12.2) | todo | P4-E1-T01 | REQ-ORP-002, REQ-ORP-005 |
+| P4-E1-T02 | Sponsor's private page with persona name, age and updates only (§12.2) | done | P4-E1-T40 | REQ-ORP-002, REQ-ORP-005 |
 | P4-E1-T03 | Progress updates by admin or teacher, admin approval for teachers, photo and contact checks (§12.3) | todo | P4-E1-T01, P3-E4 | REQ-ORP-008, REQ-CHS-001, REQ-CHS-002 |
 | P4-E1-T04 | Pause and end a sponsorship, ending any consent at once | todo | P4-E1-T01, P4-E2-T03 | REQ-ORP-006 |
 
@@ -1002,15 +1002,17 @@ P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals p
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P4-E2-T01 | Full-profile consent record: Moazam opens it, assigns any teacher, two sign-offs in either order (§12.4) | todo | P4-E1-T01, P3-E2 | REQ-ORP-003, REQ-ORP-004 |
-| P4-E2-T02 | Full-profile view for the matched sponsor only, with private, short-lived image addresses | todo | P4-E2-T01 | REQ-ORP-003, REQ-ORP-005 |
+| P4-E2-T02 | Full-profile view for the matched sponsor only, with private, short-lived image addresses | done | P4-E2-T40 | REQ-ORP-003, REQ-ORP-005 |
 | P4-E2-T03 | Withdrawal at once, and 12-month expiry with a 30-day reminder *(needs approval for expiry)* | todo | P4-E2-T02 | REQ-ORP-006, REQ-ORP-010 (proposed) |
 
 ### P4-E3 Sponsor messages through the madrasa
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P4-E3-T01 | Sponsor message form and staff inbox with replies (§12.5) | todo | P4-E1-T02 | REQ-ORP-007 |
-| P4-E3-T02 | Contact-detail screening on messages and no screen for the child | todo | P4-E3-T01 | REQ-ORP-007, REQ-CHS-002 |
+| P4-E3-T01 | Sponsor message form and staff inbox with replies (§12.5) | done | P4-E1-T02 | REQ-ORP-007 |
+| P4-E3-T02 | Contact-detail screening on messages and no screen for the child | done | P4-E3-T01 | REQ-ORP-007, REQ-CHS-002 |
+
+2026-11-14 · P4-E1-T02, P4-E2-T02, P4-E3-T01 and P4-E3-T02: [`0061_sponsor_page.sql`](../db/drizzle/0061_sponsor_page.sql) lets a signed-in donor read `app.sponsor_child_view()` and the messages on their own sponsorships, and send a message to the madrasa. The page shows the pen name, age and published updates. The real name and class names appear only while full-profile consent is active, and disappear on the next load when it is not. Photographs are not shown: a public image address would expose a child, and private short-lived links are not built yet (P2-E1-T30). A phone number or email is refused before the message is stored. There is no page or field for the child. Matching a sponsor (P4-E1-T01) and the staff inbox remain with the staff workspace ([D-145](08-decision-log.md#d-145)). An unmatched donor sees an empty state.
 
 ### P5-E4, P5-E5 and P5-E6 (to be detailed later)
 

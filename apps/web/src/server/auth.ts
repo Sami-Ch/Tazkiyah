@@ -74,6 +74,8 @@ import {
   type AdminAccess,
 } from "./workspace-access";
 import { authEmailSender, emailPaths, sendAuthEmail } from "./auth-email";
+import { handleHub } from "./hub";
+import { handleSponsor } from "./sponsor";
 import { createStudentAccount, setFirstPassword } from "./student-accounts";
 
 const authSchema = {
@@ -110,6 +112,8 @@ const postEndpoints = new Set([
   "/account-trail",
   "/claim-guest-donations",
   "/donor-link",
+  "/sponsor",
+  "/hub",
   "/two-factor/verify-totp",
   "/two-factor/verify-backup-code",
 ]);
@@ -332,7 +336,9 @@ async function runAuth(request: Request, path: string) {
     (path === "/donor-trail" ||
       path === "/donor-link" ||
       path === "/account-trail" ||
-      path === "/claim-guest-donations") &&
+      path === "/claim-guest-donations" ||
+      path === "/sponsor" ||
+      path === "/hub") &&
     publicUrl.search
   )
     return jsonError("Invalid request.", 400);
@@ -601,6 +607,26 @@ async function runAuth(request: Request, path: string) {
           return path === "/account-trail"
             ? readAccountTrail(tx, request, session.session.id)
             : claimGuestDonations(tx, session.session.id);
+        }
+        if (path === "/sponsor" || path === "/hub") {
+          const session = await currentSession();
+          const access = await readAccountAccess(tx, session);
+          const roleAllowed =
+            access.state === "allowed" &&
+            !access.mustChangePassword &&
+            (path === "/sponsor"
+              ? access.roles.includes("donor")
+              : access.roles.some(
+                  (role) =>
+                    role === "student" ||
+                    role === "teacher" ||
+                    role === "admin",
+                ));
+          if (!session || !roleAllowed)
+            return privateJson({ code: "denied" }, 403);
+          return path === "/sponsor"
+            ? handleSponsor(tx, request, session.session.id)
+            : handleHub(tx, request, session.session.id);
         }
         if (path === "/staff-invite/accept") {
           return acceptStaffInvitation(tx, request);

@@ -54,12 +54,12 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 ## Orphan sponsorship
 
 - [ ] REQ-ORP-001 Admin can match a sponsor to one orphan. MUST → 06 §12
-- [ ] REQ-ORP-002 By default, a sponsor sees only the orphan's persona name, age and progress updates. MUST → 06 §12
-- [ ] REQ-ORP-003 A sponsor sees the orphan's full profile only after guardian consent with two sign-offs. MUST → 06 §12
+- [x] REQ-ORP-002 By default, a sponsor sees only the orphan's persona name, age and progress updates. MUST → 06 §12
+- [x] REQ-ORP-003 A sponsor sees the orphan's full profile only after guardian consent with two sign-offs. MUST → 06 §12
 - [ ] REQ-ORP-004 The principal can assign the second sign-off to any teacher. MUST → 06 §12
-- [ ] REQ-ORP-005 A full profile is visible only to the matched sponsor and never on public pages. MUST → 06 §12
-- [ ] REQ-ORP-006 Withdrawing consent hides the full profile from the sponsor at once. MUST → 06 §12
-- [ ] REQ-ORP-007 A sponsor can message the madrasa about the child, and there is no direct sponsor-to-child contact. MUST → 06 §12
+- [x] REQ-ORP-005 A full profile is visible only to the matched sponsor and never on public pages. MUST → 06 §12
+- [x] REQ-ORP-006 Withdrawing consent hides the full profile from the sponsor at once. MUST → 06 §12
+- [x] REQ-ORP-007 A sponsor can message the madrasa about the child, and there is no direct sponsor-to-child contact. MUST → 06 §12
 - [ ] REQ-ORP-008 Admin or a teacher can post a progress update for a sponsored orphan. SHOULD → 06 §12
 - [ ] REQ-ORP-009 Sponsorship donations follow the same trail rules as other donations. MUST → 06 §12
 

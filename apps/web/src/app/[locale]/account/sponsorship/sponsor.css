@@ -1,0 +1,98 @@
+.community {
+  padding-block: clamp(2rem, 6vw, 4.5rem);
+}
+
+.community-heading,
+.community-form,
+.sponsor-card,
+.hub-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.community-heading {
+  max-inline-size: 42rem;
+  margin-block-end: 1.5rem;
+}
+
+.community-heading > p:last-child,
+.community-note {
+  color: var(--muted);
+}
+
+.sponsor-list,
+.hub-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.sponsor-card,
+.hub-card,
+.community-form {
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.sponsor-card h2,
+.hub-card h2 {
+  font-size: 1.5rem;
+}
+
+.sponsor-updates,
+.sponsor-messages,
+.hub-posts {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.community-form label,
+.community-form fieldset {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.community-form fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.community-form fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-block-size: 3rem;
+}
+
+.community-form input:not([type="radio"]),
+.community-form textarea,
+.community-form select {
+  min-block-size: 3rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+}
+
+.community-form textarea {
+  min-block-size: 7rem;
+}
+
+.hub-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hub-choices a,
+a.hub-card {
+  min-block-size: 3rem;
+  color: inherit;
+  text-decoration: none;
+  align-content: center;
+}

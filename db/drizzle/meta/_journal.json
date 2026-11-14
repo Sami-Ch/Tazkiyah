@@ -428,6 +428,13 @@
       "when": 1794445200000,
       "tag": "0060_donor_spent_trail",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1794445300000,
+      "tag": "0061_sponsor_page",
+      "breakpoints": true
     }
   ]
 }
