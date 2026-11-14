@@ -26,16 +26,16 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-TRL-001 Every donation has trail events of received, allocated, spent and reported. MUST → 06 §8
 - [ ] REQ-TRL-002 Trail events are append-only and are never edited or deleted. MUST → 04 §9
 - [ ] REQ-TRL-003 A correction is recorded as a new reversing event that points to the event it corrects. MUST → 04 §9
-- [ ] REQ-TRL-004 A spending entry draws on the oldest unspent donations in its cause first. MUST → 06 §8
+- [x] REQ-TRL-004 A spending entry draws on the oldest unspent donations in its cause first. MUST → 06 §8
 - [ ] REQ-TRL-005 One spending entry can draw on several donations, and one donation can be split across several spending entries. MUST → 06 §8
 - [ ] REQ-TRL-006 Zakat money is matched only to spending in Zakat-eligible causes. MUST → 06 §6
 - [ ] REQ-TRL-007 Donor can see, for each of their donations, which spending entries it paid for and how much. MUST → 06 §8
 - [ ] REQ-TRL-008 A donation's trail is private by default. MUST → 06 §10
 - [ ] REQ-TRL-009 Donor can make the trail of a donation public. MUST → 06 §10
 - [x] REQ-TRL-010 Each cause page shows aggregated spending without any donor identity. MUST → 05 §5
-- [ ] REQ-TRL-011 A spending entry records amount, date, description and an optional receipt or photo. MUST → 06 §9
+- [x] REQ-TRL-011 A spending entry records amount, date, description and an optional receipt or photo. MUST → 06 §9
 - [ ] REQ-TRL-012 Admin can publish a daily or weekly report that groups spending entries. SHOULD → 06 §9
-- [ ] REQ-TRL-013 Admin can see the unspent balance of each cause. MUST → 06 §9
+- [x] REQ-TRL-013 Admin can see the unspent balance of each cause. MUST → 06 §9
 - [x] REQ-TRL-014 The allocation model can record a future transfer from a platform fund to an institute without a schema change. MUST → 04 §9
 
 ## Donor profiles
@@ -53,7 +53,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 ## Orphan sponsorship
 
-- [ ] REQ-ORP-001 Admin can match a sponsor to one orphan. MUST → 06 §12
+- [x] REQ-ORP-001 Admin can match a sponsor to one orphan. MUST → 06 §12
 - [ ] REQ-ORP-002 By default, a sponsor sees only the orphan's persona name, age and progress updates. MUST → 06 §12
 - [ ] REQ-ORP-003 A sponsor sees the orphan's full profile only after guardian consent with two sign-offs. MUST → 06 §12
 - [ ] REQ-ORP-004 The principal can assign the second sign-off to any teacher. MUST → 06 §12
@@ -65,7 +65,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 ## Student hub
 
-- [ ] REQ-STU-001 Students cannot sign up themselves, and only a teacher or admin can create a student account. MUST → 07 §4
+- [x] REQ-STU-001 Students cannot sign up themselves, and only a teacher or admin can create a student account. MUST → 07 §4
 - [ ] REQ-STU-002 A student can personalise their persona's display name, avatar and short bio after first login. MUST → 07 §4
 - [ ] REQ-STU-003 Every student has an anonymous persona that is shown instead of their real name by default. MUST → 07 §4
 - [ ] REQ-STU-004 A student's real name is shown only when the student chooses it and consent is on record. SHOULD → 07 §5
@@ -83,8 +83,8 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-TCH-002 A teacher can turn a thread into a verified article. MUST → 07 §9
 - [ ] REQ-TCH-003 A verified article shows a verified mark and the verifying teacher's name. MUST → 07 §9
 - [ ] REQ-TCH-004 Teacher work goes through editor or admin review before it becomes public. MUST → 07 §10
-- [ ] REQ-TCH-005 Teachers can create classes and add students to them. MUST → 07 §4
-- [ ] REQ-TCH-006 Teachers can see the real student behind each persona in their classes. MUST → 07 §4
+- [x] REQ-TCH-005 Teachers can create classes and add students to them. MUST → 07 §4
+- [x] REQ-TCH-006 Teachers can see the real student behind each persona in their classes. MUST → 07 §4
 
 ## Public pages
 
@@ -138,7 +138,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-CHS-002 Posts containing phone numbers, email addresses or street addresses are blocked or flagged for a teacher. MUST → 07 §12
 - [ ] REQ-CHS-003 Teachers can see every student-to-student post and reply in their classes. MUST → 07 §12
 - [ ] REQ-CHS-004 Admin can take down any post immediately. MUST → 07 §8
-- [ ] REQ-CHS-005 A parent consent record exists before any of a student's work becomes public. MUST → 07 §5
+- [x] REQ-CHS-005 A parent consent record exists before any of a student's work becomes public. MUST → 07 §5
 - [ ] REQ-CHS-006 Parent consent is recorded by staff on a light form, with no guardian account. MUST → 07 §5
 
 ## Performance
@@ -176,7 +176,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 
 - [ ] REQ-MOD-001 Class and madrasa posts appear immediately without approval. MUST → 07 §8
 - [ ] REQ-MOD-002 Teachers and admins can hide or remove any class or madrasa post. MUST → 07 §8
-- [ ] REQ-MOD-003 Making a post public needs approval from the class teacher or the principal. MUST → 07 §8
+- [x] REQ-MOD-003 Making a post public needs approval from the class teacher or the principal. MUST → 07 §8
 - [ ] REQ-MOD-004 A post going public moves through the states draft, submitted, approved, published and taken down. MUST → 07 §8
 - [ ] REQ-MOD-005 Reported posts enter a moderation queue for teachers and admins. MUST → 07 §8
 - [ ] REQ-MOD-006 A taken-down post disappears from public pages within one minute (proposed target, D-027). SHOULD → 07 §8

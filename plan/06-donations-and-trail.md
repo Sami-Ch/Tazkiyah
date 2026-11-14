@@ -931,19 +931,21 @@ P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals p
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P2-E1-T01 | Phone-friendly spending entry form saving drafts in a daily or weekly batch (§9.1, §9.2) | todo | P1-E2-T01, P1-E5 | REQ-TRL-011, REQ-ROL-007 |
-| P2-E1-T02 | Receipt photo on a spending entry, with public or private setting from the cause default | todo | P2-E1-T01, P1-E2-T03, P2-E1-T30 | REQ-TRL-011, REQ-ROL-007, REQ-PRF-002 |
-| P2-E1-T03 | "Record batch": drafts become final and FIFO runs | todo | P2-E1-T01, P2-E2-T01 | REQ-TRL-004, REQ-TRL-011 |
-| P2-E1-T04 | Reverse a spending entry with a reason, releasing its matches | todo | P2-E1-T03, P2-E2-T03 | REQ-TRL-003 |
-| P2-E1-T05 | Admin view of unspent balance per cause by type, shortfalls and all-needs pools (§9.4) | todo | P2-E2-T01 | REQ-TRL-013 |
+| P2-E1-T01 | Phone-friendly spending entry form saving drafts in a daily or weekly batch (§9.1, §9.2) | done | P1-E2-T01, P1-E5 | REQ-TRL-011, REQ-ROL-007 |
+| P2-E1-T02 | Receipt photo on a spending entry, with public or private setting from the cause default | blocked | P2-E1-T01, P1-E2-T03, P2-E1-T30 | REQ-TRL-011, REQ-ROL-007, REQ-PRF-002 |
+| P2-E1-T03 | "Record batch": drafts become final and FIFO runs | done | P2-E1-T01, P2-E2-T01 | REQ-TRL-004, REQ-TRL-011 |
+| P2-E1-T04 | Reverse a spending entry with a reason, releasing its matches | done | P2-E1-T03, P2-E2-T03 | REQ-TRL-003 |
+| P2-E1-T05 | Admin view of unspent balance per cause by type, shortfalls and all-needs pools (§9.4) | done | P2-E2-T01 | REQ-TRL-013 |
+
+2026-11-14 · P2-E1-T01, T03, T04 and T05: finance staff save spending drafts, see unspent money by cause and type plus all-needs pools, record a batch through `app.match_spending`, and reverse a recorded entry ([`0061_staff_spending.sql`](../db/drizzle/0061_staff_spending.sql), [`/admin/spending`](../apps/web/src/app/[locale]/admin/spending/page.tsx)). An amount larger than the unspent balance stays a draft. The batch is daily until institute settings store the weekly choice (P1-E5-T03). P2-E1-T02 stays blocked: receipt photos need object storage (P2-E1-T30). P2-E2-T01 and P2-E2-T03 are the existing ledger functions, now called from this screen. Shortfalls that spend money which has not arrived yet stay proposed (P2-E2-T02). Tests: [`db/test/staff_spending.sql`](../db/test/staff_spending.sql).
 
 ### P2-E2 First-in-first-out matching
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P2-E2-T01 | FIFO matching for one cause with a per-cause lock, writing spend allocations and *spent* events (§8.4) | todo | P1-E3-T01, P2-E1-T01 | REQ-TRL-001, REQ-TRL-004, REQ-TRL-005 |
+| P2-E2-T01 | FIFO matching for one cause with a per-cause lock, writing spend allocations and *spent* events (§8.4) | done | P1-E3-T01, P2-E1-T01 | REQ-TRL-001, REQ-TRL-004, REQ-TRL-005 |
 | P2-E2-T02 | Shortfalls: entries larger than unspent money, filled by the next money in (§8.5) *(needs approval)* | todo | P2-E2-T01 | REQ-TRL-004, REQ-TRL-016 (proposed) |
-| P2-E2-T03 | Reversals after spending: release matches and re-run FIFO (§15.3) | todo | P2-E2-T01, P1-E3-T09 | REQ-DON-012, REQ-TRL-003 |
+| P2-E2-T03 | Reversals after spending: release matches and re-run FIFO (§15.3) | done | P2-E2-T01, P1-E3-T09 | REQ-DON-012, REQ-TRL-003 |
 | P2-E2-T04 | Automated tests: the §8.6 worked example as a fixture, plus the six money rules in §8.3 | todo | P2-E2-T02, P2-E2-T03 | REQ-TRL-004, REQ-TRL-005, REQ-TRL-006, REQ-TRL-007 |
 | P2-E2-T05 | Donor trail shows *spent* and *reported* events, with description, share and public receipt photo | todo | P2-E2-T01, P1-E4-T01 | REQ-TRL-007, REQ-ORP-009 |
 
@@ -990,10 +992,12 @@ P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals p
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P4-E1-T01 | Match an account donor to one orphan; link sponsorship donations to the Orphan sponsorship cause (§12.1) | todo | P3-E1, P2-E5-T01 | REQ-ORP-001, REQ-ORP-009 |
+| P4-E1-T01 | Match an account donor to one orphan; link sponsorship donations to the Orphan sponsorship cause (§12.1) | done | P3-E1, P2-E5-T01 | REQ-ORP-001, REQ-ORP-009 |
 | P4-E1-T02 | Sponsor's private page with persona name, age and updates only (§12.2) | todo | P4-E1-T01 | REQ-ORP-002, REQ-ORP-005 |
 | P4-E1-T03 | Progress updates by admin or teacher, admin approval for teachers, photo and contact checks (§12.3) | todo | P4-E1-T01, P3-E4 | REQ-ORP-008, REQ-CHS-001, REQ-CHS-002 |
 | P4-E1-T04 | Pause and end a sponsorship, ending any consent at once | todo | P4-E1-T01, P4-E2-T03 | REQ-ORP-006 |
+
+2026-11-14 · P4-E1-T01: an administrator matches one account donor to one orphan from [`/admin/sponsorships`](../apps/web/src/app/[locale]/admin/sponsorships/page.tsx). A second open match for the same child is refused. The screen shows the pen name and, to the administrator only, the real name ([`0064_staff_sponsorships.sql`](../db/drizzle/0064_staff_sponsorships.sql)). Ending a match is on the same screen; withdrawing full-profile consent at the same moment stays with P4-E1-T04. The sponsor's own page stays with P4-E1-T02. Tests: [`db/test/staff_sponsorships.sql`](../db/test/staff_sponsorships.sql).
 
 ### P4-E2 Sponsorship consent with an assignable second sign-off
 

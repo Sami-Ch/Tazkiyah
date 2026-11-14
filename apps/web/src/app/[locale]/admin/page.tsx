@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
 import { getAdminAccess } from "@/server/auth";
+import { Button } from "@/design/ui";
 import { StaffInvitationForm } from "./staff-invitation-form";
 import { TwoFactorSetup } from "./two-factor-setup";
 import "../sign-in/sign-in.css";
@@ -20,74 +21,39 @@ export default async function AdminPage({
 
   const { common } = await getMessages({ locale });
   const { admin: copy } = common;
+  const workspace = common.staffWorkspace;
+  if (access.state === "allowed") {
+    return (
+      <section className="staff-stack" aria-labelledby="admin-title">
+        <div className="public-intro">
+          <h1 id="admin-title">{copy.heading}</h1>
+          <p>
+            {copy.welcome} <bdi>{access.name}</bdi>. {workspace.intro}
+          </p>
+        </div>
+        <div className="ui-actions">
+          {access.canRecordTransfers && (
+            <Button href={`/${locale}/admin/donations`}>
+              {workspace.recordDonation}
+            </Button>
+          )}
+          {access.canRecordSpending && (
+            <Button href={`/${locale}/admin/spending`} variant="secondary">
+              {workspace.recordSpending}
+            </Button>
+          )}
+        </div>
+        {access.canInvite && (
+          <StaffInvitationForm copy={common.staffInvite} locale={locale} />
+        )}
+      </section>
+    );
+  }
   return (
     <section className="shell sign-in-section" aria-labelledby="admin-title">
       <div className="sign-in-card">
-        <h1 id="admin-title">
-          {access.state === "enroll" ? copy.setupHeading : copy.heading}
-        </h1>
-        {access.state === "allowed" ? (
-          <>
-            <p>
-              {copy.welcome} <bdi>{access.name}</bdi>
-            </p>
-            {access.twoFactorVerified && <p>{copy.verified}</p>}
-            {access.canEditPages && (
-              <a
-                className="button button-outline"
-                href={`/${locale}/admin/pages`}
-              >
-                {common.sitePages.heading}
-              </a>
-            )}
-            {access.canRecordTransfers && (
-              <a
-                className="button button-primary"
-                href={`/${locale}/admin/donations`}
-              >
-                {common.manualDonations.heading}
-              </a>
-            )}
-            {access.canInvite && (
-              <>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/users`}
-                >
-                  {common.staffDirectory.heading}
-                </a>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/causes`}
-                >
-                  {common.giving.manage}
-                </a>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/audit`}
-                >
-                  {common.auditLog.heading}
-                </a>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/bank-accounts`}
-                >
-                  {common.bankSettings.heading}
-                </a>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/donor-links`}
-                >
-                  {common.donorLinks.heading}
-                </a>
-                <StaffInvitationForm
-                  copy={common.staffInvite}
-                  locale={locale}
-                />
-              </>
-            )}
-          </>
-        ) : access.state === "enroll" ? (
+        <h1 id="admin-title">{copy.setupHeading}</h1>
+        {access.state === "enroll" ? (
           <TwoFactorSetup copy={copy} workspaceHref={`/${locale}/admin`} />
         ) : (
           <p>

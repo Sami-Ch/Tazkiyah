@@ -504,3 +504,9 @@ The component gallery is `/{lang}/design` and is `noindex`, so other work can re
 A spending row shows its date, amount and description. Receipt photos stay off the page until a public media URL exists. The view has a storage key, and R2 is not configured here.
 
 Amount chips, the settings switch, the form error summary, toasts, a phone bottom sheet and the walkthrough stepper are still open. They belong with the donate flow and the onboarding tasks.
+
+## D-144
+
+2026-11-14 · Build agent (P1-E5-T01) · Staff workspace uses the shared design system, Sami may reverse
+
+The staff menu and workspace screens live inside `/admin` and reuse `apps/web/src/design` (buttons, fields, tables, amount and date formatters, and the public tokens). Role-based links stay in the staff area. Options: keep a private staff stylesheet; use the shared components. Reason: the design system landed in the public branch, and one set of components keeps Urdu and English staff screens on the same type, colour, and money formatting.

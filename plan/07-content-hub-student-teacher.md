@@ -677,19 +677,21 @@ Status is `todo` for every task. Where a dependency is another document's epic (
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P3-E1-T01 | Staff form to create a student account with generated username and starting password, with no self sign-up | todo | P0-E5 | REQ-STU-001, REQ-ROL-003, REQ-ROL-008 |
+| P3-E1-T01 | Staff form to create a student account with generated username and starting password, with no self sign-up | done | P0-E5 | REQ-STU-001, REQ-ROL-003, REQ-ROL-008 |
 | P3-E1-T02 | Create a persona with a generated display name and default avatar when a student account is created | todo | P3-E1-T01 | REQ-STU-003, REQ-SEC-007 |
 | P3-E1-T03 | Preset avatar set and persona rules (name length, uniqueness, real-name match, block list, bio length) | todo | P3-E1-T02, P0-E4 | REQ-STU-002, REQ-CHS-001 |
 | P3-E1-T04 | First-login screen: new password, then persona display name, avatar and bio | todo | P3-E1-T03 | REQ-STU-002, REQ-STU-010 |
 | P3-E1-T05 | Show personas instead of real names in every page, API response, export and email, by role | todo | P3-E1-T02 | REQ-STU-003, REQ-CHS-001, REQ-SEC-005, REQ-SEC-007, REQ-SEC-008 |
-| P3-E1-T06 | Create, edit and archive classes with Urdu and English names and class teachers | todo | P0-E5 | REQ-TCH-005 |
-| P3-E1-T07 | Add, remove and move students between classes, keeping membership history | todo | P3-E1-T06, P3-E1-T01 | REQ-TCH-005 |
+| P3-E1-T06 | Create, edit and archive classes with Urdu and English names and class teachers | done | P0-E5 | REQ-TCH-005 |
+| P3-E1-T07 | Add, remove and move students between classes, keeping membership history | done | P3-E1-T06, P3-E1-T01 | REQ-TCH-005 |
 | P3-E1-T08 | "Who is this?" persona trace for the student's teachers and admins, logged in the audit log | todo | P3-E1-T05, P3-E1-T07 | REQ-TCH-006, REQ-SEC-007, REQ-ROL-008 |
 | P3-E1-T09 | Persona name history, 30-day change limit, and staff reset of an unsuitable name or bio | todo | P3-E1-T03, P3-E1-T08 | REQ-STU-002, REQ-CHS-001, REQ-ROL-008 |
 | P3-E1-T10 | Leaver flow: mark a student as left, move them to the Alumni class, keep account and persona live | todo | P3-E1-T07 | REQ-STU-009 |
 | P3-E1-T11 | Admin suspends and restores a student account with a reason | todo | P3-E1-T01 | REQ-ROL-008 |
 | P3-E1-T12 | Teacher profile: real name, subject, short profile, optional photo | todo | P0-E5 | REQ-TCH-001 |
 | P3-E1-T13 | Student setting to show their public name with the persona, gated on consent | todo | P3-E1-T05, P3-E2-T03 | REQ-STU-004 |
+
+2026-11-14 · P3-E1-T01, T06 and T07: teachers and admins create classes and student accounts from [`/admin/classes`](../apps/web/src/app/[locale]/admin/classes/page.tsx). The starting username and password are shown once. A class teacher can add and end student memberships only; adding a teacher returns denied unless the caller is an admin ([D-129](08-decision-log.md#d-129), [`0062_staff_classes.sql`](../db/drizzle/0062_staff_classes.sql)). Real names are returned to an admin or a teacher of that student. Tests: [`db/test/staff_classes.sql`](../db/test/staff_classes.sql).
 
 ### P3-E2 Parent consent records
 
@@ -728,13 +730,15 @@ Status is `todo` for every task. Where a dependency is another document's epic (
 | P3-E5-T02 | Admin list of teachers who may widen scopes; widen and narrow actions with audit entries | todo | P3-E5-T01 | REQ-MOD-007, REQ-ROL-008 |
 | P3-E5-T03 | Hide, unhide and remove class and madrasa posts (inside state) | todo | P3-E3-T13 | REQ-MOD-002 |
 | P3-E5-T04 | Report button with reasons for logged-in users and rate-limited visitors | todo | P3-E3-T01 | REQ-STU-011, REQ-MOD-005 |
-| P3-E5-T05 | Moderation queue with priority order, filtered by role and class | todo | P3-E5-T04, P3-E3-T12 | REQ-MOD-005, REQ-CHS-002 |
+| P3-E5-T05 | Moderation queue with priority order, filtered by role and class | done | P3-E5-T04, P3-E3-T12 | REQ-MOD-005, REQ-CHS-002 |
 | P3-E5-T06 | Take down any post with a reason and remove it from public pages within one minute | todo | P3-E5-T03, P0-E1 | REQ-CHS-004, REQ-MOD-006 |
 | P3-E5-T07 | Public request: draft, preview and submit by the author, or a teacher suggestion the author accepts | todo | P3-E5-T01, P3-E2-T03 | REQ-MOD-003, REQ-MOD-004 |
-| P3-E5-T08 | Approve, reject and automatic publish with approver rules (PD-07-01) and publish checks | todo | P3-E5-T07, P3-E5-T02 | REQ-MOD-003, REQ-MOD-004, REQ-CHS-005 |
+| P3-E5-T08 | Approve, reject and automatic publish with approver rules (PD-07-01) and publish checks | done | P3-E5-T07, P3-E5-T02 | REQ-MOD-003, REQ-MOD-004, REQ-CHS-005 |
 | P3-E5-T09 | Edits to public-track posts return to submitted; admin restores from taken down to submitted | todo | P3-E5-T08, P3-E5-T06 | REQ-MOD-004 |
 | P3-E5-T10 | Report thresholds that hide or take down posts automatically until reviewed | todo | P3-E5-T05, P3-E5-T06 | REQ-MOD-005, REQ-CHS-004 |
 | P3-E5-T11 | Post moderation history and audit entries for every moderation action | todo | P3-E5-T03, P3-E5-T06, P3-E5-T08 | REQ-ROL-008 |
+
+2026-11-14 · P3-E5-T05 and T08: [`/admin/moderation`](../apps/web/src/app/[locale]/admin/moderation/page.tsx) lists submitted posts the signed-in person may approve. Approve is refused without public-work consent, and also when a photo is flagged as showing a face and face consent is missing. Reject needs a note and writes an audit row that does not store a student's real name ([`0063_staff_moderation.sql`](../db/drizzle/0063_staff_moderation.sql)). Reports, takedown and restore stay open (P3-E5-T04, T06, T41). Tests: [`db/test/staff_moderation.sql`](../db/test/staff_moderation.sql).
 
 ### P3-E6 Teacher hub and verified articles
 
