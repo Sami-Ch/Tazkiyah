@@ -817,7 +817,13 @@
     "denied": "You cannot change that membership.",
     "invalid": "Check the class name.",
     "unavailable": "The class could not be saved. Try again.",
-    "pending": "Please wait…"
+    "pending": "Please wait…",
+    "alumni": "Alumni",
+    "markLeft": "Mark as left",
+    "left": "This student is now in the alumni class. Their pen name stays active.",
+    "alreadyLeft": "This student has already left.",
+    "resetName": "Reset pen name",
+    "resetDone": "The pen name was reset. The student can choose a new one."
   },
   "staffModeration": {
     "heading": "Moderation",

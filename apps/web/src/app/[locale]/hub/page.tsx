@@ -7,6 +7,7 @@ import { getAccountAccess } from "@/server/auth";
 import { HubScreen } from "./hub-screen";
 import { hubCopy } from "./hub-copy";
 import "../account/sponsorship/sponsor.css";
+import "./hub.css";
 
 export const dynamic = "force-dynamic";
 

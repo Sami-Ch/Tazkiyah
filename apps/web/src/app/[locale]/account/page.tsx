@@ -6,6 +6,7 @@ import { getAccountAccess } from "@/server/auth";
 import { AccountFormPage } from "../sign-in/account-form-page";
 import { sponsorCopy } from "./sponsorship/sponsor-copy";
 import { hubCopy } from "../hub/hub-copy";
+import { ReplayHelp } from "./replay-help";
 import { trailCopy } from "../trail/trail-copy";
 import "../sign-in/sign-in.css";
 
@@ -73,6 +74,9 @@ export default async function AccountPage({
               (role) =>
                 role === "student" || role === "teacher" || role === "admin",
             ) && <a href={`/${locale}/hub`}>{hubCopy[locale].title}</a>}
+            {access.roles.some(
+              (role) => role === "student" || role === "teacher",
+            ) && <ReplayHelp locale={locale} />}
           </>
         ) : (
           <p role="status">{account.unavailable}</p>

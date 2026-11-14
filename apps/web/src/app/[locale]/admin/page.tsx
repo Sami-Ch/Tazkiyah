@@ -8,6 +8,7 @@ import { Button } from "@/design/ui";
 import { StaffInvitationForm } from "./staff-invitation-form";
 import { staffLinks, type StaffLinkId } from "./staff-links";
 import { StaffOverview } from "./staff-overview";
+import { SetupChecklist } from "./setup-checklist";
 import { TwoFactorSetup } from "./two-factor-setup";
 import "../sign-in/sign-in.css";
 
@@ -75,6 +76,7 @@ export default async function AdminPage({
             </Button>
           )}
         </div>
+        <SetupChecklist locale={locale} />
         {access.canInvite && (
           <StaffInvitationForm copy={common.staffInvite} locale={locale} />
         )}

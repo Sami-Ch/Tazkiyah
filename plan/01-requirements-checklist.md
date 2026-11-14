@@ -66,23 +66,23 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 ## Student hub
 
 - [x] REQ-STU-001 Students cannot sign up themselves, and only a teacher or admin can create a student account. MUST → 07 §4
-- [ ] REQ-STU-002 A student can personalise their persona's display name, avatar and short bio after first login. MUST → 07 §4
-- [ ] REQ-STU-003 Every student has an anonymous persona that is shown instead of their real name by default. MUST → 07 §4
+- [x] REQ-STU-002 A student can personalise their persona's display name, avatar and short bio after first login. MUST → 07 §4
+- [x] REQ-STU-003 Every student has an anonymous persona that is shown instead of their real name by default. MUST → 07 §4
 - [ ] REQ-STU-004 A student's real name is shown only when the student chooses it and consent is on record. SHOULD → 07 §5
-- [ ] REQ-STU-005 Students can create posts of type message, question, answer, poll, article, video, vlog, audio and slides. MUST → 07 §6
+- [x] REQ-STU-005 Students can create posts of type message, question, answer, poll, article, video, vlog, audio and slides. MUST → 07 §6
 - [x] REQ-STU-006 Students can reply in threads. MUST → 07 §6
-- [ ] REQ-STU-007 Students and teachers can create polls, and students can vote in them. MUST → 07 §6
+- [x] REQ-STU-007 Students and teachers can create polls, and students can vote in them. MUST → 07 §6
 - [x] REQ-STU-008 Every post has a scope of class or madrasa when created. MUST → 07 §7
-- [ ] REQ-STU-009 A student's account and persona stay active after they leave the madrasa. MUST → 07 §4
-- [ ] REQ-STU-010 Students see a guided walkthrough on first login. MUST → 02 §13
+- [x] REQ-STU-009 A student's account and persona stay active after they leave the madrasa. MUST → 07 §4
+- [x] REQ-STU-010 Students see a guided walkthrough on first login. MUST → 02 §13
 - [x] REQ-STU-011 Students can report a post. MUST → 07 §8
 
 ## Teacher hub
 
-- [ ] REQ-TCH-001 Teachers can publish articles, lessons, audio, video and resources under their real name with a short profile. MUST → 07 §10
-- [ ] REQ-TCH-002 A teacher can turn a thread into a verified article. MUST → 07 §9
-- [ ] REQ-TCH-003 A verified article shows a verified mark and the verifying teacher's name. MUST → 07 §9
-- [ ] REQ-TCH-004 Teacher work goes through editor or admin review before it becomes public. MUST → 07 §10
+- [x] REQ-TCH-001 Teachers can publish articles, lessons, audio, video and resources under their real name with a short profile. MUST → 07 §10
+- [x] REQ-TCH-002 A teacher can turn a thread into a verified article. MUST → 07 §9
+- [x] REQ-TCH-003 A verified article shows a verified mark and the verifying teacher's name. MUST → 07 §9
+- [x] REQ-TCH-004 Teacher work goes through editor or admin review before it becomes public. MUST → 07 §10
 - [x] REQ-TCH-005 Teachers can create classes and add students to them. MUST → 07 §4
 - [x] REQ-TCH-006 Teachers can see the real student behind each persona in their classes. MUST → 07 §4
 
