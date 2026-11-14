@@ -37,6 +37,17 @@ import {
   type CauseWorkspace,
 } from "./causes";
 import {
+  readDonorWall,
+  readPublicOverview,
+  readPublicWork,
+} from "./public-ledger";
+import type {
+  DonorWallEntry,
+  PublicOverview,
+  PublicPost,
+  PublicTeacher,
+} from "@/institutes/public-ledger";
+import {
   readPublishedSitePages,
   readSitePageWorkspace,
   writeSitePage,
@@ -44,8 +55,20 @@ import {
 } from "./site-pages";
 import { authOriginHeader, forwardedHttpsOrigin } from "./auth-origin";
 import { readAuditWorkspace, type AuditWorkspace } from "./audit-log";
-import { manageDonorLink, readDonorTrail, readTrailQuery } from "./donor-trail";
 import {
+  manageBankStatement,
+  readStatementWorkspace,
+  type StatementWorkspace,
+} from "./bank-reconciliation";
+import {
+  claimGuestDonations,
+  manageDonorLink,
+  readAccountTrail,
+  readDonorTrail,
+  readTrailQuery,
+} from "./donor-trail";
+import {
+  manageDonationReversal,
   readDonationWorkspace,
   recordDonation,
   type DonationWorkspace,
@@ -62,7 +85,65 @@ import {
   type AdminAccess,
 } from "./workspace-access";
 import { authEmailSender, emailPaths, sendAuthEmail } from "./auth-email";
+import { handleHub } from "./hub";
+import { handleSponsor } from "./sponsor";
 import { createStudentAccount, setFirstPassword } from "./student-accounts";
+import {
+  manageSpending,
+  readSpendingWorkspace,
+  type SpendingWorkspace,
+} from "./spending";
+import {
+  manageAllNeeds,
+  manageSpendingReport,
+  readAllNeedsWorkspace,
+  readDonorProfileWorkspace,
+  readPublicDonor,
+  readPublicTrail,
+  readSpendingReports,
+  saveDonorProfile,
+  setDonationVisibility,
+  type AllNeedsWorkspace,
+  type DonorProfileWorkspace,
+  type ReportWorkspace,
+} from "./transparency";
+import {
+  manageClass,
+  readClassWorkspace,
+  type ClassWorkspace,
+} from "./classes";
+import {
+  decidePost,
+  readModerationQueue,
+  type ModerationWorkspace,
+} from "./moderation";
+import {
+  manageConsent,
+  readConsentWorkspace,
+  type ConsentWorkspace,
+} from "./consent";
+import {
+  manageProgress,
+  readProgressWorkspace,
+  type ProgressWorkspace,
+} from "./progress";
+import {
+  manageSponsorship,
+  readSponsorshipWorkspace,
+  type SponsorshipWorkspace,
+} from "./sponsorships";
+import {
+  readInstituteWorkspace,
+  readModuleWorkspace,
+  readPledgeWorkspace,
+  saveInstituteSettings,
+  saveModuleSwitches,
+  type InstituteWorkspace,
+  type ModuleWorkspace,
+  type PledgeWorkspace,
+} from "./institute-workspace";
+import { readPublishedProjects } from "./projects";
+import type { PublicProject } from "@/institutes/projects";
 
 const authSchema = {
   user: users,
@@ -91,9 +172,27 @@ const postEndpoints = new Set([
   "/student-account",
   "/first-password",
   "/manual-donation",
+  "/donation-reversal",
+  "/bank-reconciliation",
+  "/spending",
+  "/all-needs",
+  "/spending-report",
+  "/donation-visibility",
+  "/donor-profile",
+  "/class",
+  "/moderation",
+  "/consent",
+  "/progress",
+  "/sponsorship",
   "/bank-account",
+  "/institute-settings",
+  "/module-switches",
   "/donor-trail",
+  "/account-trail",
+  "/claim-guest-donations",
   "/donor-link",
+  "/sponsor",
+  "/hub",
   "/two-factor/verify-totp",
   "/two-factor/verify-backup-code",
 ]);
@@ -195,6 +294,104 @@ export function getBankWorkspace(headers: Headers): Promise<BankWorkspace> {
   return readWorkspace<BankWorkspace>(headers, "/bank-settings");
 }
 
+export function getInstituteWorkspace(
+  headers: Headers,
+): Promise<InstituteWorkspace> {
+  return readWorkspace<InstituteWorkspace>(headers, "/institute-settings");
+}
+
+export function getModuleWorkspace(headers: Headers): Promise<ModuleWorkspace> {
+  return readWorkspace<ModuleWorkspace>(headers, "/module-switches");
+}
+
+export function getPledgeWorkspace(headers: Headers): Promise<PledgeWorkspace> {
+  return readWorkspace<PledgeWorkspace>(headers, "/expected-pledges");
+}
+
+export async function getPublishedProjects(
+  headers: Headers,
+): Promise<PublicProject[]> {
+  const response = await instituteRequest(headers, "/projects-public");
+  return response.ok ? response.json() : [];
+}
+
+export function getSponsorshipWorkspace(
+  headers: Headers,
+): Promise<SponsorshipWorkspace> {
+  return readWorkspace<SponsorshipWorkspace>(headers, "/sponsorship-workspace");
+}
+
+export function getModerationWorkspace(
+  headers: Headers,
+): Promise<ModerationWorkspace> {
+  return readWorkspace<ModerationWorkspace>(headers, "/moderation-workspace");
+}
+
+export function getConsentWorkspace(
+  headers: Headers,
+): Promise<ConsentWorkspace> {
+  return readWorkspace<ConsentWorkspace>(headers, "/consent-workspace");
+}
+
+export function getProgressWorkspace(
+  headers: Headers,
+): Promise<ProgressWorkspace> {
+  return readWorkspace<ProgressWorkspace>(headers, "/progress-workspace");
+}
+
+export function getClassWorkspace(headers: Headers): Promise<ClassWorkspace> {
+  return readWorkspace<ClassWorkspace>(headers, "/class-workspace");
+}
+
+export function getSpendingWorkspace(
+  headers: Headers,
+): Promise<SpendingWorkspace> {
+  return readWorkspace<SpendingWorkspace>(headers, "/spending-workspace");
+}
+
+export function getAllNeedsWorkspace(
+  headers: Headers,
+): Promise<AllNeedsWorkspace> {
+  return readWorkspace<AllNeedsWorkspace>(headers, "/all-needs-workspace");
+}
+
+export function getReportWorkspace(headers: Headers): Promise<ReportWorkspace> {
+  return readWorkspace<ReportWorkspace>(headers, "/spending-reports-workspace");
+}
+
+export function getDonorProfileWorkspace(
+  headers: Headers,
+): Promise<DonorProfileWorkspace> {
+  return readWorkspace<DonorProfileWorkspace>(headers, "/donor-profile-workspace");
+}
+
+export async function getPublicTrail(headers: Headers, ref: string) {
+  const response = await instituteRequest(
+    headers,
+    "/public-trail",
+    new URLSearchParams({ ref }),
+  );
+  return response.ok ? response.json() : null;
+}
+
+export async function getPublicDonor(headers: Headers, ref: string) {
+  const response = await instituteRequest(
+    headers,
+    "/donor-profile-public",
+    new URLSearchParams({ ref }),
+  );
+  return response.ok ? response.json() : null;
+}
+
+export function getStatementWorkspace(
+  headers: Headers,
+): Promise<StatementWorkspace> {
+  return readWorkspace<StatementWorkspace>(
+    headers,
+    "/bank-reconciliation-workspace",
+  );
+}
+
 export function getSitePageWorkspace(
   headers: Headers,
 ): Promise<SitePageWorkspace> {
@@ -236,6 +433,39 @@ export async function getPublishedCauses(
   return response.ok ? response.json() : [];
 }
 
+export async function getPublicOverview(
+  headers: Headers,
+): Promise<PublicOverview | null> {
+  const response = await instituteRequest(headers, "/public-overview");
+  return response.ok ? response.json() : null;
+}
+
+export async function getDonorWall(
+  headers: Headers,
+  filters: URLSearchParams,
+): Promise<{ items: DonorWallEntry[]; hasMore: boolean }> {
+  const response = await instituteRequest(
+    headers,
+    "/donor-wall-public",
+    filters,
+  );
+  return response.ok ? response.json() : { items: [], hasMore: false };
+}
+
+export async function getPublicWork(
+  headers: Headers,
+  filters: URLSearchParams,
+): Promise<{
+  items: PublicPost[];
+  teachers: PublicTeacher[];
+  hasMore: boolean;
+}> {
+  const response = await instituteRequest(headers, "/public-work", filters);
+  return response.ok
+    ? response.json()
+    : { items: [], teachers: [], hasMore: false };
+}
+
 async function readWorkspace<
   T extends
     | AccountAccess
@@ -245,7 +475,20 @@ async function readWorkspace<
     | CauseWorkspace
     | AuditWorkspace
     | DonationWorkspace
-    | BankWorkspace,
+    | BankWorkspace
+    | SpendingWorkspace
+    | AllNeedsWorkspace
+    | ReportWorkspace
+    | DonorProfileWorkspace
+    | ClassWorkspace
+    | ModerationWorkspace
+    | ConsentWorkspace
+    | ProgressWorkspace
+    | SponsorshipWorkspace
+    | StatementWorkspace
+    | InstituteWorkspace
+    | ModuleWorkspace
+    | PledgeWorkspace,
 >(
   headers: Headers,
   path: string,
@@ -302,12 +545,29 @@ async function runAuth(request: Request, path: string) {
   if (publicUrl.protocol !== "https:" && !local)
     return jsonError("Not found.", 404);
 
-  if ((path === "/donor-trail" || path === "/donor-link") && publicUrl.search)
+  if (
+    (path === "/donor-trail" ||
+      path === "/donor-link" ||
+      path === "/account-trail" ||
+      path === "/claim-guest-donations" ||
+      path === "/sponsor" ||
+      path === "/hub") &&
+    publicUrl.search
+  )
     return jsonError("Invalid request.", 400);
   const trailQuery =
     path === "/donor-trail" ? await readTrailQuery(request) : null;
   if (path === "/donor-trail" && !trailQuery)
     return jsonError("Invalid request.", 400);
+  const guestChoice =
+    path === "/donation-visibility" || path === "/donor-profile"
+      ? await request.clone().json().catch(() => null)
+      : null;
+  const guestToken =
+    !!guestChoice &&
+    typeof guestChoice === "object" &&
+    typeof (guestChoice as { token?: unknown }).token === "string" &&
+    /^[A-Za-z0-9_-]{43}$/.test((guestChoice as { token: string }).token);
 
   const host = local
     ? (bindings?.BETTER_AUTH_LOCAL_INSTITUTE_DOMAIN ??
@@ -318,10 +578,17 @@ async function runAuth(request: Request, path: string) {
   const secret = bindings?.BETTER_AUTH_SECRET ?? process.env.BETTER_AUTH_SECRET;
   const publicContent =
     trailQuery !== null ||
+    guestToken ||
     path === "/site-pages-public" ||
     path === "/contact-public" ||
     path === "/causes-public" ||
-    path === "/bank-accounts-public";
+    path === "/bank-accounts-public" ||
+    path === "/public-overview" ||
+    path === "/donor-wall-public" ||
+    path === "/public-work" ||
+    path === "/projects-public" ||
+    path === "/public-trail" ||
+    path === "/donor-profile-public";
   if (!host || (!publicContent && (!ip || !secret || secret.length < 32))) {
     return jsonError("Authentication is unavailable.", 503);
   }
@@ -382,10 +649,20 @@ async function runAuth(request: Request, path: string) {
         if (path === "/site-pages-public") return readPublishedSitePages(tx);
         if (path === "/contact-public")
           return readPublishedInstituteContact(tx);
+        if (path === "/projects-public") return readPublishedProjects(tx);
         if (path === "/bank-accounts-public")
           return readPublishedBankAccounts(tx);
         if (path === "/causes-public")
           return readPublishedCauses(tx, publicUrl.searchParams.get("slug"));
+        if (path === "/public-overview") return readPublicOverview(tx);
+        if (path === "/donor-wall-public")
+          return readDonorWall(tx, publicUrl.searchParams);
+        if (path === "/public-trail")
+          return readPublicTrail(tx, publicUrl.searchParams.get("ref"));
+        if (path === "/donor-profile-public")
+          return readPublicDonor(tx, publicUrl.searchParams.get("ref"));
+        if (path === "/public-work")
+          return readPublicWork(tx, publicUrl.searchParams);
         if (!ip || !secret)
           return jsonError("Authentication is unavailable.", 503);
 
@@ -556,6 +833,88 @@ async function runAuth(request: Request, path: string) {
             await readAccountAccess(tx, await currentSession()),
           );
         }
+        if (path === "/donation-visibility" || path === "/donor-profile") {
+          const session = await currentSession();
+          if (path === "/donor-profile") {
+            const peeked = await request.clone().json().catch(() => null);
+            const guest =
+              peeked &&
+              typeof peeked === "object" &&
+              typeof (peeked as { token?: unknown }).token === "string";
+            if (guest) return saveDonorProfile(tx, request, null);
+            const access = await readAccountAccess(tx, session);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              access.mustChangePassword ||
+              !access.roles.includes("donor")
+            )
+              return privateJson({ code: "denied" }, 403);
+            return saveDonorProfile(tx, request, session.session.id);
+          }
+          const access = session ? await readAccountAccess(tx, session) : null;
+          const staff = session ? await checkWorkspaceAccess(tx, session) : null;
+          const donorOk =
+            !!session &&
+            access?.state === "allowed" &&
+            !access.mustChangePassword &&
+            access.roles.includes("donor");
+          const staffOk =
+            staff?.state === "allowed" && staff.canRecordTransfers;
+          if (!donorOk && !staffOk && session)
+            return privateJson({ code: "denied" }, 403);
+          return setDonationVisibility(
+            tx,
+            request,
+            session ? session.session.id : null,
+          );
+        }
+        if (path === "/donor-profile-workspace") {
+          const session = await currentSession();
+          const access = await readAccountAccess(tx, session);
+          if (
+            !session ||
+            access.state !== "allowed" ||
+            access.mustChangePassword ||
+            !access.roles.includes("donor")
+          )
+            return privateJson({ state: "denied" });
+          return readDonorProfileWorkspace(tx, session.session.id);
+        }
+        if (path === "/account-trail" || path === "/claim-guest-donations") {
+          const session = await currentSession();
+          const access = await readAccountAccess(tx, session);
+          if (
+            !session ||
+            access.state !== "allowed" ||
+            access.mustChangePassword ||
+            !access.roles.includes("donor")
+          )
+            return privateJson({ code: "denied" }, 403);
+          return path === "/account-trail"
+            ? readAccountTrail(tx, request, session.session.id)
+            : claimGuestDonations(tx, session.session.id);
+        }
+        if (path === "/sponsor" || path === "/hub") {
+          const session = await currentSession();
+          const access = await readAccountAccess(tx, session);
+          const roleAllowed =
+            access.state === "allowed" &&
+            !access.mustChangePassword &&
+            (path === "/sponsor"
+              ? access.roles.includes("donor")
+              : access.roles.some(
+                  (role) =>
+                    role === "student" ||
+                    role === "teacher" ||
+                    role === "admin",
+                ));
+          if (!session || !roleAllowed)
+            return privateJson({ code: "denied" }, 403);
+          return path === "/sponsor"
+            ? handleSponsor(tx, request, session.session.id)
+            : handleHub(tx, request, session.session.id);
+        }
         if (path === "/staff-invite/accept") {
           return acceptStaffInvitation(tx, request);
         }
@@ -580,8 +939,30 @@ async function runAuth(request: Request, path: string) {
           path === "/student-account" ||
           path === "/bank-settings" ||
           path === "/bank-account" ||
+          path === "/institute-settings" ||
+          path === "/module-switches" ||
+          path === "/expected-pledges" ||
           path === "/manual-donation-workspace" ||
           path === "/manual-donation" ||
+          path === "/spending-workspace" ||
+          path === "/spending" ||
+          path === "/all-needs-workspace" ||
+          path === "/all-needs" ||
+          path === "/spending-reports-workspace" ||
+          path === "/spending-report" ||
+          path === "/class-workspace" ||
+          path === "/class" ||
+          path === "/moderation-workspace" ||
+          path === "/moderation" ||
+          path === "/consent-workspace" ||
+          path === "/consent" ||
+          path === "/progress-workspace" ||
+          path === "/progress" ||
+          path === "/sponsorship-workspace" ||
+          path === "/sponsorship" ||
+          path === "/donation-reversal" ||
+          path === "/bank-reconciliation" ||
+          path === "/bank-reconciliation-workspace" ||
           path === "/site-page-workspace" ||
           path === "/site-page" ||
           path === "/cause-workspace" ||
@@ -590,6 +971,37 @@ async function runAuth(request: Request, path: string) {
           const session = await currentSession();
           const access = await checkWorkspaceAccess(tx, session);
           if (path === "/admin-access") return privateJson(access);
+          if (
+            path === "/bank-reconciliation" ||
+            path === "/bank-reconciliation-workspace"
+          ) {
+            if (
+              path === "/bank-reconciliation-workspace" &&
+              access.state !== "allowed"
+            )
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canReconcileTransfers
+            ) {
+              return path === "/bank-reconciliation"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            }
+            return path === "/bank-reconciliation"
+              ? manageBankStatement(tx, request, session.session.id)
+              : readStatementWorkspace(tx, session.session.id);
+          }
+          if (path === "/donation-reversal") {
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canReverseTransfers
+            )
+              return privateJson({ code: "denied" }, 403);
+            return manageDonationReversal(tx, request, session.session.id);
+          }
           if (path === "/student-account") {
             if (
               !session ||
@@ -609,6 +1021,32 @@ async function runAuth(request: Request, path: string) {
               publicUrl.origin,
             );
           }
+          if (path === "/institute-settings") {
+            if (access.state !== "allowed") return privateJson(access);
+            if (!session || !access.canEditSettings)
+              return request.method === "GET"
+                ? privateJson({ state: "denied" })
+                : privateJson({ code: "denied" }, 403);
+            return request.method === "GET"
+              ? readInstituteWorkspace(tx, session.session.id)
+              : saveInstituteSettings(tx, request, session.session.id);
+          }
+          if (path === "/module-switches") {
+            if (access.state !== "allowed") return privateJson(access);
+            if (!session || !access.canSwitchModules)
+              return request.method === "GET"
+                ? privateJson({ state: "denied" })
+                : privateJson({ code: "denied" }, 403);
+            return request.method === "GET"
+              ? readModuleWorkspace(tx, session.session.id)
+              : saveModuleSwitches(tx, request, session.session.id);
+          }
+          if (path === "/expected-pledges") {
+            if (access.state !== "allowed") return privateJson(access);
+            if (!session || !access.canRecordTransfers)
+              return privateJson({ state: "denied" });
+            return readPledgeWorkspace(tx, session.session.id);
+          }
           if (path === "/bank-settings" || path === "/bank-account") {
             if (path === "/bank-settings" && access.state !== "allowed")
               return privateJson(access);
@@ -619,6 +1057,127 @@ async function runAuth(request: Request, path: string) {
             return path === "/bank-account"
               ? writeBankAccount(tx, request, session.session.id)
               : readBankWorkspace(tx, session.session.id);
+          }
+          if (path === "/consent-workspace" || path === "/consent") {
+            if (path === "/consent-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canRecordConsent
+            )
+              return path === "/consent"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/consent"
+              ? manageConsent(tx, request, session.session.id)
+              : readConsentWorkspace(tx, session.session.id);
+          }
+          if (path === "/progress-workspace" || path === "/progress") {
+            if (path === "/progress-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canPostUpdates
+            )
+              return path === "/progress"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/progress"
+              ? manageProgress(tx, request, session.session.id)
+              : readProgressWorkspace(tx, session.session.id);
+          }
+          if (path === "/sponsorship-workspace" || path === "/sponsorship") {
+            if (path === "/sponsorship-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canMatchSponsors
+            )
+              return path === "/sponsorship"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/sponsorship"
+              ? manageSponsorship(tx, request, session.session.id)
+              : readSponsorshipWorkspace(tx, session.session.id);
+          }
+          if (path === "/moderation-workspace" || path === "/moderation") {
+            if (path === "/moderation-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (!session || access.state !== "allowed" || !access.canModerate)
+              return path === "/moderation"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/moderation"
+              ? decidePost(tx, request, session.session.id)
+              : readModerationQueue(tx, session.session.id);
+          }
+          if (path === "/class-workspace" || path === "/class") {
+            if (path === "/class-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canManageClasses
+            )
+              return path === "/class"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/class"
+              ? manageClass(tx, request, session.session.id)
+              : readClassWorkspace(tx, session.session.id);
+          }
+          if (
+            path === "/all-needs-workspace" ||
+            path === "/all-needs"
+          ) {
+            if (path === "/all-needs-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (!session || access.state !== "allowed" || !access.canSplitAllNeeds)
+              return path === "/all-needs"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/all-needs"
+              ? manageAllNeeds(tx, request, session.session.id)
+              : readAllNeedsWorkspace(tx, session.session.id);
+          }
+          if (
+            path === "/spending-reports-workspace" ||
+            path === "/spending-report"
+          ) {
+            if (
+              path === "/spending-reports-workspace" &&
+              access.state !== "allowed"
+            )
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canPublishReports
+            )
+              return path === "/spending-report"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/spending-report"
+              ? manageSpendingReport(tx, request, session.session.id)
+              : readSpendingReports(tx, session.session.id);
+          }
+          if (path === "/spending-workspace" || path === "/spending") {
+            if (path === "/spending-workspace" && access.state !== "allowed")
+              return privateJson(access);
+            if (
+              !session ||
+              access.state !== "allowed" ||
+              !access.canRecordSpending
+            )
+              return path === "/spending"
+                ? privateJson({ code: "denied" }, 403)
+                : privateJson({ state: "denied" });
+            return path === "/spending"
+              ? manageSpending(tx, request, session.session.id)
+              : readSpendingWorkspace(tx, session.session.id);
           }
           if (
             path === "/manual-donation-workspace" ||

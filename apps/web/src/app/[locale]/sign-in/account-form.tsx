@@ -4,6 +4,7 @@ import type common from "@tazkiyah/i18n/messages/en/common.json";
 import type { Locale } from "@tazkiyah/i18n/routing";
 import { useState, type FormEvent } from "react";
 import { authRequest } from "@/components/auth-request";
+import { Button, ErrorSummary } from "@/design/ui";
 
 export type AccountFormMode = "signup" | "forgot" | "reset" | "first";
 
@@ -182,12 +183,8 @@ export function AccountForm({
               <small id="account-password-hint">{copy.passwordHint}</small>
             </label>
           )}
-          {error && (
-            <p role="alert" className="sign-in-error">
-              {error}
-            </p>
-          )}
-          <button className="button button-primary" disabled={busy}>
+          {error && <ErrorSummary title={error} />}
+          <Button type="submit" disabled={busy}>
             {busy
               ? signIn.loading
               : mode === "signup"
@@ -195,7 +192,7 @@ export function AccountForm({
                 : mode === "forgot"
                   ? copy.sendReset
                   : copy.savePassword}
-          </button>
+          </Button>
         </form>
       )}
       {mode !== "first" && <a href={signInHref}>{signIn.backToSignIn}</a>}

@@ -80,6 +80,8 @@ begin
   values (tenant, wheat, 150000, current_date, '{"en":"Wheat, 30 maunds"}',
     '9a000000-0000-4000-8000-000000000061', actor)
   returning id into entry;
+  assert not (select receipt_public from app.spending_entries where id = entry),
+    'Receipts on unconfigured causes must default to private';
   insert into app.spending_entries (institute_id, cause_id, amount_paisa, spent_on, description, recorded_by)
   values (tenant, wheat, 10000, current_date, '{"en":"Typo"}', actor)
   returning id into unmatched;

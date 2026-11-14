@@ -1,6 +1,6 @@
 # Tazkiyah master plan
 
-**Status:** Phase 0 in progress · **Last updated:** 2026-11-07 · **Owner:** Sami
+**Status:** Public site, manual donations, transparency, the class hub, and institute settings are merged here. Migrations `0000`–`0075` stay in order and the automated suite passes. A hosted database rehearsal is still required before this branch replaces `main`. · **Last updated:** 2026-11-14 · **Owner:** Sami
 
 This is the source of truth for Tazkiyah. Every agent and developer reads it first. If two documents disagree, the master plan wins, and the specialist document is fixed.
 
@@ -146,6 +146,20 @@ Each phase ends in a test that a person can run by hand. Online payments come la
 | **P3 Content hub** | A teacher creates a student account. The student logs in, follows the walkthrough, sets up a persona and posts a question to the class, which appears at once. A teacher answers it and turns the thread into a verified article. A request to make it public waits for teacher or principal approval, then appears on the student work page under the persona. |
 | **P4 Sponsorship, projects and outreach** | A sponsor is matched to an orphan and sees only the persona name, age and updates. After Moazam and an assigned teacher both sign off consent, the sponsor sees the full profile, which disappears when consent is withdrawn. A new project appears as a cause, and donors who opted in receive the monthly email. |
 | **P5 Online payments** | Planned in detail when reached. At minimum, a test card donation and a test wallet donation each create a *received* trail event without manual entry. |
+
+### Checked on 2026-11-14
+
+The parallel merges left one journal, `0000_baseline` through `0075_staff_post_actions`, with timestamps still increasing. The public header and the staff menu each list a screen once. English and Urdu catalogues have the same keys.
+
+| Item | What was checked | Result |
+| --- | --- | --- |
+| REQ-LNG-002 | Giving, cause, trail, hub and sponsor sentences | Moved into `packages/i18n/messages` ([D-171](08-decision-log.md#d-171)). The requirement stays open. |
+| REQ-ACC-001 | Home, donate, causes and trail colours | Hero photo captions were `#4F5868` on navy, about 2.1:1. They now use the on-navy muted colour, about 10:1. Gold on navy and navy on gold are about 7.5:1. Disabled chip text is about 3:1; disabled text sits outside the AA text rule. |
+| REQ-ACC-002 | Labels, focus, headings and alt text on those pages | Donate and trail fields sit in labels. `:focus-visible` uses the focus colour. Each page starts at h1, then h2, then h3. The header emblem uses `alt=""` because the institute name is in the same link. Amount chips set `aria-pressed` for the on and off states. A screen reader pass and a full keyboard pass were not run. |
+| REQ-ACC-003 | Alt text for campus photos, the donate page and the trail receipt | Present in the page language. Sample campus alt text is still stored next to the photo, in both languages. |
+| REQ-ACC-004 | Touch size of the header, donate controls, cause filters and trail controls | At least 2.75rem (44px). |
+| REQ-PRF-001 | Weight of home, donate, causes and trail | Not timed on slow 3G. No page-weight CI job was added. |
+| REQ-PRF-002 | Campus image sizes | The prayer-hall photo now has a 640px file (about 50KB) and a 960px file (about 96KB) beside the 1280px file (about 233KB). The courtyard has a 960px file (about 161KB) between its 640px and 1280px files. The YouTube poster uses the 960px file, and the player still loads only after a tap. Homepage figures are plain text, so the count-up script is gone. |
 
 ## 6. Risks and open questions
 

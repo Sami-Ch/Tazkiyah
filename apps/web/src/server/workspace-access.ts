@@ -10,7 +10,19 @@ export type AdminAccess =
       canInvite: boolean;
       canEditPages: boolean;
       canRecordTransfers: boolean;
+      canReverseTransfers: boolean;
+      canReconcileTransfers: boolean;
+      canRecordSpending: boolean;
+      canSplitAllNeeds: boolean;
+      canPublishReports: boolean;
       canCreateStudents: boolean;
+      canManageClasses: boolean;
+      canModerate: boolean;
+      canMatchSponsors: boolean;
+      canRecordConsent: boolean;
+      canPostUpdates: boolean;
+      canEditSettings: boolean;
+      canSwitchModules: boolean;
       twoFactorVerified: boolean;
     }
   | { state: "signed-out" | "denied" | "enroll" | "unavailable" };
@@ -109,7 +121,25 @@ export async function checkWorkspaceAccess(
     canInvite: can(actor, "staff.manage"),
     canEditPages: can(actor, "site_pages.edit"),
     canRecordTransfers: can(actor, "donation.record"),
+    canReverseTransfers: can(actor, "donation.reverse"),
+    canReconcileTransfers: can(actor, "donation.reconcile"),
+    canRecordSpending: can(actor, "spending.record"),
+    canSplitAllNeeds: can(actor, "all_needs.split"),
+    canPublishReports: can(actor, "report.publish"),
     canCreateStudents: can(actor, "student_account.create"),
+    canManageClasses: can(actor, "class.create"),
+    canModerate: (
+      ["teacher", "editor", "admin"] as const satisfies readonly Role[]
+    ).some((role) => account.roles.includes(role)),
+    canMatchSponsors: can(actor, "sponsorship.match"),
+    canRecordConsent: (
+      ["teacher", "admin"] as const satisfies readonly Role[]
+    ).some((role) => account.roles.includes(role)),
+    canPostUpdates: (
+      ["teacher", "admin"] as const satisfies readonly Role[]
+    ).some((role) => account.roles.includes(role)),
+    canEditSettings: can(actor, "settings.edit"),
+    canSwitchModules: can(actor, "modules.switch"),
     twoFactorVerified: requireMfa,
   } as const;
   if (!requireMfa) return allowed;

@@ -486,3 +486,177 @@ Four points, each the narrower reading. **Sponsor view:** 04 filters `app.sponso
 2026-11-12 · Sami · Vercel handoff and Resend email
 
 Sami will deploy the current Next.js app to Vercel and chose Resend for account emails and donor receipts (Q-06). The handoff adds Vercel request handling and an authenticated receipt job endpoint using the existing outbox. The [Vercel handoff](../docs/vercel.md) describes the project settings and database roles for this release.
+
+## D-143
+
+2026-11-14 · Frontend · Public design system
+
+The public shell and pages use Direction A. `themeStyle()` writes the institute theme onto `<html>`. When the database answers, the theme and enabled modules come from `public_api.institute_public`. Otherwise the seeded Night and Paper theme is used. Tasks that depended on all of P0-E1 were narrowed to P0-E1-T01, because the rest of that epic is Cloudflare, DNS and hosted secrets.
+
+The self-hosted Noto Naskh Arabic variable file is 94,032 bytes, about 2 KB over the 90 KB Urdu budget. It stays, so Urdu buttons can be real bold rather than a second face. Noto Nastaliq Urdu is not downloaded. Public Urdu headings use it only when the phone already has the font (`local()`, `font-display: optional`). Naskh is the fallback and keeps the taller line height.
+
+The component gallery is `/{lang}/design` and is `noindex`, so other work can reuse it without a staff login. The planned admin-only `/_design` path can replace it later.
+
+`/{lang}/transparency` lists raised and spent for every public cause. The sitemap did not name that path. The home page and each cause page already required the same figures from `public_api.cause_summary` and `public_api.cause_spending`, and one page holds them together.
+
+`tazkiyah_auth` may select `public_api.public_posts` and `public_api.public_teachers`, and may execute `app.module_enabled` and `app.persona_work_may_show`. That is the role the public site already uses. The views still hide student identity. A visitor's report does not write `post_reports`, because REQ-MOD-008 is still proposed. The button goes to the contact page and asks people not to send a child's details.
+
+A spending row shows its date, amount and description. Receipt photos stay off the page until a public media URL exists. The view has a storage key, and R2 is not configured here.
+
+Amount chips and the form error summary are added for the donate flow (D-145). The settings switch, toasts, a phone bottom sheet and the walkthrough stepper stay open.
+
+## D-144
+
+2026-11-14 · Build agent (P2-E2-T05) · The donor trail reads spending that `app.match_spending()` already writes
+
+P2-E2-T05 depended on P2-E2-T01, the staff batch form. The matching function itself is done (P2-E2-T40), and the staff form is now done in the staff workspace. The private trail only reads *spent* and *reported* events; it does not record spending. A receipt photo is included only when the spending entry, the file and the face flag all say it may be shown. Options: wait for the staff form; show events that already exist. Reason: a donor cannot see where money went until the page reads the events, and waiting on a form in another workstream would hide purchases that are already matched.
+
+## D-145
+
+2026-11-14 · Build agent (P1-E1-T08) · Bank transfer stays the only way to give
+
+The donate page now asks for an amount and shows card, JazzCash and Easypaisa as unavailable. No gateway keys are stored or required. The "tell us about your transfer" form stays blocked because `transfer_notices` waits on proposed REQ-DON-015 (P1-E3-T46, Q-08). Until that is approved, the page asks the donor to tell the office, which is the fallback in 02 §12.1. Guest trail email (P1-E3-T05) stays blocked on the email service (P1-E3-T30). P5-E2-T01 and P5-E3-T01 stay blocked until a gateway is chosen and credentials exist. Options: invent a notice table; leave the notice blocked and show bank instructions. Reason: rule 4 says not to build on an unapproved requirement, and rule 8 says not to add payment secrets.
+
+## D-146
+
+2026-11-14 · Build agent (P4-E1-T02, P4-E2-T02, P4-E3-T01, P4-E3-T02) · The sponsor page reads matches; it does not create them
+
+The sponsor page reads matches created by the staff form (P4-E1-T01, now done). Matching is an admin insert, and `app.sponsor_child_view()` already returns only that donor's active sponsorships. The page shows the empty state until a match exists. Full-profile fields come from the same view, which hides them when consent is withdrawn. Child photographs are omitted until private short-lived image addresses exist (P2-E1-T30); showing a public URL would break child safety. Sponsor messages are screened with `app.has_contact_details` and have no child recipient. The staff inbox is left for the staff workspace, because only admins may reply (D-141). Options: wait for the matching screen; build the sponsor page on the existing view. Reason: the view is the safety boundary, and a sponsor with a match should be able to see it without this workstream editing the staff area.
+
+## D-147
+
+2026-11-14 · Build agent (P3-E3-T01) · The web app reaches the hub through `identity` functions
+
+The site connects as `tazkiyah_auth`, which cannot insert threads under the `tazkiyah_app` policies. `identity.read_hub`, `identity.start_hub_thread`, `identity.reply_hub_thread` and `identity.report_hub_post` check the session, then apply the same author, scope, module and contact-detail rules. A student is stored as their persona. The response has the pen name or a staff name, never a user id or a persona link. `community` scope is rejected. Options: grant the app role to the auth login; keep definer functions. Reason: the auth login stays narrow, and child safety stays in one place (00 §4 rules 9 and 11). Pin, lock and the staff consent form are left for the staff workspace.
+
+## D-148
+
+2026-11-14 · Build agent (P1-E5-T01) · Staff workspace uses the shared design system, Sami may reverse
+
+The staff menu and workspace screens live inside `/admin` and reuse `apps/web/src/design` (buttons, fields, tables, amount and date formatters, and the public tokens). Role-based links stay in the staff area. The shared button carries both a click handler for the donor screens and `name`/`value` for staff forms, so neither area keeps a second button. Options: keep a private staff stylesheet; use the shared components. Reason: the design system landed in the public branch, and one set of components keeps Urdu and English staff screens on the same type, colour, and money formatting.
+
+## D-150
+
+2026-11-14 · Build agent · Staff edit institute settings from the site
+
+`/admin/settings` lets an admin with a fresh two-factor session edit the institute name, short name, parent body, address, phone, WhatsApp, email, map link, visiting times, founded year, theme direction and principal, plus the daily or weekly spending batch (D-013). The direction is one of the two approved themes. The database stores the full theme object, and staff do not type colours. The logo file and the primary domain are shown and stay read-only. Bank accounts stay on the existing bank-account screen, which this page links to. Visiting times are published inside the existing public contact object, so the contact page can show them. Options: a colour picker and a logo upload; a direction plus the fields that can be typed. Reason: the two directions are already the approved themes, and a logo file needs media storage that is not part of this screen (REQ-MIR-001, REQ-PUB-006).
+
+## D-151
+
+2026-11-14 · Build agent · Module switches ask before anything is hidden
+
+`/admin/settings/modules` is limited to `modules.switch`. Turning a module on saves immediately. Turning one off asks for confirmation and does not delete student work, teacher work or project causes. The public menu and the home teaser include new projects only when `new_projects` is on. The public path is `/new-projects`, the path this task named. `/{lang}/new-projects` is not found while the module is off. Options: `/projects` as 05 wrote it; `/new-projects` as the task named it. Reason: the public nav already hides student and teacher work from the module list, and the new page follows that same switch (REQ-ROL-010).
+
+## D-152
+
+2026-11-14 · Build agent · A project is a cause with extra fields
+
+Project fields are saved by `identity.set_cause_project`. `identity.create_cause` and `identity.edit_cause` keep their signatures, so other work does not have to change its calls. The projects page introduction lives in the translation catalogue. A new `site_pages` slug would rewrite the shared page editor. The technology section says running costs are sponsored until a technology project is published. Newsletter signup is not built, because there is no email sender (the same gap as D-145). Options: extend the cause functions; add a project-only save. Reason: the cause functions are shared, and the projects page only needs the extra columns (REQ-PUB-001, REQ-DON-013).
+
+## D-153
+
+2026-11-14 · Build agent · Platform running costs stay a sample draft
+
+The Markaz seed includes a draft cause `platform-running-costs`. It is ongoing, monthly, Zakat off, listed as a technology project, and the wording is marked as sample. It is not on the public projects page until an admin publishes it. Options: publish a real appeal; leave a draft. Reason: the running-cost figures are not confirmed, and a draft lets the principal replace the sample text before anyone sees it (P4-E4, REQ-DON-013).
+
+## D-154
+
+2026-11-14 · Build agent · Expected pledges are a finance list, not a public form
+
+`identity.refresh_expected_pledges` is for a finance or admin session. It lists active pledges with no recorded payment in the current Asia/Karachi period, and it lapses a pledge after three missed periods, because there is no scheduled-job credential. The screen does not create pledges. Public pledge creation, and linking a transfer from the donate page, stay out until Q-08 is approved. Options: a cron job; lapse when staff open the list. Reason: the list has to be right when staff look at it, and a job would need a credential this release does not have (REQ-DON-003, admin side only).
+
+## D-155
+
+2026-11-14 · Build agent (REQ-DPR-005) · A public donor profile is addressed by `donors.public_ref`
+
+The public page is `/{lang}/donors/{public_ref}`. The reference is the same ten-character alphabet as a donation's `public_ref`, generated in the database, and it is not derived from the display name. Options: a slug of the display name; a random public reference. Reason: two donors may choose the same display name, and renaming the profile must not change the address.
+
+## D-156
+
+2026-11-14 · Build agent (REQ-ROL-006) · The all-needs screen previews the same FIFO split it saves
+
+`identity.preview_all_needs_split` walks the unallocated pool in credit-date then receipt-number order and does not lock the pool. Saving calls `app.split_all_needs`, which takes the lock and writes the allocations. There is no reverse-split function, so the screen does not offer one. Options: a separate preview allocator; call the same order the save uses. Reason: a preview that disagrees with the save would place different gifts than the administrator just confirmed.
+
+## D-157
+
+2026-11-14 · Build agent (REQ-TRL-012) · A weekly spending report covers seven days, inclusive
+
+A daily report has equal start and end dates. A weekly report ends six days after it starts. A custom report may use any end date on or after the start. Publishing calls `app.publish_spending_report`, which writes one `reported` event per donation for the matched total. Options: any date range the table check allows; a fixed seven-day week. Reason: the table only requires the end to be on or after the start, and a week the staff can explain is seven days.
+
+## D-158
+
+2026-11-14 · Build agent (REQ-TRL-008, REQ-TRL-009, REQ-DPR-006) · Public trails live at `/{lang}/trail/{public_ref}`
+
+The private guest page stays `/{lang}/trail` and remains `noindex`. A trail that is not public answers 404. The donor and a guest-link holder may name a gift or make its trail public, and may turn either choice back. Staff may only make a named gift anonymous or a public trail private, and that change is audited. Recording still starts anonymous unless the person recording ticks the name. Options: publish the private `/trail` page; add the public reference as its own path. Reason: the private link must stay unlisted, and staff must not be able to put a donor's name on the wall.
+
+## D-159
+
+2026-11-14 · Build agent (REQ-DPR-005) · A public profile shows an initial until file storage exists
+
+Profile photos and receipt photos stay off the public pages. The profile shows the first character of the display name and says that a photo waits on file storage. Links must be `https` and are rendered `nofollow`. The profile lists only gifts that are not anonymous, and a public profile may be empty. The anonymity scan allows the chosen display name and still rejects the legal name, email, phone, bank reference and gift type. Options: block public profiles until object storage exists; publish the name and links now. Reason: object storage is not configured, and the name and links do not need it.
+
+## D-160
+
+2026-11-14 · Build agent (REQ-STU-010) · First login keeps the password step, then a saved walkthrough
+
+Students get eight screens and teachers get four. Progress is `users.onboarding_step` (1–8) and `users.onboarding_skipped` (`name`, `avatar`, `bio`). `onboarded_at` is set when the walkthrough finishes or the last screen is skipped. Replay from the account page clears those fields. A new teacher invitation leaves `onboarded_at` empty; people who already finished login are not sent back through it. Donors get no walkthrough. An admin sees a checklist of records that already exist (name, logo, bank, contact, cause, teacher), not a stepper. Each English screen is 30 words or fewer. The hub has no separate bottom tab, so the last student screen names Class, Madrasa and Account. The bio limit stays 160 characters (D-130). Options: a client-only tour; store the step on the user. Reason: a student who leaves halfway should return to the same screen, and the checklist must not invent a phone number or a bank.
+
+## D-161
+
+2026-11-14 · Build agent (REQ-STU-002, REQ-STU-003) · Pen names use a preset, not a photo
+
+The avatar is `personas.avatar_preset` 1–24, drawn from theme colours. `avatar_media_id` stays for a later file store. A pen name is 3–24 characters, unique ignoring case, and rejected when it is a phone or email, an insult, or a real-name word of three letters or more. A bio is optional, at most 160 characters, and uses the same contact and real-name checks with a four-letter word. Past names are kept in `app.persona_names`. The student can rename once every 30 days through the hub functions. A teacher of that student, or an admin, can reset the name and clear the wait. Options: upload a face photo; use 24 patterns. Reason: there is no object storage, and a photo of a child is outside the safety rules (REQ-CHS-001).
+
+## D-162
+
+2026-11-14 · Build agent (REQ-STU-005, REQ-STU-007) · New post types go through one publish function
+
+`identity.start_hub_thread` and `identity.reply_hub_thread` still accept only message, question and answer. Polls, articles, video, vlog, audio and slides use `identity.publish_hub_post`. A video or vlog stores an 11-character YouTube id. Audio and slides keep their title and text and set `media_gap`, because a file needs object storage. A poll has 2–6 choices, one choice or several up to the creator's maximum, and closes between one hour and 30 days. Results show after voting or after closing. A vote is replaced by deleting the old one and inserting the new one. Editors are not hub sessions, so they cannot vote. Students cannot post a link or contact details. Options: add the types to the old functions; add one function. Reason: the older tests keep their contract, and the new rules stay in one place.
+
+## D-163
+
+2026-11-14 · Build agent (REQ-TCH-001 to REQ-TCH-004) · A teacher submits; an editor or another admin publishes
+
+A lesson is an article, video, audio or slides post. A resource is an article or slides post. The public profile is `public_name`, `public_role` and `public_bio` in Urdu and English, with no photo until storage exists. A teacher sends a published class or madrasa post to public review. They cannot approve their own work. An admin's own hub item is published by `app.posts_moderation` when they ask, and the audit log records `posts.published_public`. A verified article is written by the teacher, may quote a post by its pen name, and is stored by `app.make_verified_article`. Options: let a teacher publish their own lesson; keep the existing review. Reason: 07 §10 already says a teacher does not approve their own work, and the public page already shows the verified mark.
+
+## D-164
+
+2026-11-14 · Build agent (REQ-STU-009) · Leaving moves the student into one alumni class
+
+An admin marks a student left. Open class memberships end, the persona stays active, and the student joins the institute's one alumni class (`classes.kind = alumni`). They can post in that class and in the madrasa. They cannot post in a class they have left. Past posts stay. A teacher of a past class can still trace them, because `app.is_teacher_of` already includes ended memberships. Changing status revokes the current sessions, so the student signs in again. Options: delete the account; keep the persona and add one alumni class. Reason: the plan says the account and the pen name stay, and child-safety checks still apply.
+
+## D-165
+
+2026-11-14 · Build agent · Staff record parent consent without a guardian account, Sami may reverse
+
+REQ-CHS-006 is a staff form. Teachers record `public_work`, `real_name` and `face` for students they teach; an admin may record those for any student. A record that is not about an orphan is active as soon as it is saved, which is how `app.consent_status` already reads it. Full-profile consent stays with the principal (D-166). The paper scan stays empty: `form_media_id` needs a private upload, and that storage does not exist yet (D-146). The guardian list gains `principal`, because 07 §5.1 names the principal as the orphans' guardian and the old check only allowed father, mother, guardian and other. Notes and the guardian's name are refused when they contain a phone number, email address or social link. Options: a guardian login; a staff form with no scan. Reason: the requirement says there is no guardian account, and a scan without private storage would put a child's form on a public address (00 §4 rule 9).
+
+## D-166
+
+2026-11-14 · Build agent · The principal assigns the second sign-off, Sami may reverse
+
+REQ-ORP-004 is the principal, who is the admin named in `institute_settings.principal_user_id`. That person opens full-profile consent, assigns any active teacher, and signs. Another admin can still match a sponsor, and cannot assign or open that consent. The assigned teacher signs from the consent page even when they are not an admin, so the control is not only on the sponsorship board. A non-withdrawn full-profile record blocks a second one for the same sponsorship (`already`). Options: any admin assigns; only the principal. Reason: 07 §5.1 makes the principal the guardian, and a second admin should not sign in their place (00 §4 rule 9).
+
+## D-167
+
+2026-11-14 · Build agent · The staff inbox stays with admins, Sami may reverse
+
+REQ-ORP-007's sponsor message already exists (D-141, D-146). The staff inbox is the missing half. D-141 still holds: only an admin reads and replies, because there is no table of chosen teachers. Opening the sponsorship board marks `to_madrasa` messages read. A reply is `to_sponsor`, in Urdu or English, and `app.has_contact_details` blocks a phone number, email address or social link. A child is never the sender or the recipient. Teachers do not see the inbox. Options: let every teacher of the child read the thread; admins only. Reason: messages about an orphan should reach as few people as possible until the admin can choose (D-141, 00 §4 rule 9).
+
+## D-168
+
+2026-11-14 · Build agent · Progress notes are text, and sponsors read them, Sami may reverse
+
+REQ-ORP-008 lets an admin or a teacher of the child write a progress note for a sponsorship that has not ended. The note is Urdu, English, or both. An admin's note is published by the existing trigger. A teacher's note waits until an admin publishes it (06 §12.3). The note is refused when it contains the child's real name or contact details. There is no photograph: private media storage does not exist yet (D-146), and the insert has no `media_id`. Sponsors already read published notes on their page. They do not write them; the row policies and 06 §12.3 give writing to staff. Options: a sponsor composer; staff write and sponsors read. Reason: the requirement names the admin and the teacher, and a photo without private storage would expose a child (00 §4 rule 9).
+
+## D-169
+
+2026-11-14 · Build agent · Hide, remove, takedown and widening follow the moderation trigger, Sami may reverse
+
+The staff queue could only approve or reject a public request. Hide sets `hidden_at` and can be undone. There is no `removed` column. Remove, for a class or madrasa post, and takedown, for a public post, both set `moderation_state` to `taken_down`, which is the only transition that hides the post from its author. The public states shown are draft, submitted, approved, published and taken down. Restoring a public post returns it to `submitted` for a fresh approval; any other post returns to `published`. The trigger allows only an admin to restore, which is stricter than the permission matrix, so a teacher is not offered restore. The trigger also refuses an editor or a finance officer a takedown, so the queue does not offer them one either. Widening is still an approval of a submitted request whose target is `madrasa`. An admin can mark a teacher with `user_roles.can_widen_scope`. That flag is not a new role, so changing it does not end the teacher's session. A teacher without the flag cannot approve a madrasa request. Visitor reports (REQ-MOD-005, REQ-MOD-008) stay out of this queue. Options: add a `removed` column; use the takedown the trigger already enforces. Reason: a second column would disagree with the trigger, and the trigger is the safety boundary (00 §4 rule 9).
+
+## D-171
+
+2026-11-14 · Build agent · Giving, cause, trail, hub and sponsor interface text lives in the message catalogues
+
+The six `*-copy.ts` modules no longer store sentences. They read `packages/i18n/messages/{en,ur}/donate.json`, `causes.json`, `trail.json`, `hub.json` and `sponsor.json`. The catalogue test fails when a key exists in only one language. REQ-LNG-002 stays open: sample campus alt text and a few authentication error sentences are still in code, and the literal-string lint rule from [03 §7.3](03-architecture.md) is not added. Options: leave the sentences in the TypeScript modules; move them into the catalogues now. Reason: REQ-LNG-002 says interface text belongs in the translation files, and moving these modules does not change what a visitor reads.

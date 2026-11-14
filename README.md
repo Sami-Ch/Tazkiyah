@@ -51,7 +51,7 @@ Drizzle uses one migration history in [db/drizzle](db/drizzle). On a fresh datab
 
 Edit the [Drizzle schema](packages/core/src/db/schema.ts) and run `npm run db:generate -- --name describe_change`. Review the generated SQL before applying it. Use `npm run db:generate -- --custom --name describe_change` for PostgreSQL-specific changes such as grants, triggers, functions and security-barrier views. Put custom SQL between the generated role statements. Apply either kind with `npm run db:migrate` and keep applied migrations immutable.
 
-Markaz Al Azeem's bilingual settings are seeded on `dev` and `preview`. For a fresh development branch, run `psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/seed/markaz_al_azeem.sql`. The seed preserves existing settings when rerun.
+After applying the migrations, run `psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/seed/markaz_al_azeem.sql` to seed Markaz Al Azeem's bilingual settings and seven draft causes. Rerunning the seed adds missing drafts and preserves existing settings and causes.
 
 ## Configure Better Auth
 
@@ -83,6 +83,10 @@ Administrators can create, publish, and close bilingual giving causes in **Manag
 
 Administrators and finance officers can open **Record a bank transfer** after completing two-factor verification. Use a confirmed bank statement credit. The workspace records the transfer, assigns a receipt number and adds its received and, when applicable, allocated events. Transfers start anonymous and any supplied donor email remains private. The admin-only **Audit log** shows redacted activity.
 
+To correct an unspent transfer, use **Reverse a recorded transfer** in the same workspace. Look it up by receipt number, check the original, choose a reason, and confirm. The private trail and printable receipt show the cancellation. Record a new transfer if the ledger needs corrected details.
+
+Open **Bank reconciliation** from the transfers screen to review a statement. Select the account and date range, tick the transfers found on the statement, and close the period. Staff can record a missing donation from the transfers screen or note a non-donation credit in the audit log.
+
 Open **Bank accounts** as an administrator to enter verified institute accounts for finance staff. Review each account separately and confirm publication before it appears on the Give page. Hiding an account takes it off the Give page while keeping it available to staff for recording.
 
 The seed supplies the institute's address and directions. An authorized database operator can enter verified phone and email details before launch.
@@ -92,6 +96,8 @@ The seed supplies the institute's address and directions. An authorized database
 Record the transfer with the donor's verified email. As a two-factor verified administrator, open **Private donor links** and enter the receipt number and matching email. Choose the link language, confirm, then copy and share the link privately. The recipient can open it without an account to see their recorded gifts and print bilingual donation receipts. The original link is needed to reopen the trail after a refresh.
 
 Generate a replacement link or revoke access from the same workspace. Replacing a link disables the old one across all gifts from that guest donor. The database stores the link's hash. When a receipt recipient's email is confirmed during recording, the app queues an email for the [receipt job](docs/vercel.md#receipt-email).
+
+Donors can create an account, confirm their email, and open **My donations** from the account page. **Claim donations made with my email** links past transfers made with that address and revokes the old guest link. The account then provides the donation history, individual trails, and printable receipts.
 
 ## Add campus photos and video
 

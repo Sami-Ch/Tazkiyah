@@ -94,6 +94,11 @@ declare
   mark text;
   link int;
   result record;
+  statement_session uuid;
+  statement_bank uuid;
+  statement_on constant date := (now() at time zone 'Asia/Karachi')::date;
+  statement_review text;
+  cancelled_receipt text;
 begin
   for n in 1..2 loop
     mark := (array['ZZA', 'ZZB'])[n];
@@ -108,6 +113,11 @@ begin
       true, true, true
     );
     assert result.code = 'recorded', 'Fixture donation was not recorded: ' || result.code;
+    statement_session := ('14000000-0000-4000-8000-00000000040' || n)::uuid;
+    statement_bank := ('14000000-0000-4000-8000-00000000020' || n)::uuid;
+    statement_review := identity.read_bank_statement(statement_session, statement_bank, statement_on, statement_on) ->> 'review';
+    assert identity.close_bank_statement(statement_session, statement_bank, statement_on, statement_on,
+      statement_review, array[result.donation_id], gen_random_uuid()) = 'closed', 'Fixture statement was not closed';
     -- A student with a persona and its private link, made the way staff make one.
     assert identity.create_student_account(
       ('14000000-0000-4000-8000-00000000040' || n)::uuid, mark || '-Student', repeat('h', 64),
@@ -121,6 +131,20 @@ begin
         repeat(case mark when 'ZZA' then 'a' else 'b' end || link, 32), 'hnt' || link
       ) = 'issued', 'Fixture trail link was not issued';
     end loop;
+    perform set_config('app.receipt_email_confirmed', 'false', true);
+    select * into strict result from identity.record_manual_donation(
+      statement_session, gen_random_uuid(), statement_bank, mark || '-correction', statement_on,
+      300000, 'general', null, lower(mark) || '-donor@example.test', 'en', true, true, true
+    );
+    assert result.code = 'recorded', 'Fixture transfer was not recorded before correction';
+    cancelled_receipt := result.receipt_number;
+    assert identity.reverse_manual_donation(statement_session, cancelled_receipt, 'wrong_details', null) = 'reversed',
+      'Fixture transfer was not reversed';
+    select * into strict result from identity.record_manual_donation(
+      statement_session, gen_random_uuid(), statement_bank, mark || '-correction', statement_on,
+      310000, 'general', null, lower(mark) || '-donor@example.test', 'en', true, true, true, cancelled_receipt
+    );
+    assert result.code = 'recorded', 'Fixture replacement receipt was not recorded';
   end loop;
 end
 $fixture$;
@@ -198,7 +222,8 @@ select ('14000000-0000-4000-8000-00000000070' || n.i)::uuid, d.institute_id, d.d
   'general', 'monthly', 500000, current_date
 from (values (1), (2)) as n(i)
 cross join lateral (select * from app.donations
-  where institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid limit 1) d;
+  where institute_id = ('14000000-0000-4000-8000-00000000000' || n.i)::uuid
+    and cause_id is not null limit 1) d;
 insert into app.donations (institute_id, operation_id, bank_account_id, bank_reference, credited_on,
   amount_minor, amount_paisa, donation_type, donor_id, pledge_id, receipt_number, receipt_locale, recorded_by)
 select p.institute_id, gen_random_uuid(), ('14000000-0000-4000-8000-00000000020' || n.i)::uuid,
@@ -584,14 +609,31 @@ select pg_temp.harness_check('tazkiyah_auth');
 -- 8: B's trail token opens nothing in A, and still opens B's own trail in B.
 set local role tazkiyah_auth;
 do $token$
+declare
+  guest record;
+  guest_hash constant text := repeat('e1', 32);
+  b_session constant uuid := '14000000-0000-4000-8000-000000000402';
 begin
-  perform set_config('app.institute_id', '14000000-0000-4000-8000-000000000001', true);
+  -- The earlier donors have account rows for the sponsorship fixtures. Use
+  -- a separate guest to verify that an active token still works inside B.
+  perform set_config('app.institute_id', '14000000-0000-4000-8000-000000000002', true);
+  perform set_config('app.user_id', '14000000-0000-4000-8000-000000000302', true);
+  select * into strict guest from identity.record_manual_donation(
+    b_session, gen_random_uuid(), '14000000-0000-4000-8000-000000000202', 'ZZB-guest-control',
+    (now() at time zone 'Asia/Karachi')::date, 310000, 'general', null, 'zzb-guest-control@example.test',
+    'en', true, true, true
+  );
+  assert guest.code = 'recorded';
+  assert identity.issue_trail_link(b_session, guest.receipt_number,
+    'zzb-guest-control@example.test', guest_hash, 'e1e1') = 'issued';
   perform set_config('app.user_id', '', true);
   assert not exists (select from identity.read_guest_trail(repeat('b1', 32), null, null)),
-    'B''s trail token opened a trail in A';
-  perform set_config('app.institute_id', '14000000-0000-4000-8000-000000000002', true);
-  assert exists (select from identity.read_guest_trail(repeat('b1', 32), null, null)),
+    'An account donor still has guest access';
+  assert exists (select from identity.read_guest_trail(guest_hash, null, null)),
     'Control failed: B''s trail token does not open B''s trail';
+  perform set_config('app.institute_id', '14000000-0000-4000-8000-000000000001', true);
+  assert not exists (select from identity.read_guest_trail(guest_hash, null, null)),
+    'B''s trail token opened a trail in A';
 end
 $token$;
 

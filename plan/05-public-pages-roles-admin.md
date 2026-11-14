@@ -87,6 +87,7 @@ Every page exists under both prefixes. The table shows the path once, after the 
 | Daily life | `/daily-life` | `/en/daily-life` | Under About | Core | P1 |
 | Causes list | `/causes` | `/ur/causes` | Yes | Core | P1 |
 | Cause page | `/causes/{slug}` | `/en/causes/wheat-stock` | No | Core | P1 (spending section P2) |
+| Transparency | `/transparency` | `/en/transparency` | Yes | Core | P2 |
 | Donate | `/donate` and `/donate/{slug}` | `/ur/donate/wheat-stock` | Button on every page | Core | P1 |
 | Contact | `/contact` | `/en/contact` | Yes | Core | P1 |
 | Donor wall | `/donor-wall` | `/ur/donor-wall` | Yes | Core | P2 |
@@ -118,7 +119,7 @@ Every page exists under both prefixes. The table shows the path once, after the 
 | --- | --- | --- |
 | Dashboard | `/admin` | P1 |
 | Causes | `/admin/causes`, `/admin/causes/new`, `/admin/causes/{id}` | P1 |
-| Donations and reconciliation | `/admin/donations`, `/admin/donations/new`, `/admin/donations/notices`, `/admin/donations/{id}` | P1 |
+| Donations and reconciliation | `/admin/donations`, `/admin/donations/new`, `/admin/donations/notices`, `/admin/donations/reconciliation`, `/admin/donations/{id}` | P1 |
 | All-needs split | `/admin/all-needs` | P2 |
 | Spending entries and reports | `/admin/spending`, `/admin/spending/{batch_id}`, `/admin/reports` | P2 |
 | Consent records | `/admin/consent`, `/admin/consent/{id}` | P3 (orphan sign-offs P4) |
@@ -394,6 +395,7 @@ This table is the one place where role rights are defined (REQ-ROL-002). Code re
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Give and send a transfer notice | yes (as guest) | yes | — ¹ | — ¹ | — ¹ | — ¹ | — ¹ |
 | Record a bank-transfer donation | — | — | — | — | — | yes | yes |
+| Reconcile a bank statement | — | — | — | — | — | yes | yes |
 | Confirm or reject a transfer notice (reconcile) | — | — | — | — | — | yes | yes |
 | Reverse a donation, with a reason | — | — | — | — | — | yes | yes |
 | See the donor's name and email on a donation record | — | own | — | — | — | yes | yes |
@@ -735,15 +737,15 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E1-T01 | Public layout: header with logo and name from institute settings, main menu, Donate button, language switch, footer with contact | todo | P0-E3, P0-E4 | REQ-PUB-007, REQ-LNG-003, REQ-MIR-001 |
+| P1-E1-T01 | Public layout: header with logo and name from institute settings, main menu, Donate button, language switch, footer with contact | done | P0-E3, P0-E4 | REQ-PUB-007, REQ-LNG-003, REQ-MIR-001 |
 | P1-E1-T02 | Routes and page stubs for every public and signed-in page under `/ur` and `/en`; not-found page; module-off handling; `noindex` on private pages | todo | P1-E1-T01 | REQ-PUB-001, REQ-LNG-008 |
 | P1-E1-T03 | Media placeholder block for pages, facility cards and causes without photos | todo | P0-E4 | REQ-PUB-001, REQ-ACC-003 |
 | P1-E1-T04 | About, facilities and daily life pages reading bilingual text from `site_pages`, with fallback notice | in progress | P1-E1-T02, P1-E1-T03, P1-E5-T05 | REQ-PUB-001, REQ-LNG-009, REQ-CHS-001, REQ-DON-014 |
-| P1-E1-T05 | Causes list page: filter chips, cause cards with progress and type labels, all-needs card, closed campaigns | in progress | P1-E1-T02, P1-E2 | REQ-PUB-001, REQ-DON-005, REQ-LNG-012 |
-| P1-E1-T06 | Cause page: money box, Zakat line, story, Donate; closed, archived and draft states; empty spending block | in progress | P1-E1-T05 | REQ-PUB-003, REQ-DON-006, REQ-DON-007, REQ-ROL-005 |
-| P1-E1-T07 | Home page: hero, active causes with progress, facts strip, contact strip; later blocks hidden until their phase | todo | P1-E1-T05 | REQ-PUB-002, REQ-PUB-007 |
-| P1-E1-T08 | Donate page: cause or all-needs choice, type with Zakat filter, amount, bank details with copy buttons | in progress | P1-E1-T06, P1-E5-T03 | REQ-PUB-008, REQ-DON-001, REQ-DON-002, REQ-DON-004 |
-| P1-E1-T09 | "Tell us about your transfer" form on the donate page and its thank-you state | todo | P1-E1-T08, P1-E3-T07 | REQ-DPR-001, REQ-DPR-006, REQ-PAY-001, REQ-PAY-007 |
+| P1-E1-T05 | Causes list page: filter chips, cause cards with progress and type labels, all-needs card, closed campaigns | done | P1-E1-T02, P1-E2 | REQ-PUB-001, REQ-DON-005, REQ-LNG-012 |
+| P1-E1-T06 | Cause page: money box, Zakat line, story, Donate; closed, archived and draft states; empty spending block | done | P1-E1-T05 | REQ-PUB-003, REQ-DON-006, REQ-DON-007, REQ-ROL-005 |
+| P1-E1-T07 | Home page: hero, active causes with progress, facts strip, contact strip; later blocks hidden until their phase | done | P1-E1-T05 | REQ-PUB-002, REQ-PUB-007 |
+| P1-E1-T08 | Donate page: cause or all-needs choice, type with Zakat filter, amount, bank details with copy buttons | done | P1-E1-T06, P1-E5-T03 | REQ-PUB-008, REQ-DON-001, REQ-DON-002, REQ-DON-004 |
+| P1-E1-T09 | "Tell us about your transfer" form on the donate page and its thank-you state | blocked | P1-E1-T08, P1-E3-T46 | REQ-DPR-001, REQ-DPR-006, REQ-PAY-001, REQ-PAY-007 |
 | P1-E1-T10 | Contact page from institute settings, with tap-to-call, WhatsApp and static map link | done | P1-E1-T02, P1-E5-T03 | REQ-PUB-006 |
 | P1-E1-T11 | Login and create-donor-account pages, with two-factor step for staff and role-based landing | in progress | P0-E5 | REQ-DPR-004, REQ-SEC-003, REQ-STU-001, REQ-ROL-003 |
 | P1-E1-T12 | Account page: profile, language, password, two-factor, donor links | in progress | P1-E1-T11 | REQ-DPR-004, REQ-LNG-004 |
@@ -753,11 +755,13 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 
 2026-11-12 · The bilingual sign-in flow now links to donor signup and password recovery. The signed-in account page shows the user's name and roles and requires students to change their starting password. Admins and finance officers still use the existing two-factor gate, and editors reach the admin workspace after sign-in. Hosted email verification, account editing, and donor links still need verification or implementation.
 
+2026-11-14 · P1-E1-T08: the donate page adds an amount, with preset chips and another amount in whole rupees, and keeps one-off bank transfer as the only way to give. Monthly, yearly, card, JazzCash and Easypaisa are shown and cannot be selected, because no payment credentials are configured ([D-145](08-decision-log.md#d-145)). The donor is asked to tell the office. The transfer-notice form (P1-E1-T09) stays blocked with P1-E3-T46.
+
 ### P1-E5 Admin area shell and audit log (owner 05)
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E5-T01 | Admin shell: `/admin` layout, phone-first navigation, menu by role, staff-only guard returning not found | todo | P0-E5-T51, P0-E4 | REQ-ROL-002, REQ-LNG-001 |
+| P1-E5-T01 | Admin shell: `/admin` layout, phone-first navigation, menu by role, staff-only guard returning not found | done | P0-E5-T51, P0-E4 | REQ-ROL-002, REQ-LNG-001 |
 | P1-E5-T02 | Admin form kit: amount field, date defaulting to today, Urdu/English text pair, camera photo field, save-and-add-another, on-phone draft and one-time submit key | todo | P1-E5-T01 | REQ-LNG-009, REQ-LNG-012, REQ-ACC-004 |
 | P1-E5-T03 | Institute settings screen: identity, contact, bank accounts, principal, spending batch mode | in progress | P1-E5-T02, P0-E2 | REQ-MIR-001, REQ-PUB-006, REQ-PUB-008 |
 | P1-E5-T04 | Module switches screen and module gating of menus, routes, home blocks and hub links | todo | P1-E5-T03 | REQ-ROL-010 |
@@ -766,16 +770,18 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 | P1-E5-T07 | Audit log writer called by every staff change, with redaction of donor names and emails, student real names and secrets | todo | P0-E2 | REQ-ROL-008, REQ-DPR-009, REQ-SEC-008 |
 | P1-E5-T08 | Audit log screen: list, filters in a bottom sheet, entry detail, admin only | in progress | P1-E5-T07, P1-E5-T01 | REQ-ROL-009 |
 | P1-E5-T09 | Automated checks: each admin action writes exactly one audit entry, and no donor name, donor email or student real name is ever in `audit_log` | todo | P1-E5-T07 | REQ-ROL-008, REQ-DPR-009, REQ-SEC-008 |
-| P1-E5-T10 | Admin dashboard: two quick actions and tiles with counts, each tile appearing when its phase ships | todo | P1-E5-T01 | REQ-TRL-013, REQ-ROL-007 |
+| P1-E5-T10 | Admin dashboard: two quick actions and tiles with counts, each tile appearing when its phase ships | in progress | P1-E5-T01 | REQ-TRL-013, REQ-ROL-007 |
+
+2026-11-14 · P1-E5-T01: the staff workspace has its own navigation under the public header ([`admin/layout.tsx`](../apps/web/src/app/[locale]/admin/layout.tsx), [`staff-links.ts`](../apps/web/src/app/[locale]/admin/staff-links.ts)). Links follow 05 §8.0: finance sees donations and the bank check, an editor sees site pages, an admin sees the directory, causes, audit and donor links. The menu uses the shared design-system chips ([D-148](08-decision-log.md#d-148)). Each existing screen still returns not found when the role cannot open it. Quick actions for recording a transfer and spending are on the workspace home; count tiles stay with P1-E5-T10. Urdu wording awaits review (Q-20).
 
 ### P3-E8 Public student work and teacher work pages (owner 05)
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P3-E8-T01 | Student work list page: published public posts under personas, type and language filters, empty state | todo | P3-E5, P1-E1-T02 | REQ-PUB-004, REQ-CHS-001 |
-| P3-E8-T02 | Student work item page: only approved posts of a thread, persona, poll totals, report button | todo | P3-E8-T01 | REQ-PUB-004, REQ-STU-004, REQ-MOD-005 |
-| P3-E8-T03 | Teacher work list page: tabs for verified articles, lessons, audio, video and resources | todo | P3-E6, P1-E1-T02 | REQ-PUB-005 |
-| P3-E8-T04 | Teacher work item page: verified mark with verifying teacher's name, author profile, YouTube embeds, report button | todo | P3-E8-T03 | REQ-PUB-005, REQ-TCH-001, REQ-TCH-003, REQ-PRF-004 |
+| P3-E8-T01 | Student work list page: published public posts under personas, type and language filters, empty state | done | P3-E5, P1-E1-T02 | REQ-PUB-004, REQ-CHS-001 |
+| P3-E8-T02 | Student work item page: only approved posts of a thread, persona, poll totals, report button | done | P3-E8-T01 | REQ-PUB-004, REQ-STU-004, REQ-MOD-005 |
+| P3-E8-T03 | Teacher work list page: tabs for verified articles, lessons, audio, video and resources | done | P3-E6, P1-E1-T02 | REQ-PUB-005 |
+| P3-E8-T04 | Teacher work item page: verified mark with verifying teacher's name, author profile, YouTube embeds, report button | done | P3-E8-T03 | REQ-PUB-005, REQ-TCH-001, REQ-TCH-003, REQ-PRF-004 |
 | P3-E8-T05 | Takedown clears the item from lists, item pages and caches within one minute, with a "no longer available" page | todo | P3-E8-T02, P3-E8-T04 | REQ-MOD-006, REQ-CHS-004 |
 | P3-E8-T06 | Content hub entry page `/hub`: login gate, greeting, links by role and module | todo | P3-E1, P1-E5-T04 | REQ-ROL-010, REQ-STU-001 |
 | P3-E8-T07 | Home page teasers for student and teacher work, hidden when a module is off or nothing is published | todo | P3-E8-T01, P3-E8-T03 | REQ-PUB-004, REQ-PUB-005, REQ-ROL-010 |
@@ -801,11 +807,11 @@ In "Depends on", a bare epic ID (such as `P0-E3`) means "all tasks of that epic 
 2026-11-09 · P0-E5-T04 (03) built the shared definition in [`packages/core/src/permissions.ts`](../packages/core/src/permissions.ts), with a test for every §7 row that compares it with these tables. P0-E5-T50 stays `todo` until its P0-E2 dependency is done. Then it only needs a review.
 | P1-E2-T50 | Cause admin screens: list with ordering, bilingual form, Zakat and scholar fields, states draft, active, closed and archived, editor read-only money fields | todo | P1-E5-T02, P1-E2-T03, P1-E2-T04, P1-E2-T40 | REQ-DON-009, REQ-DON-005, REQ-DON-006, REQ-DON-007, REQ-ROL-005 |
 | P2-E1-T50 | Spending batch screen on the phone: rows, live unspent balance, receipt camera, save, submit batch, report publish | todo | P1-E5-T02, P2-E1-T02, P2-E1-T05, P2-E1-T40, P2-E6-T01 | REQ-ROL-007, REQ-TRL-011, REQ-TRL-012, REQ-TRL-013 |
-| P2-E5-T50 | Donor wall page: amount, cause, date, name or "Anonymous", filters; no donor ID in anonymous rows | todo | P1-E1-T02, P2-E5-T04, P2-E5-T20, P2-E5-T41 | REQ-DPR-007, REQ-DPR-008, REQ-DPR-009 |
+| P2-E5-T50 | Donor wall page: amount, cause, date, name or "Anonymous", filters; no donor ID in anonymous rows | done | P2-E5-T41 | REQ-DPR-007, REQ-DPR-008, REQ-DPR-009 |
 | P2-E5-T51 | Donor public profile page listing only named donations | todo | P1-E1-T02, P2-E5-T02, P2-E5-T41 | REQ-DPR-005, REQ-DPR-009 |
-| P2-E6-T50 | Cause page spending block: amount spent, spending entries, public receipts and published reports | todo | P1-E1-T06, P2-E1 | REQ-TRL-010, REQ-PUB-003, REQ-TRL-012 |
-| P2-E6-T51 | Home page "where the money went" block | todo | P2-E6-T50 | REQ-TRL-010 |
-| P3-E5-T50 | Moderation queue screen: reports, public requests with consent check, teacher work review, taken down | todo | P1-E5-T01, P3-E5-T05, P3-E5-T06, P3-E5-T08, P3-E5-T40, P3-E5-T41, P3-E6-T03 | REQ-MOD-003, REQ-MOD-005, REQ-CHS-004, REQ-CHS-005, REQ-TCH-004 |
+| P2-E6-T50 | Cause page spending block: amount spent, spending entries, public receipts and published reports | done | P1-E1-T06, P2-E1 | REQ-TRL-010, REQ-PUB-003, REQ-TRL-012 |
+| P2-E6-T51 | Home page "where the money went" block | done | P2-E6-T50 | REQ-TRL-010 |
+| P3-E5-T50 | Moderation queue screen: reports, public requests with consent check, teacher work review, taken down | in progress | P1-E5-T01, P3-E5-T05, P3-E5-T06, P3-E5-T08, P3-E5-T40, P3-E5-T41, P3-E6-T03 | REQ-MOD-003, REQ-MOD-005, REQ-CHS-004, REQ-CHS-005, REQ-TCH-004 |
 | P4-E3-T50 | Sponsor area page: child card, updates, full profile only with active consent, messages to the madrasa | todo | P4-E1, P4-E2 | REQ-ORP-002, REQ-ORP-003, REQ-ORP-005, REQ-ORP-006, REQ-ORP-007 |
 
 **Notes for other documents**

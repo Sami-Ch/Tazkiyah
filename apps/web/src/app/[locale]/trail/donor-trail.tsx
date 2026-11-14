@@ -4,22 +4,26 @@ import type { Locale } from "@tazkiyah/i18n/routing";
 import Image from "next/image";
 import { Fragment, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
+import { authRequest } from "@/components/auth-request";
 import { givingCopy } from "@/institutes/giving-copy";
-import { institute } from "@/institutes/markaz-al-azeem";
-import type { DonationType } from "@/institutes/manual-donations";
+import { formatAmount } from "@/design/format";
+import { type DonationType } from "@/institutes/manual-donations";
+import { receiptAmountInWords } from "@/institutes/receipt-amount";
 import {
   pageTranslation,
   type LocalizedPageText,
 } from "@/institutes/site-pages";
-import { donationState } from "./donation-state";
+import { donationState, unspentPaisa } from "./donation-state";
 import { trailCopy } from "./trail-copy";
 
 type TrailCursor = { recorded_at: string; id: string };
 type TrailEvent = {
-  event_type: "received" | "allocated";
+  event_type: "received" | "allocated" | "spent" | "reported";
   occurred_on: string;
   amount_paisa: string;
   cause_title: LocalizedPageText | null;
+  description?: LocalizedPageText | null;
+  receipt_key?: string | null;
 };
 type TrailDonation = TrailCursor & {
   receipt_number: string;
@@ -29,6 +33,16 @@ type TrailDonation = TrailCursor & {
   status: "recorded" | "reversed";
   reversal_reason: string | null;
   receipt_locale: Locale;
+  public_ref?: string;
+  is_anonymous?: boolean;
+  trail_public?: boolean;
+  bank_reference_tail: string | null;
+  donor_name: string | null;
+  issuer_name: LocalizedPageText | null;
+  issuer_address: LocalizedPageText | null;
+  issuer_logo: string | null;
+  replaces_donation: boolean;
+  replaces_receipt: string | null;
   cause_title: LocalizedPageText | null;
   events: TrailEvent[];
 };
@@ -66,23 +80,35 @@ function useTrailToken() {
 }
 
 async function readTrail(
-  token: string,
+  token: string | undefined,
+  donationRef: string | undefined,
   cursor: TrailCursor | null,
   signal: AbortSignal,
 ): Promise<TrailResult> {
   try {
-    const response = await fetch("/api/auth/donor-trail", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(cursor ? { token, cursor } : { token }),
-      cache: "no-store",
-      credentials: "omit",
-      mode: "same-origin",
-      redirect: "error",
-      referrerPolicy: "no-referrer",
-      signal,
-    });
-    if (response.status === 404 || response.status === 400)
+    const response = await fetch(
+      token ? "/api/auth/donor-trail" : "/api/auth/account-trail",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          donationRef,
+          cursor: cursor ?? undefined,
+        }),
+        cache: "no-store",
+        credentials: token ? "omit" : "same-origin",
+        mode: "same-origin",
+        redirect: "error",
+        referrerPolicy: "no-referrer",
+        signal,
+      },
+    );
+    if (
+      response.status === 404 ||
+      response.status === 400 ||
+      response.status === 403
+    )
       return { state: "invalid" };
     if (!response.ok) return { state: "unavailable" };
     const page: TrailPage = await response.json();
@@ -94,22 +120,11 @@ async function readTrail(
   }
 }
 
-function formatPkr(value: string, locale: Locale) {
-  const paisa = BigInt(value);
-  const remainder = paisa % 100n;
-  const format = new Intl.NumberFormat(`${locale}-PK`, {
-    style: "currency",
-    currency: "PKR",
-    minimumFractionDigits: remainder ? 2 : 0,
-  });
-  if (!remainder) return format.format(paisa / 100n);
-  const digits = new Intl.NumberFormat(`${locale}-PK`, {
-    minimumIntegerDigits: 2,
-  }).format(remainder);
-  return format
-    .formatToParts(paisa / 100n)
-    .map((part) => (part.type === "fraction" ? digits : part.value))
-    .join("");
+function formatMoney(value: string | bigint, locale: Locale) {
+  return formatAmount(
+    typeof value === "bigint" ? value : BigInt(value),
+    locale,
+  );
 }
 
 function TrailDate({
@@ -128,6 +143,16 @@ function TrailDate({
   return <time dateTime={value}>{formatted}</time>;
 }
 
+function receiptPhoto(key: string | null | undefined) {
+  const parts = key?.split("/");
+  if (
+    !parts?.length ||
+    parts.some((part) => !part || part === "." || part === "..")
+  )
+    return null;
+  return `https://media.azeem-lateef.com/${parts.map(encodeURIComponent).join("/")}`;
+}
+
 function CauseTitle({
   title,
   locale,
@@ -143,38 +168,104 @@ function CauseTitle({
   );
 }
 
-function Receipt({ donation }: { donation: TrailDonation }) {
+function Receipt({
+  donation,
+  token,
+}: {
+  donation: TrailDonation;
+  token?: string;
+}) {
   const preferred = donation.receipt_locale;
   const alternate = preferred === "en" ? "ur" : "en";
   return (
     <section className="trail-receipt">
-      <Image
-        src={institute.logo.small}
-        width={72}
-        height={72}
-        alt=""
-        unoptimized
-        loading="eager"
-      />
-      <div className="trail-receipt-languages">
+      {donation.issuer_logo && (
+        <Image
+          src={donation.issuer_logo}
+          width={72}
+          height={72}
+          alt=""
+          unoptimized
+          loading="eager"
+          referrerPolicy="no-referrer"
+        />
+      )}
+      <div
+        className="trail-receipt-languages"
+        dir={preferred === "ur" ? "rtl" : "ltr"}
+      >
         {([preferred, alternate] as const).map((locale) => {
           const copy = trailCopy[locale];
+          const name = pageTranslation(
+            donation.issuer_name ?? undefined,
+            locale,
+          );
+          const address = pageTranslation(
+            donation.issuer_address ?? undefined,
+            locale,
+          );
+          const trailLink = donation.public_ref
+            ? `/${locale}/account/donations/${donation.public_ref}`
+            : token && `/${locale}/trail#${token}`;
           return (
             <section
               key={locale}
               lang={locale}
               dir={locale === "ur" ? "rtl" : "ltr"}
             >
-              <h2>{institute.name[locale]}</h2>
-              <address>
-                <bdi dir="ltr">{institute.address.roadNumber}</bdi>{" "}
-                {institute.address.roadLabel[locale]},{" "}
-                {institute.address.region[locale]}
-              </address>
+              {name && (
+                <h2 lang={name.language} dir="auto">
+                  {name.text}
+                </h2>
+              )}
+              {address && (
+                <address
+                  lang={address.language}
+                  dir={address.language === "ur" ? "rtl" : "ltr"}
+                >
+                  {address.language === "ur"
+                    ? address.text
+                        .split(/([A-Za-z0-9](?:[A-Za-z0-9./ -]*[A-Za-z0-9])?)/g)
+                        .map((part, index) =>
+                          index % 2 ? (
+                            <bdi key={index} dir="ltr">
+                              {part}
+                            </bdi>
+                          ) : (
+                            part
+                          ),
+                        )
+                    : address.text}
+                </address>
+              )}
               <h3>{copy.receipt}</h3>
-              <p>{copy.anonymous}</p>
+              <p>
+                {donation.donor_name ? (
+                  <bdi>{donation.donor_name}</bdi>
+                ) : (
+                  copy.anonymous
+                )}
+              </p>
               {donation.status === "reversed" && (
-                <p className="trail-cancelled">{copy.cancelledNotice}</p>
+                <strong className="trail-cancelled trail-receipt-stamp">
+                  {copy.reversed}
+                </strong>
+              )}
+              {donation.replaces_donation && (
+                <p>
+                  {donation.replaces_receipt ? (
+                    <Sentence
+                      template={copy.replacesReceipt}
+                      parts={{
+                        receipt: (
+                          <bdi dir="ltr">{donation.replaces_receipt}</bdi>
+                        ),
+                      }}
+                    />
+                  ) : (
+                    copy.replacesPrivateReceipt
+                  )}
+                </p>
               )}
               <dl>
                 <div>
@@ -186,8 +277,12 @@ function Receipt({ donation }: { donation: TrailDonation }) {
                 <div>
                   <dt>{copy.amount}</dt>
                   <dd>
-                    <bdi>{formatPkr(donation.amount_paisa, locale)}</bdi>
+                    <bdi>{formatMoney(donation.amount_paisa, locale)}</bdi>
                   </dd>
+                </div>
+                <div>
+                  <dt>{copy.amountInWords}</dt>
+                  <dd>{receiptAmountInWords(donation.amount_paisa, locale)}</dd>
                 </div>
                 <div>
                   <dt>{copy.credited}</dt>
@@ -215,8 +310,22 @@ function Receipt({ donation }: { donation: TrailDonation }) {
                   <dt>{copy.type}</dt>
                   <dd>{givingCopy[locale].purposes[donation.donation_type]}</dd>
                 </div>
+                {donation.bank_reference_tail && (
+                  <div>
+                    <dt>{copy.referenceTail}</dt>
+                    <dd>
+                      <bdi dir="ltr">{donation.bank_reference_tail}</bdi>
+                    </dd>
+                  </div>
+                )}
               </dl>
               <p>{copy.taxNotice}</p>
+              {trailLink && (
+                <a href={trailLink} rel="noreferrer">
+                  {copy.viewTrail}
+                </a>
+              )}
+              {token && <p>{copy.receiptPrivacy}</p>}
             </section>
           );
         })}
@@ -255,7 +364,7 @@ function DonationStateLine({
   const copy = trailCopy[locale];
   const state = donationState(donation);
   const money = (value: bigint) => (
-    <bdi>{formatPkr(value.toString(), locale)}</bdi>
+    <bdi>{formatMoney(value.toString(), locale)}</bdi>
   );
   const causes = (titles: (LocalizedPageText | null)[]) =>
     titles.map((title, index) => (
@@ -317,16 +426,118 @@ function DonationStateLine({
   return <p className="trail-state">{line}</p>;
 }
 
+function VisibilityChoices({
+  donation,
+  locale,
+  token,
+  onSaved,
+}: {
+  donation: TrailDonation;
+  locale: Locale;
+  token?: string;
+  onSaved: () => void;
+}) {
+  const copy = trailCopy[locale];
+  const [notice, setNotice] = useState<string>();
+  const [pending, setPending] = useState(false);
+  if (!donation.public_ref) return null;
+  async function save(anonymous: boolean, trailPublic: boolean) {
+    setPending(true);
+    const response = await authRequest("donation-visibility", {
+      ...(token ? { token } : {}),
+      publicRef: donation.public_ref,
+      anonymous,
+      trailPublic,
+    });
+    const body = (await response.json().catch(() => null)) as {
+      code?: string;
+    } | null;
+    setPending(false);
+    setNotice(body?.code === "saved" ? copy.visibilitySaved : copy.visibilityDenied);
+    if (body?.code === "saved") onSaved();
+  }
+  return (
+    <fieldset className="trail-visibility" disabled={pending}>
+      <label>
+        <input
+          type="checkbox"
+          checked={donation.is_anonymous === false}
+          onChange={(event) =>
+            void save(!event.target.checked, donation.trail_public === true)
+          }
+        />
+        {copy.showName}
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={donation.trail_public === true}
+          onChange={(event) =>
+            void save(donation.is_anonymous !== false, event.target.checked)
+          }
+        />
+        {copy.makePublic}
+      </label>
+      {donation.trail_public && (
+        <a href={`/${locale}/trail/${donation.public_ref}`}>{copy.publicLink}</a>
+      )}
+      {notice && <p role="status">{notice}</p>}
+    </fieldset>
+  );
+}
+
+function GuestName({ locale, token }: { locale: Locale; token: string }) {
+  const copy = trailCopy[locale];
+  const [name, setName] = useState("");
+  const [notice, setNotice] = useState<string>();
+  return (
+    <form
+      className="trail-visibility"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void authRequest("donor-profile", { token, displayName: name }).then(
+          async (response) => {
+            const body = (await response.json().catch(() => null)) as {
+              code?: string;
+            } | null;
+            setNotice(body?.code === "saved" ? copy.nameSaved : copy.visibilityDenied);
+          },
+        );
+      }}
+    >
+      <label>
+        {copy.displayName}
+        <input
+          value={name}
+          maxLength={80}
+          autoComplete="off"
+          onChange={(event) => setName(event.target.value)}
+        />
+      </label>
+      <button type="submit" className="ui-button ui-button-secondary">
+        {copy.saveName}
+      </button>
+      {notice && <p role="status">{notice}</p>}
+    </form>
+  );
+}
+
 function DonationRecord({
   donation,
   locale,
   printable,
   onPrint,
+  showTrailLink,
+  token,
+  onSaved,
 }: {
   donation: TrailDonation;
   locale: Locale;
   printable: boolean;
   onPrint: () => void;
+  showTrailLink: boolean;
+  token?: string;
+  onSaved: () => void;
 }) {
   const copy = trailCopy[locale];
   return (
@@ -355,7 +566,7 @@ function DonationRecord({
           <div>
             <dt>{copy.amount}</dt>
             <dd>
-              <bdi>{formatPkr(donation.amount_paisa, locale)}</bdi>
+              <bdi>{formatMoney(donation.amount_paisa, locale)}</bdi>
             </dd>
           </div>
           <div>
@@ -376,43 +587,98 @@ function DonationRecord({
           </div>
         </dl>
         {donation.events.length > 0 && (
-          <details className="trail-events">
+          <details className="trail-events" open>
             <summary>{copy.activity}</summary>
             <ol>
-              {donation.events.map((event, index) => (
-                <li key={index}>
-                  <strong>{copy[event.event_type]}</strong>
-                  <p>
-                    <TrailDate value={event.occurred_on} locale={locale} />
-                    {" · "}
-                    <bdi>{formatPkr(event.amount_paisa, locale)}</bdi>
-                    {event.event_type === "allocated" && (
-                      <>
-                        {" · "}
-                        <CauseTitle title={event.cause_title} locale={locale} />
-                      </>
+              {donation.events.map((event, index) => {
+                const description = pageTranslation(
+                  event.description ?? undefined,
+                  locale,
+                );
+                const photo = receiptPhoto(event.receipt_key);
+                return (
+                  <li key={index}>
+                    <strong>{copy[event.event_type]}</strong>
+                    <p>
+                      <TrailDate value={event.occurred_on} locale={locale} />
+                      {" · "}
+                      <bdi>{formatMoney(event.amount_paisa, locale)}</bdi>
+                      {event.event_type !== "received" && event.cause_title && (
+                        <>
+                          {" · "}
+                          <CauseTitle
+                            title={event.cause_title}
+                            locale={locale}
+                          />
+                        </>
+                      )}
+                    </p>
+                    {description && (
+                      <p lang={description.language} dir="auto">
+                        {description.text}
+                      </p>
                     )}
-                  </p>
-                </li>
-              ))}
+                    {photo && (
+                      <Image
+                        src={photo}
+                        width={320}
+                        height={180}
+                        alt={copy.receiptPhoto}
+                        unoptimized
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                  </li>
+                );
+              })}
             </ol>
+            {unspentPaisa(donation) > 0n && (
+              <p>
+                {copy.waiting.replace(
+                  "{amount}",
+                  formatMoney(unspentPaisa(donation), locale),
+                )}
+              </p>
+            )}
           </details>
         )}
         <button
           type="button"
-          className="button button-outline"
+          className="ui-button ui-button-secondary"
           aria-label={`${copy.printReceipt} ${donation.receipt_number}`}
           onClick={onPrint}
         >
           {copy.printReceipt}
         </button>
+        <VisibilityChoices
+          donation={donation}
+          locale={locale}
+          token={token}
+          onSaved={onSaved}
+        />
+        {showTrailLink && donation.public_ref && (
+          <a
+            className="ui-button ui-button-secondary"
+            href={`/${locale}/account/donations/${donation.public_ref}`}
+          >
+            {copy.viewTrail}
+          </a>
+        )}
       </div>
-      <Receipt donation={donation} />
+      <Receipt donation={donation} token={token} />
     </article>
   );
 }
 
-function TrailResults({ locale, token }: { locale: Locale; token: string }) {
+function TrailResults({
+  locale,
+  token,
+  donationRef,
+}: {
+  locale: Locale;
+  token?: string;
+  donationRef?: string;
+}) {
   const copy = trailCopy[locale];
   const [cursors, setCursors] = useState<(TrailCursor | null)[]>([null]);
   const [retry, setRetry] = useState(0);
@@ -423,11 +689,13 @@ function TrailResults({ locale, token }: { locale: Locale; token: string }) {
 
   useEffect(() => {
     const request = new AbortController();
-    void readTrail(token, cursor, request.signal).then((loaded) => {
-      if (!request.signal.aborted) setResult(loaded);
-    });
+    void readTrail(token, donationRef, cursor, request.signal).then(
+      (loaded) => {
+        if (!request.signal.aborted) setResult(loaded);
+      },
+    );
     return () => request.abort();
-  }, [token, cursor, retry]);
+  }, [token, donationRef, cursor, retry]);
 
   useEffect(() => {
     const clear = () => setPrintId(undefined);
@@ -462,21 +730,34 @@ function TrailResults({ locale, token }: { locale: Locale; token: string }) {
                 locale={locale}
                 printable={printId === donation.id}
                 onPrint={() => printReceipt(donation.id)}
+                showTrailLink={!token && !donationRef}
+                token={token}
+                onSaved={() => {
+                  setResult({ state: "loading" });
+                  setRetry(retry + 1);
+                }}
               />
             ))}
           </section>
         ) : (
-          <p className="trail-message" role="status">
-            {copy.empty}
-          </p>
+          <div className="trail-message">
+            <p role="status">{token ? copy.empty : copy.accountEmpty}</p>
+            {!token && (
+              <a href={`/${locale}/donate`}>{givingCopy[locale].label}</a>
+            )}
+          </div>
         )
       ) : (
         <div className="trail-message">
-          <p role="status">{copy[result.state]}</p>
+          <p role="status">
+            {!token && result.state === "invalid"
+              ? copy.accountUnavailable
+              : copy[result.state]}
+          </p>
           {result.state === "unavailable" && (
             <button
               type="button"
-              className="button button-outline"
+              className="ui-button ui-button-secondary"
               onClick={() => {
                 setResult({ state: "loading" });
                 setRetry(retry + 1);
@@ -486,7 +767,9 @@ function TrailResults({ locale, token }: { locale: Locale; token: string }) {
             </button>
           )}
           {result.state === "invalid" && (
-            <a href={`/${locale}/contact`}>{copy.contact}</a>
+            <a href={`/${locale}/${token ? "contact" : "account"}`}>
+              {token ? copy.contact : copy.accountBack}
+            </a>
           )}
         </div>
       )}
@@ -494,7 +777,7 @@ function TrailResults({ locale, token }: { locale: Locale; token: string }) {
         <nav className="trail-pagination" aria-label={copy.pages}>
           <button
             type="button"
-            className="button button-outline"
+            className="ui-button ui-button-secondary"
             disabled={cursors.length === 1 || result.state === "loading"}
             onClick={() => moveTo(cursors.slice(0, -1))}
           >
@@ -505,7 +788,7 @@ function TrailResults({ locale, token }: { locale: Locale; token: string }) {
           </p>
           <button
             type="button"
-            className="button button-outline"
+            className="ui-button ui-button-secondary"
             disabled={!nextCursor}
             onClick={() => nextCursor && moveTo([...cursors, nextCursor])}
           >
@@ -527,8 +810,9 @@ export function DonorTrail({ locale }: { locale: Locale }) {
     <div className="trail-client">
       <div className="trail-toolbar">
         <p>{copy.privacy}</p>
+        <a href={`/${locale}/signup`}>{copy.createAccount}</a>
         <a
-          className="button button-outline"
+          className="ui-button ui-button-secondary"
           href={`/${alternate}/trail${token ? `#${token}` : ""}`}
           hrefLang={alternate}
           lang={alternate}
@@ -544,13 +828,74 @@ export function DonorTrail({ locale }: { locale: Locale }) {
           {copy.loading}
         </p>
       ) : token ? (
-        <TrailResults key={token} locale={locale} token={token} />
+        <>
+          <GuestName locale={locale} token={token} />
+          <TrailResults key={token} locale={locale} token={token} />
+        </>
       ) : (
         <div className="trail-message">
           <p>{copy.invalid}</p>
           <a href={`/${locale}/contact`}>{copy.contact}</a>
         </div>
       )}
+    </div>
+  );
+}
+
+export function AccountDonorTrail({
+  locale,
+  donationRef,
+}: {
+  locale: Locale;
+  donationRef?: string;
+}) {
+  const copy = trailCopy[locale];
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [version, setVersion] = useState(0);
+
+  async function claim() {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await authRequest("claim-guest-donations", {});
+      const result: { code?: string } = await response.json();
+      if (response.ok && result.code === "claimed") {
+        setNotice(copy.claimed);
+        setVersion((previous) => previous + 1);
+      } else if (response.ok && result.code === "none") {
+        setNotice(copy.noClaim);
+      } else {
+        setNotice(
+          result.code === "conflict"
+            ? copy.claimConflict
+            : copy.claimUnavailable,
+        );
+      }
+    } catch {
+      setNotice(copy.claimUnavailable);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="trail-client">
+      {!donationRef && (
+        <div className="trail-toolbar">
+          <button
+            className="ui-button ui-button-secondary"
+            type="button"
+            disabled={busy}
+            onClick={() => void claim()}
+          >
+            {busy ? copy.claiming : copy.claim}
+          </button>
+          {notice && <p role="status">{notice}</p>}
+        </div>
+      )}
+      <TrailResults key={version} locale={locale} donationRef={donationRef} />
     </div>
   );
 }

@@ -1,13 +1,24 @@
+import { nightAndPaper } from "@tazkiyah/core/theme";
 import { routing } from "@tazkiyah/i18n/routing";
 import type { Metadata } from "next";
-import Image from "next/image";
+import { headers } from "next/headers";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LanguageSwitch } from "@/components/language-switch";
+import {
+  PatternBand,
+  SiteFooter,
+  SiteHeader,
+  shellLinks,
+} from "@/design/shell";
+import { themeStyle } from "@/design/theme-style";
 import { requireLocale } from "@/i18n/locale";
-import { campusMedia, hasCampusSection } from "@/institutes/campus-media";
-import { givingCopy } from "@/institutes/giving-copy";
 import { institute } from "@/institutes/markaz-al-azeem";
+import { themeFromSettings } from "@/institutes/public-ledger";
+import { pageTranslation } from "@/institutes/site-pages";
+import { getPublicOverview, getPublishedInstituteContact } from "@/server/auth";
+import { readPublishedPages } from "@/server/public-pages";
 import "./styles.css";
+import "@/design/design.css";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -34,63 +45,92 @@ export default async function LocaleLayout({
   const locale = requireLocale((await params).locale);
   setRequestLocale(locale);
   const t = await getTranslations("common");
+  const requestHeaders = new Headers(await headers());
+  const [overview, contact, pages] = await Promise.all([
+    getPublicOverview(requestHeaders),
+    getPublishedInstituteContact(requestHeaders),
+    readPublishedPages(),
+  ]);
   const switchLabels = {
     label: t("navigation.language"),
     accessibleLabel: t("navigation.languageLabel"),
   };
+  const labels = {
+    about: t("navigation.about"),
+    causes: t("navigation.causes"),
+    transparency: t("navigation.transparency"),
+    donorWall: t("navigation.donorWall"),
+    studentWork: t("navigation.studentWork"),
+    teacherWork: t("navigation.teacherWork"),
+    newProjects: t("navigation.newProjects"),
+    visit: t("navigation.visit"),
+  };
+  const about = pages.find(({ slug }) => slug === "about");
+  const links = shellLinks(locale, labels, {
+    students: overview ? overview.modules.includes("student_hub") : true,
+    teachers: overview ? overview.modules.includes("teacher_hub") : true,
+    projects: overview ? overview.modules.includes("new_projects") : false,
+  }).filter(
+    (link) =>
+      !link.href.endsWith("/about") ||
+      (pageTranslation(about?.title, locale) &&
+        pageTranslation(about?.body, locale)),
+  );
+  const footerLinks = [
+    ...links,
+    { href: `/${locale}/sign-in`, label: t("signIn.heading") },
+    ...(contact?.phone
+      ? [{ href: contact.phone.href, label: contact.phone.label }]
+      : []),
+    ...(contact?.email
+      ? [{ href: contact.email.href, label: contact.email.label }]
+      : []),
+  ];
+  const language = <LanguageSwitch locale={locale} {...switchLabels} />;
 
   return (
     <html
       lang={locale}
       dir={locale === "ur" ? "rtl" : "ltr"}
-      style={institute.theme}
+      style={themeStyle(themeFromSettings(overview?.theme ?? nightAndPaper))}
     >
       <body>
         <a className="skip-link" href="#main">
           {t("navigation.skip")}
         </a>
-        <header className="site-header">
-          <div className="shell header-inner">
-            <a className="wordmark" href={`/${locale}`}>
-              <Image
-                src={institute.logo.small}
-                alt=""
-                width={48}
-                height={48}
-                unoptimized
-              />
-              <span>
-                <strong>{institute.name[locale]}</strong>
-                <small>{institute.mosque[locale]}</small>
-              </span>
-            </a>
-            <nav className="site-nav" aria-label={t("navigation.label")}>
-              <a href={`/${locale}#about`}>{t("navigation.about")}</a>
-              <a href={`/${locale}#community`}>{t("navigation.community")}</a>
-              {hasCampusSection(campusMedia) && (
-                <a href={`/${locale}#campus`}>{t("campus.label")}</a>
-              )}
-              <a href={`/${locale}/contact`}>{t("navigation.visit")}</a>
-              <a className="site-give" href={`/${locale}/donate`}>
-                {givingCopy[locale].label}
-              </a>
-            </nav>
-            <LanguageSwitch locale={locale} {...switchLabels} />
-          </div>
-        </header>
+        <SiteHeader
+          homeHref={`/${locale}`}
+          name={institute.name[locale]}
+          mosque={institute.mosque[locale]}
+          logoSrc={institute.logo.small}
+          logoAlt=""
+          links={links}
+          donateHref={`/${locale}/donate`}
+          donateLabel={t("navigation.donate")}
+          menuLabel={t("navigation.menu")}
+          language={language}
+        />
+        <PatternBand />
         <main id="main" tabIndex={-1}>
           {children}
         </main>
-        <footer className="site-footer">
-          <div className="shell footer-inner">
-            <div>
-              <p className="footer-name">{institute.name[locale]}</p>
-              <p className="footer-platform">{t("footer.platform")}</p>
-              <a href={`/${locale}/sign-in`}>{t("signIn.heading")}</a>
-            </div>
-            <LanguageSwitch locale={locale} {...switchLabels} />
-          </div>
-        </footer>
+        <SiteFooter
+          name={institute.name[locale]}
+          platform={t("footer.platform")}
+          tagline={t("footer.tagline")}
+          address={
+            <>
+              {institute.mosque[locale]}
+              {", "}
+              <bdi dir="ltr">{institute.address.roadNumber}</bdi>{" "}
+              {institute.address.roadLabel[locale]}
+              {", "}
+              {contact?.address[locale] ?? institute.address.region[locale]}
+            </>
+          }
+          links={footerLinks}
+          language={language}
+        />
       </body>
     </html>
   );

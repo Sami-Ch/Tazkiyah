@@ -3,17 +3,10 @@
 // events themselves are left out by the server. Money can sit at several
 // stages at once, so the state is the earliest stage any of it is still at.
 
-export const reversalCategories = [
-  "recorded_twice",
-  "wrong_details",
-  "wrong_type",
-  "wrong_donor",
-  "transfer_returned",
-  "refund_to_donor",
-  "moved_to_another_cause",
-  "other",
-] as const;
-export type ReversalCategory = (typeof reversalCategories)[number];
+import {
+  reversalCategories,
+  type ReversalCategory,
+} from "@/institutes/manual-donations";
 
 export type StateEvent<Cause> = {
   event_type: "received" | "allocated" | "spent" | "reported";
@@ -74,4 +67,17 @@ export function donationState<Cause>(donation: {
   if (spent <= 0n) return { kind: "allocated", causes };
   if (spent < amount) return { kind: "partly_spent", spent, total: amount };
   return reported >= amount ? { kind: "reported" } : { kind: "spent" };
+}
+
+export function unspentPaisa(donation: {
+  amount_paisa: string;
+  events: { event_type: string; amount_paisa: string }[];
+}) {
+  const spent = donation.events.reduce(
+    (sum, event) =>
+      event.event_type === "spent" ? sum + BigInt(event.amount_paisa) : sum,
+    0n,
+  );
+  const amount = BigInt(donation.amount_paisa);
+  return amount > spent ? amount - spent : 0n;
 }

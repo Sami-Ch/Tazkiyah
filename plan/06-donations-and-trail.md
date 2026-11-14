@@ -610,7 +610,7 @@ During the first release, a two-factor verified administrator issues or revokes 
 A guest donor can create an account later and claim their past donations (REQ-DPR-003).
 
 1. The donor signs up with email ([03 §6](03-architecture.md), REQ-DPR-004) and confirms the address.
-2. Every guest donation whose donor email exactly matches the confirmed email is linked to the new account. Case is ignored and spaces are trimmed.
+2. Under **My donations**, the donor chooses **Claim donations made with my email**. Every guest donation whose donor email exactly matches the confirmed email is linked to the new account. Case is ignored and spaces are trimmed.
 3. The private link is revoked automatically. The account replaces it.
 4. Every per-donation name or anonymous choice stays as it was.
 
@@ -738,6 +738,7 @@ Automatic recurring payments are by card only and come in P5 (D-008, [§16](#16-
 - Format: `{prefix}-{year}-{sequence}`, for example `MAA-2026-00042` (06-P12). The prefix is stored in institute settings (`MAA` for Markaz Al Azeem). The year is the year of recording. The sequence runs per institute per year and is 5 digits, extending past 99,999 if needed.
 - Numbers are given out in one transaction with the *received* event. Each number is on one receipt only. A transaction that fails gives its number back, so the sequence has no gaps ([D-122](08-decision-log.md#d-122)).
 - A reversed donation keeps its number, marked **cancelled**. A re-recorded donation gets a new number, and its receipt says "Replaces receipt MAA-2026-00042".
+- Finance staff enter the cancelled receipt number in the recording form. A donor can see the old number when both receipts belong to their own trail. A correction that changes the donor shows a replacement notice with no number.
 
 ### 14.2 Content
 
@@ -886,10 +887,12 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 | --- | --- | --- | --- | --- |
 | P1-E2-T01 | Cause rules: three types, four states, targets and periods (§5.1, §5.2) | todo | P0-E2 | REQ-DON-005, REQ-DON-007, REQ-DON-014 |
 | P1-E2-T02 | Bilingual admin form to create, edit, close and archive a cause, with type-specific fields | in progress | P1-E2-T01, P1-E5, P0-E3 | REQ-DON-009, REQ-DON-013, REQ-LNG-009 |
-| P1-E2-T03 | Zakat flag, approving scholar's name and receipt-photo default on each cause | todo | P1-E2-T02 | REQ-ROL-005 |
+| P1-E2-T03 | Zakat flag, approving scholar's name and receipt-photo default on each cause | done | P1-E2-T02 | REQ-ROL-005 |
 | P1-E2-T04 | Campaign auto-close at end date, late-recording rule, and archive guard (§5.3) | in progress | P1-E2-T01 | REQ-DON-006 |
 | P1-E2-T05 | Cause progress figures (raised, spent, target, period) for public pages and the home page | in progress | P1-E2-T01, P1-E3-T01 | REQ-PUB-002, REQ-PUB-003, REQ-TRL-010 |
-| P1-E2-T06 | Seed Markaz Al Azeem's starting causes as drafts (§5.4) | todo | P1-E2-T03 | REQ-DON-014 |
+| P1-E2-T06 | Seed Markaz Al Azeem's starting causes as drafts (§5.4) | done | P1-E2-T03 | REQ-DON-014 |
+
+The bilingual admin cause form saves the optional scholar name and the spending receipt-photo default through [migration 0055](../db/drizzle/0055_cause_donation_settings.sql). New spending entries inherit the default and accept an explicit visibility choice. The [institute seed](../db/seed/markaz_al_azeem.sql) adds all seven starter causes as drafts with Zakat eligibility off pending Moazam's review. The illustrative sponsorship target is Rs 40,000 per month for five children at Rs 8,000 each.
 
 ### P1-E3 Manual donation recording and guest donors
 
@@ -897,16 +900,20 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 | --- | --- | --- | --- | --- |
 | P1-E3-T01 | Recording rules: save donation, *received* and *allocated* events in one transaction (§4.4, §4.5), including unknown donor | in progress | P1-E2-T03, P0-E2 | REQ-DON-001, REQ-DON-002, REQ-DON-004, REQ-DON-008, REQ-TRL-001, REQ-TRL-002, REQ-DON-017 (proposed, needs approval for unknown donor only) |
 | P1-E3-T02 | Phone-friendly admin form to record a bank transfer, with duplicate warning and large-amount confirmation | done | P1-E3-T01, P1-E5, P0-E5 | REQ-DON-008, REQ-PAY-001 |
-| P1-E3-T03 | Receipt numbering per institute per year (§14.1) | in progress | P1-E3-T01 | REQ-DON-010 |
+| P1-E3-T03 | Receipt numbering per institute per year (§14.1) | done | P1-E3-T01 | REQ-DON-010 |
 | P1-E3-T04 | Guest donors and private trail-link tokens: create, hash, revoke (§11.2) | done | P1-E3-T01 | REQ-DPR-001, REQ-DPR-002, REQ-SEC-004 |
-| P1-E3-T05 | Email the private link to a new guest donor when their first donation is received | todo | P1-E3-T04, P1-E3-T30 | REQ-DPR-002, REQ-LNG-011 |
+| P1-E3-T05 | Email the private link to a new guest donor when their first donation is received | blocked | P1-E3-T04, P1-E3-T30 | REQ-DPR-002, REQ-LNG-011 |
 | P1-E3-T06 | Anonymity read layer: name fields hidden for anonymous donations outside donor and finance roles (§10.4) | todo | P1-E3-T01 | REQ-DPR-006, REQ-DPR-009, REQ-SEC-008 |
-| P1-E3-T07 | Public transfer notice form creating *notified* donations (§4.2) | todo | P1-E3-T01, P1-E1-T08 | REQ-DON-001, REQ-DON-002, REQ-DON-003, REQ-DON-004, REQ-DPR-001, REQ-DPR-006 |
+| P1-E3-T07 | Public transfer notice form creating *notified* donations (§4.2) | blocked | P1-E3-T46, P1-E1-T08 | REQ-DON-001, REQ-DON-002, REQ-DON-003, REQ-DON-004, REQ-DPR-001, REQ-DPR-006 |
 | P1-E3-T08 | Admin queue to confirm, reject or expire transfer notices | todo | P1-E3-T07, P1-E3-T02 | REQ-DON-008, REQ-PAY-001 |
-| P1-E3-T09 | Reverse a donation before any spending, with a reason; receipt marked cancelled (§15.2, §15.3) | todo | P1-E3-T01, P1-E3-T03 | REQ-DON-012, REQ-TRL-003 |
-| P1-E3-T10 | Recurring pledges: create from the notice form or by admin, and link recorded payments (§13.1) | todo | P1-E3-T02, P1-E3-T07 | REQ-DON-003 |
+| P1-E3-T09 | Reverse a donation before any spending, with a reason; receipt marked cancelled (§15.2, §15.3) | done | P1-E3-T01, P1-E3-T03 | REQ-DON-012, REQ-TRL-003 |
+| P1-E3-T10 | Recurring pledges: create from the notice form or by admin, and link recorded payments (§13.1) | blocked | P1-E3-T02, P1-E3-T07 | REQ-DON-003 |
 | P1-E3-T11 | "Expected this month" list and pledge lapsing after 3 missed periods | todo | P1-E3-T10 | REQ-DON-003 |
-| P1-E3-T12 | Bank statement reconciliation screen (§15.1) | todo | P1-E3-T02, P1-E3-T09 | REQ-DON-008, REQ-DON-012, REQ-PAY-001 |
+| P1-E3-T12 | Bank statement reconciliation screen (§15.1) | done | P1-E3-T02, P1-E3-T09 | REQ-DON-008, REQ-DON-012, REQ-PAY-001 |
+
+P1-E3-T09 uses [migration 0056](../db/drizzle/0056_manual_donation_reversal.sql) and the bilingual staff donations screen. Administrators and finance officers with two-factor verification find the original bank transfer by receipt number. The reversal preserves that receipt number and original cause, and the guest trail shows the cancellation and reason category. The staff note is kept in the audit record. Reversing an already-spent donation from the staff screen remains P2-E2-T03.
+
+P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals per day and masks references to their last four characters. Closing a review records one audit summary and updates all matched and missing transfers in the same transaction. If a transfer was added, reversed, or reconciled since the review was loaded, staff reload before closing. Non-donation credits go only to the audit log. See [migration 0057](../db/drizzle/0057_bank_statement_reconciliation.sql).
 
 ### P1-E4 Donor's own trail view (received and allocated)
 
@@ -924,21 +931,23 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P2-E1-T01 | Phone-friendly spending entry form saving drafts in a daily or weekly batch (§9.1, §9.2) | todo | P1-E2-T01, P1-E5 | REQ-TRL-011, REQ-ROL-007 |
-| P2-E1-T02 | Receipt photo on a spending entry, with public or private setting from the cause default | todo | P2-E1-T01, P1-E2-T03, P2-E1-T30 | REQ-TRL-011, REQ-ROL-007, REQ-PRF-002 |
-| P2-E1-T03 | "Record batch": drafts become final and FIFO runs | todo | P2-E1-T01, P2-E2-T01 | REQ-TRL-004, REQ-TRL-011 |
-| P2-E1-T04 | Reverse a spending entry with a reason, releasing its matches | todo | P2-E1-T03, P2-E2-T03 | REQ-TRL-003 |
-| P2-E1-T05 | Admin view of unspent balance per cause by type, shortfalls and all-needs pools (§9.4) | todo | P2-E2-T01 | REQ-TRL-013 |
+| P2-E1-T01 | Phone-friendly spending entry form saving drafts in a daily or weekly batch (§9.1, §9.2) | done | P1-E2-T01, P1-E5 | REQ-TRL-011, REQ-ROL-007 |
+| P2-E1-T02 | Receipt photo on a spending entry, with public or private setting from the cause default | blocked | P2-E1-T01, P1-E2-T03, P2-E1-T30 | REQ-TRL-011, REQ-ROL-007, REQ-PRF-002 |
+| P2-E1-T03 | "Record batch": drafts become final and FIFO runs | done | P2-E1-T01, P2-E2-T01 | REQ-TRL-004, REQ-TRL-011 |
+| P2-E1-T04 | Reverse a spending entry with a reason, releasing its matches | done | P2-E1-T03, P2-E2-T03 | REQ-TRL-003 |
+| P2-E1-T05 | Admin view of unspent balance per cause by type, shortfalls and all-needs pools (§9.4) | done | P2-E2-T01 | REQ-TRL-013 |
+
+2026-11-14 · P2-E1-T01, T03, T04 and T05: finance staff save spending drafts, see unspent money by cause and type plus all-needs pools, record a batch through `app.match_spending`, and reverse a recorded entry ([`0061_staff_spending.sql`](../db/drizzle/0061_staff_spending.sql), [`/admin/spending`](../apps/web/src/app/[locale]/admin/spending/page.tsx)). An amount larger than the unspent balance stays a draft. The batch is daily until institute settings store the weekly choice (P1-E5-T03). P2-E1-T02 stays blocked: receipt photos need object storage (P2-E1-T30). P2-E2-T01 and P2-E2-T03 are the existing ledger functions, now called from this screen. Shortfalls that spend money which has not arrived yet stay proposed (P2-E2-T02). Tests: [`db/test/staff_spending.sql`](../db/test/staff_spending.sql).
 
 ### P2-E2 First-in-first-out matching
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P2-E2-T01 | FIFO matching for one cause with a per-cause lock, writing spend allocations and *spent* events (§8.4) | todo | P1-E3-T01, P2-E1-T01 | REQ-TRL-001, REQ-TRL-004, REQ-TRL-005 |
+| P2-E2-T01 | FIFO matching for one cause with a per-cause lock, writing spend allocations and *spent* events (§8.4) | done | P1-E3-T01, P2-E1-T01 | REQ-TRL-001, REQ-TRL-004, REQ-TRL-005 |
 | P2-E2-T02 | Shortfalls: entries larger than unspent money, filled by the next money in (§8.5) *(needs approval)* | todo | P2-E2-T01 | REQ-TRL-004, REQ-TRL-016 (proposed) |
-| P2-E2-T03 | Reversals after spending: release matches and re-run FIFO (§15.3) | todo | P2-E2-T01, P1-E3-T09 | REQ-DON-012, REQ-TRL-003 |
+| P2-E2-T03 | Reversals after spending: release matches and re-run FIFO (§15.3) | done | P2-E2-T01, P1-E3-T09 | REQ-DON-012, REQ-TRL-003 |
 | P2-E2-T04 | Automated tests: the §8.6 worked example as a fixture, plus the six money rules in §8.3 | todo | P2-E2-T02, P2-E2-T03 | REQ-TRL-004, REQ-TRL-005, REQ-TRL-006, REQ-TRL-007 |
-| P2-E2-T05 | Donor trail shows *spent* and *reported* events, with description, share and public receipt photo | todo | P2-E2-T01, P1-E4-T01 | REQ-TRL-007, REQ-ORP-009 |
+| P2-E2-T05 | Donor trail shows *spent* and *reported* events, with description, share and public receipt photo | done | P2-E2-T40, P1-E4-T01 | REQ-TRL-007, REQ-ORP-009 |
 
 ### P2-E3 Zakat, Sadaqah and general ring-fencing
 
@@ -961,13 +970,17 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P2-E5-T01 | Donor account sign-up and claiming guest donations by confirmed email (§11.3) | todo | P0-E5, P1-E3-T04 | REQ-DPR-003, REQ-DPR-004, REQ-DPR-010 |
+| P2-E5-T01 | Donor account sign-up and claiming guest donations by confirmed email (§11.3) | done | P0-E5, P1-E3-T04 | REQ-DPR-003, REQ-DPR-004, REQ-DPR-010 |
 | P2-E5-T02 | Public donor profile: display name, photo, up to 3 links, named donations only (§10.1) | todo | P2-E5-T01 | REQ-DPR-005 |
 | P2-E5-T03 | Donor can switch each donation between named and anonymous, with cache purge | todo | P2-E5-T01, P1-E3-T06 | REQ-DPR-006, REQ-DPR-008 |
 | P2-E5-T04 | Donor wall data: amount, cause, date, name or "Anonymous", paged, no type (§10.2) | todo | P1-E3-T06 | REQ-DPR-007, REQ-DPR-008, REQ-DPR-009 |
 | P2-E5-T05 | Public trail toggle per donation and the public trail page (§10.3) | todo | P2-E2-T05 | REQ-TRL-008, REQ-TRL-009, REQ-DPR-009 |
-| P2-E5-T06 | "My donations" list with states and receipts for account donors | todo | P2-E5-T01, P1-E4-T03 | REQ-DPR-010 |
+| P2-E5-T06 | "My donations" list with states and receipts for account donors | in progress | P2-E5-T01, P1-E4-T03 | REQ-DPR-010 |
 | P2-E5-T07 | Anonymity leak test across pages, exports, API, logs, audit log and emails (§10.4) | todo | P2-E5-T04, P2-E5-T05, P2-E7-T60 | REQ-DPR-009, REQ-SEC-008 |
+
+[Migration 0058](../db/drizzle/0058_account_donation_trails.sql) connects the verified-email claim to **My donations**. It revokes existing guest access and prevents both manual issuance and receipt jobs from creating a new guest link for a claimed donor. Signed-in donors can page through their own donations and open an individual trail. [Migration 0059](../db/drizzle/0059_printable_donation_receipts.sql) adds the institute branding and replacement information to both kinds of private trail. The printable receipt spells out the amount in both languages and includes the donor's own trail link. Named receipts still depend on the donor's name choice (P2-E5-T03).
+
+2026-11-14 · P2-E2-T05: [`0065_donor_spent_trail.sql`](../db/drizzle/0065_donor_spent_trail.sql) adds each standing *spent* and *reported* event to the private trail, with the purchase or report description and the donor's share. A receipt photo is included only when the entry is public, the file is a ready public image, and it shows no face. Private receipt keys never leave the database. The trail page lists the events and the amount still waiting to be spent, in Urdu and English. The staff form that records a batch is P2-E1-T01; this page only reads events `app.match_spending()` already writes ([D-144](08-decision-log.md#d-144)). Tests: [`db/test/donor_trail_spending.sql`](../db/test/donor_trail_spending.sql).
 
 ### P2-E6 Spending reports and public cause transparency
 
@@ -981,25 +994,29 @@ All tasks start as `todo`. A dependency written as an epic, such as `P0-E2`, mea
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P4-E1-T01 | Match an account donor to one orphan; link sponsorship donations to the Orphan sponsorship cause (§12.1) | todo | P3-E1, P2-E5-T01 | REQ-ORP-001, REQ-ORP-009 |
-| P4-E1-T02 | Sponsor's private page with persona name, age and updates only (§12.2) | todo | P4-E1-T01 | REQ-ORP-002, REQ-ORP-005 |
+| P4-E1-T01 | Match an account donor to one orphan; link sponsorship donations to the Orphan sponsorship cause (§12.1) | done | P3-E1, P2-E5-T01 | REQ-ORP-001, REQ-ORP-009 |
+| P4-E1-T02 | Sponsor's private page with persona name, age and updates only (§12.2) | done | P4-E1-T40 | REQ-ORP-002, REQ-ORP-005 |
 | P4-E1-T03 | Progress updates by admin or teacher, admin approval for teachers, photo and contact checks (§12.3) | todo | P4-E1-T01, P3-E4 | REQ-ORP-008, REQ-CHS-001, REQ-CHS-002 |
 | P4-E1-T04 | Pause and end a sponsorship, ending any consent at once | todo | P4-E1-T01, P4-E2-T03 | REQ-ORP-006 |
+
+2026-11-14 · P4-E1-T01: an administrator matches one account donor to one orphan from [`/admin/sponsorships`](../apps/web/src/app/[locale]/admin/sponsorships/page.tsx). A second open match for the same child is refused. The screen shows the pen name and, to the administrator only, the real name ([`0064_staff_sponsorships.sql`](../db/drizzle/0064_staff_sponsorships.sql)). Ending a match is on the same screen; withdrawing full-profile consent at the same moment stays with P4-E1-T04. The sponsor's own page is done in [`0066_sponsor_page.sql`](../db/drizzle/0066_sponsor_page.sql) (P4-E1-T02). Tests: [`db/test/staff_sponsorships.sql`](../db/test/staff_sponsorships.sql).
 
 ### P4-E2 Sponsorship consent with an assignable second sign-off
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P4-E2-T01 | Full-profile consent record: Moazam opens it, assigns any teacher, two sign-offs in either order (§12.4) | todo | P4-E1-T01, P3-E2 | REQ-ORP-003, REQ-ORP-004 |
-| P4-E2-T02 | Full-profile view for the matched sponsor only, with private, short-lived image addresses | todo | P4-E2-T01 | REQ-ORP-003, REQ-ORP-005 |
+| P4-E2-T02 | Full-profile view for the matched sponsor only, with private, short-lived image addresses | done | P4-E2-T40 | REQ-ORP-003, REQ-ORP-005 |
 | P4-E2-T03 | Withdrawal at once, and 12-month expiry with a 30-day reminder *(needs approval for expiry)* | todo | P4-E2-T02 | REQ-ORP-006, REQ-ORP-010 (proposed) |
 
 ### P4-E3 Sponsor messages through the madrasa
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P4-E3-T01 | Sponsor message form and staff inbox with replies (§12.5) | todo | P4-E1-T02 | REQ-ORP-007 |
-| P4-E3-T02 | Contact-detail screening on messages and no screen for the child | todo | P4-E3-T01 | REQ-ORP-007, REQ-CHS-002 |
+| P4-E3-T01 | Sponsor message form and staff inbox with replies (§12.5) | done | P4-E1-T02 | REQ-ORP-007 |
+| P4-E3-T02 | Contact-detail screening on messages and no screen for the child | done | P4-E3-T01 | REQ-ORP-007, REQ-CHS-002 |
+
+2026-11-14 · P4-E1-T02, P4-E2-T02, P4-E3-T01 and P4-E3-T02: [`0066_sponsor_page.sql`](../db/drizzle/0066_sponsor_page.sql) lets a signed-in donor read `app.sponsor_child_view()` and the messages on their own sponsorships, and send a message to the madrasa. The page shows the pen name, age and published updates. The real name and class names appear only while full-profile consent is active, and disappear on the next load when it is not. Photographs are not shown: a public image address would expose a child, and private short-lived links are not built yet (P2-E1-T30). A phone number or email is refused before the message is stored. There is no page or field for the child. Matching a sponsor is the staff screen in [`0064_staff_sponsorships.sql`](../db/drizzle/0064_staff_sponsorships.sql) (P4-E1-T01). The staff inbox remains with the staff workspace ([D-146](08-decision-log.md#d-146)). An unmatched donor sees an empty state.
 
 ### P5-E4, P5-E5 and P5-E6 (to be detailed later)
 

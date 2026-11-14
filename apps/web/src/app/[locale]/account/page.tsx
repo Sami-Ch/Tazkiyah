@@ -2,8 +2,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
-import { getAccountAccess } from "@/server/auth";
+import { getAccountAccess, getDonorProfileWorkspace } from "@/server/auth";
 import { AccountFormPage } from "../sign-in/account-form-page";
+import { sponsorCopy } from "./sponsorship/sponsor-copy";
+import { hubCopy } from "../hub/hub-copy";
+import { ReplayHelp } from "./replay-help";
+import { trailCopy } from "../trail/trail-copy";
 import "../sign-in/sign-in.css";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +22,10 @@ export default async function AccountPage({
   if (access.state === "signed-out") redirect(`/${locale}/sign-in`);
   if (access.state === "enroll") redirect(`/${locale}/admin`);
 
+  const profile =
+    access.state === "allowed" && access.roles.includes("donor")
+      ? await getDonorProfileWorkspace(new Headers(await headers()))
+      : null;
   const { common } = await getMessages({ locale });
   const { account, admin, signIn } = common;
   const staff =
@@ -35,7 +43,7 @@ export default async function AccountPage({
 
   return (
     <section className="shell sign-in-section" aria-labelledby="account-title">
-      <div className="sign-in-card">
+      <div className="ui-card sign-in-card">
         <h1 id="account-title">{account.heading}</h1>
         {access.state === "allowed" ? (
           <>
@@ -53,6 +61,26 @@ export default async function AccountPage({
                 .join(locale === "ur" ? "، " : ", ")}
             </p>
             {staff && <a href={`/${locale}/admin`}>{admin.heading}</a>}
+            {access.roles.includes("donor") && (
+              <a href={`/${locale}/account/donations`}>
+                {trailCopy[locale].accountTitle}
+              </a>
+            )}
+            {profile?.state === "allowed" && (
+              <a href={`/${locale}/account/profile`}>{account.publicProfile}</a>
+            )}
+            {access.roles.includes("donor") && (
+              <a href={`/${locale}/account/sponsorship`}>
+                {sponsorCopy[locale].title}
+              </a>
+            )}
+            {access.roles.some(
+              (role) =>
+                role === "student" || role === "teacher" || role === "admin",
+            ) && <a href={`/${locale}/hub`}>{hubCopy[locale].title}</a>}
+            {access.roles.some(
+              (role) => role === "student" || role === "teacher",
+            ) && <ReplayHelp locale={locale} />}
           </>
         ) : (
           <p role="status">{account.unavailable}</p>

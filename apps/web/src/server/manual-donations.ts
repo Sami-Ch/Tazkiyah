@@ -1,10 +1,14 @@
 import { sql } from "drizzle-orm";
 import {
+  asciiDigits,
   donationTypes,
   karachiDate,
+  receiptPattern,
+  reversalCategories,
   type DonationBank,
   type DonationCause,
   type RecordedDonation,
+  type TransferForReversal,
 } from "@/institutes/manual-donations";
 import { privateJson } from "./staff-invitations";
 import type { AdminAccess, AuthQuery } from "./workspace-access";
@@ -43,10 +47,69 @@ export async function readDonationWorkspace(tx: AuthQuery, sessionId: string) {
   } satisfies DonationWorkspace);
 }
 
+export async function manageDonationReversal(
+  tx: AuthQuery,
+  request: Request,
+  sessionId: string,
+) {
+  const invalid = () => privateJson({ code: "invalid" }, 400);
+  const input: unknown = await request.json().catch(() => null);
+  if (!input || typeof input !== "object") return invalid();
+  const { receipt, action, category, note, confirm } = input as Record<
+    string,
+    unknown
+  >;
+  if (typeof receipt !== "string" || !receiptPattern.test(receipt))
+    return invalid();
+
+  let code = "found";
+  if (action === "reverse") {
+    if (
+      confirm !== true ||
+      !reversalCategories.some((reason) => reason === category) ||
+      typeof note !== "string" ||
+      note.length > 500 ||
+      /\p{Cc}/u.test(note) ||
+      (category === "other" && !note.trim())
+    )
+      return invalid();
+
+    const {
+      rows: [result],
+    } = await tx.execute<{ code: string }>(sql`
+      select identity.reverse_manual_donation(${sessionId}::uuid, ${receipt}, ${category}, ${note.trim()}) as code
+    `);
+    switch (result?.code) {
+      case "no_match":
+        return privateJson(result, 404);
+      case "has_spending":
+        return privateJson(result, 409);
+      case "invalid":
+        return invalid();
+      case "reversed":
+      case "already_reversed":
+        code = result.code;
+        break;
+      default:
+        return privateJson({ code: "denied" }, 403);
+    }
+  } else if (action !== "lookup") {
+    return invalid();
+  }
+
+  const {
+    rows: [transfer],
+  } = await tx.execute<TransferForReversal>(sql`
+    select * from identity.read_transfer_for_reversal(${sessionId}::uuid, ${receipt})
+  `);
+  return transfer
+    ? privateJson({ code, transfer })
+    : privateJson({ code: "no_match" }, 404);
+}
+
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const supportedDate = /^(?!0000)\d{4}-\d{2}-\d{2}$/;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const localizedDigits = "٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹";
 
 export async function recordDonation(
   tx: AuthQuery,
@@ -69,12 +132,14 @@ export async function recordDonation(
     language,
     confirmLarge,
     confirmSimilar,
+    replacesReceipt,
+    named,
+    wallName,
   } = input as Record<string, unknown>;
-  const rupees =
-    typeof amount === "string"
-      ? amount.replace(/[٠-٩۰-۹]/g, (digit) =>
-          String(localizedDigits.indexOf(digit) % 10),
-        )
+  const rupees = typeof amount === "string" ? asciiDigits(amount) : "";
+  const replacement =
+    typeof replacesReceipt === "string"
+      ? asciiDigits(replacesReceipt.trim()).toUpperCase()
       : "";
   if (
     typeof operation !== "string" ||
@@ -97,8 +162,15 @@ export async function recordDonation(
     (emailConfirmed !== undefined && typeof emailConfirmed !== "boolean") ||
     (emailConfirmed === true && email.trim() === "") ||
     (language !== "en" && language !== "ur") ||
+    (replacesReceipt !== undefined && typeof replacesReceipt !== "string") ||
+    (replacement !== "" && !receiptPattern.test(replacement)) ||
     typeof confirmLarge !== "boolean" ||
-    typeof confirmSimilar !== "boolean"
+    typeof confirmSimilar !== "boolean" ||
+    (named !== undefined && typeof named !== "boolean") ||
+    (wallName !== undefined &&
+      (typeof wallName !== "string" ||
+        wallName.trim().length > 80 ||
+        /\p{Cc}/u.test(wallName)))
   )
     return invalid();
 
@@ -126,9 +198,26 @@ export async function recordDonation(
       ${sessionId}::uuid, ${operation}::uuid, ${bank}::uuid, ${reference.trim()},
       ${date}::date, ${(BigInt(rupees) * 100n).toString()}::bigint, ${type},
       ${cause || null}::uuid, ${email.trim().toLowerCase() || null}, ${language},
-      true, ${confirmLarge}, ${confirmSimilar}
+      ${named !== true}, ${confirmLarge}, ${confirmSimilar}, ${replacement || null}::text
     )
   `);
+  if (
+    result?.code === "recorded" &&
+    named === true &&
+    typeof wallName === "string" &&
+    wallName.trim() &&
+    result.donation_id
+  ) {
+    const {
+      rows: [namedGift],
+    } = await tx.execute<{ code: string }>(sql`
+      select identity.attach_wall_name(
+        ${sessionId}::uuid, ${result.donation_id}::uuid, ${wallName.trim()}
+      ) as code
+    `);
+    if (namedGift?.code === "invalid")
+      throw new Error("Wall name was rejected after the gift was checked.");
+  }
   switch (result?.code) {
     case "recorded":
     case "existing":
@@ -146,6 +235,7 @@ export async function recordDonation(
     case "similar_confirmation_required":
     case "operation_conflict":
     case "bank_reference_conflict":
+    case "replacement_unavailable":
       return privateJson({ code: result.code }, 409);
     case "invalid":
       return invalid();

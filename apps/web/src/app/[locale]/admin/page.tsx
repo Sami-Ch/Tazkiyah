@@ -2,8 +2,13 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
-import { getAdminAccess } from "@/server/auth";
+import { formatAmount } from "@/design/format";
+import { getAdminAccess, getPublicOverview } from "@/server/auth";
+import { Button } from "@/design/ui";
 import { StaffInvitationForm } from "./staff-invitation-form";
+import { staffLinks, type StaffLinkId } from "./staff-links";
+import { StaffOverview } from "./staff-overview";
+import { SetupChecklist } from "./setup-checklist";
 import { TwoFactorSetup } from "./two-factor-setup";
 import "../sign-in/sign-in.css";
 
@@ -20,74 +25,69 @@ export default async function AdminPage({
 
   const { common } = await getMessages({ locale });
   const { admin: copy } = common;
+  const workspace = common.staffWorkspace;
+  if (access.state === "allowed") {
+    const overview = await getPublicOverview(new Headers(await headers()));
+    const active = overview?.causes.filter(
+      (cause) => cause.status === "active",
+    );
+    const raised = active?.reduce(
+      (sum, cause) => sum + BigInt(cause.raised_paisa),
+      0n,
+    );
+    const stats =
+      active && raised !== undefined
+        ? [
+            {
+              label: workspace.stats.causes,
+              value: String(active.length),
+            },
+            {
+              label: workspace.stats.raised,
+              value: formatAmount(raised, locale),
+            },
+            {
+              label: workspace.stats.zakat,
+              value: String(active.filter((cause) => cause.accepts_zakat).length),
+            },
+          ]
+        : [];
+    return (
+      <section className="staff-stack" aria-labelledby="admin-title">
+        <StaffOverview
+          heading={copy.heading}
+          welcome={copy.welcome}
+          name={access.name}
+          intro={workspace.intro}
+          links={staffLinks(locale, access)}
+          names={workspace.links as Record<StaffLinkId, string>}
+          blurbs={workspace.blurbs}
+          stats={stats}
+        />
+        <div className="ui-actions">
+          {access.canRecordTransfers && (
+            <Button href={`/${locale}/admin/donations`}>
+              {workspace.recordDonation}
+            </Button>
+          )}
+          {access.canRecordSpending && (
+            <Button href={`/${locale}/admin/spending`} variant="secondary">
+              {workspace.recordSpending}
+            </Button>
+          )}
+        </div>
+        <SetupChecklist locale={locale} />
+        {access.canInvite && (
+          <StaffInvitationForm copy={common.staffInvite} locale={locale} />
+        )}
+      </section>
+    );
+  }
   return (
     <section className="shell sign-in-section" aria-labelledby="admin-title">
       <div className="sign-in-card">
-        <h1 id="admin-title">
-          {access.state === "enroll" ? copy.setupHeading : copy.heading}
-        </h1>
-        {access.state === "allowed" ? (
-          <>
-            <p>
-              {copy.welcome} <bdi>{access.name}</bdi>
-            </p>
-            {access.twoFactorVerified && <p>{copy.verified}</p>}
-            {access.canEditPages && (
-              <a
-                className="button button-outline"
-                href={`/${locale}/admin/pages`}
-              >
-                {common.sitePages.heading}
-              </a>
-            )}
-            {access.canRecordTransfers && (
-              <a
-                className="button button-primary"
-                href={`/${locale}/admin/donations`}
-              >
-                {common.manualDonations.heading}
-              </a>
-            )}
-            {access.canInvite && (
-              <>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/users`}
-                >
-                  {common.staffDirectory.heading}
-                </a>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/causes`}
-                >
-                  {common.giving.manage}
-                </a>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/audit`}
-                >
-                  {common.auditLog.heading}
-                </a>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/bank-accounts`}
-                >
-                  {common.bankSettings.heading}
-                </a>
-                <a
-                  className="button button-outline"
-                  href={`/${locale}/admin/donor-links`}
-                >
-                  {common.donorLinks.heading}
-                </a>
-                <StaffInvitationForm
-                  copy={common.staffInvite}
-                  locale={locale}
-                />
-              </>
-            )}
-          </>
-        ) : access.state === "enroll" ? (
+        <h1 id="admin-title">{copy.setupHeading}</h1>
+        {access.state === "enroll" ? (
           <TwoFactorSetup copy={copy} workspaceHref={`/${locale}/admin`} />
         ) : (
           <p>

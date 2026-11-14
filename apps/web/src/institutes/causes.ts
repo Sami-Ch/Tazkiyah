@@ -5,7 +5,13 @@ export const causeKinds = ["campaign", "ongoing", "yearly_stock"] as const;
 export type CauseKind = (typeof causeKinds)[number];
 export type CauseStatus = "draft" | "active" | "closed" | "archived";
 
-export const causeLimits = { slug: 80, title: 120, summary: 360, body: 12_000 };
+export const causeLimits = {
+  slug: 80,
+  title: 120,
+  summary: 360,
+  body: 12_000,
+  scholar: 120,
+};
 
 export function isCauseSlug(value: unknown): value is string {
   return (
@@ -32,18 +38,24 @@ type CauseDetails = CauseListing & {
   target_period: "monthly" | "yearly" | null;
   stock_year_start_month: number | null;
   accepts_zakat: boolean;
+  zakat_approved_by: LocalizedPageText | null;
 };
 
 export type EditableCause = CauseDetails & {
   revision: string;
   has_recorded_allocations: boolean;
+  receipt_public_by_default: boolean;
+  listed_as_project: boolean;
+  category: string | null;
+  planned_start: string | null;
+  why_it_matters: LocalizedPageText | null;
+  cost_lines: LocalizedPageText | null;
 };
 
 export type PublishedCause = CauseDetails & {
   status: Exclude<CauseStatus, "draft">;
   raised_paisa: string;
   lifetime_raised_paisa: string;
-  zakat_approved_by: LocalizedPageText | null;
 };
 
 export function publishedCauseLocales(cause: PublishedCause) {

@@ -4,6 +4,16 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
 }
 
+.cause-scholar {
+  min-inline-size: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.cause-scholar[hidden] {
+  display: none;
+}
+
 .sign-in-form .cause-zakat {
   display: flex;
   align-items: center;

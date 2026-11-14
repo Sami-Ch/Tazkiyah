@@ -9,7 +9,7 @@ const worker = {
       url.pathname !== "/robots.txt" &&
       url.pathname !== "/sitemap.xml" &&
       !/^\/(en|ur)\/admin(?:\/|$)/.test(url.pathname) &&
-      !/^\/(en|ur)\/account\/?$/.test(url.pathname) &&
+      !/^\/(en|ur)\/account(?:\/|$)/.test(url.pathname) &&
       !/^\/(en|ur)\/causes(?:\/[a-z0-9-]+)?\/?$/.test(url.pathname) &&
       !/^\/(en|ur)\/donate(?:\/[a-z0-9-]+)?\/?$/.test(url.pathname) &&
       !/^\/(en|ur)(?:\/(?:about|facilities|daily-life|contact))?\/?$/.test(

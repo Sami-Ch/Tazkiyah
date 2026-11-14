@@ -4,6 +4,8 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
 import { karachiDate } from "@/institutes/manual-donations";
 import { getDonationWorkspace } from "@/server/auth";
+import { DonationReversalForm } from "./donation-reversal-form";
+import { DonationVisibilityForm } from "./donation-visibility-form";
 import { ManualDonationForm } from "./manual-donation-form";
 import "../../sign-in/sign-in.css";
 import "./manual-donations.css";
@@ -42,6 +44,9 @@ export default async function DonationsPage({
       {workspace.state === "allowed" ? (
         <>
           <p>{copy.intro}</p>
+          <a href={`/${locale}/admin/donations/reconciliation`}>
+            {common.bankReconciliation.heading}
+          </a>
           {workspace.banks.length ? (
             <ManualDonationForm
               copy={copy}
@@ -79,6 +84,12 @@ export default async function DonationsPage({
               <p>{copy.noTransfers}</p>
             )}
           </section>
+          <DonationVisibilityForm copy={copy} />
+          <DonationReversalForm
+            locale={locale}
+            copy={common.donationReversal}
+            donationCopy={copy}
+          />
         </>
       ) : (
         <p role="status">{common.signIn.unavailable}</p>

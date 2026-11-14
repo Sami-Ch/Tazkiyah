@@ -98,20 +98,38 @@ begin
     execute format('select count(distinct v::text), coalesce(string_agg(f.value, %L), %L)
       from %s v cross join lateral jsonb_each_text(to_jsonb(v)) f', ' ', '', view_name)
       into shown, seen;
-    assert seen !~* 'zq9|zakat|sadaqah|\+92', view_name || ' shows ' || substring(seen from '(?i)(zq9[^"]*|zakat|sadaqah|\+92[^"]*)');
+    -- A public profile may show the display name the donor chose. It must not
+    -- show the legal name, email, phone, bank reference or gift type.
+    assert seen !~* 'zq9-email|zq9 legal|\+92|zakat|sadaqah|bank ref',
+      view_name || ' shows ' || substring(seen from '(?i)(zq9[^"]*|zakat|sadaqah|\+92[^"]*)');
   end loop;
+  assert (select display_name from public_api.donor_profiles) = 'Zq9 Display Two';
+  assert not exists (select from public_api.donor_profile_gifts), 'an anonymous gift is on the profile';
   -- The check ran over real rows in the money views.
   assert (select count(*) from public_api.public_trails) > 0 and (select count(*) from public_api.cause_spending) > 0;
 end
 $test$;
 
--- Named donations wait for donor accounts: the table still refuses them.
+-- Naming one gift shows its display name and nothing else about the person.
 reset role;
 set local role tazkiyah_schema_owner;
 do $test$
+declare
+  seen text;
 begin
-  update app.donations set is_anonymous = false where institute_id = 'a3000000-0000-4000-8000-000000000001';
-  assert false, 'a named donation was stored before named giving exists';
-exception when check_violation then null;
+  perform set_config('app.institute_id', 'a3000000-0000-4000-8000-000000000001', true);
+  update app.donations set is_anonymous = false
+  where institute_id = 'a3000000-0000-4000-8000-000000000001' and amount_paisa = 300000;
+  assert (select donor_label from public_api.donor_wall where amount_paisa = 300000) = 'Zq9 Display Two';
+  assert (select count(*) from public_api.donor_wall where donor_label is not null) = 1;
+  assert (select count(*) from public_api.donor_profile_gifts) = 1;
+  assert not exists (select from public_api.public_trails where donor_label is not null and donation_amount_paisa <> 300000);
+  select string_agg(v::text, ' ') into seen from (
+    select to_jsonb(p) as v from public_api.donor_profiles p
+    union all select to_jsonb(g) from public_api.donor_profile_gifts g
+    union all select to_jsonb(w) from public_api.donor_wall w
+    union all select to_jsonb(t) from public_api.public_trails t
+  ) rows;
+  assert seen !~* 'zq9 legal|zq9-email|\+92|bank ref', seen;
 end
 $test$;

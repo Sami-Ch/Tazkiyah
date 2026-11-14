@@ -6,6 +6,7 @@ import { createOTP } from "@better-auth/utils/otp";
 import { hashPassword } from "better-auth/crypto";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { karachiDate } from "@/institutes/manual-donations";
 
 // Runs the real Better Auth handler against the migrated schema in PGlite,
 // connected as tazkiyah_auth through a local Postgres socket.
@@ -278,6 +279,85 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     enrolledAdmin = browser;
   });
 
+  it("saves institute settings and asks before a module is switched off", async () => {
+    const saved = await enrolledAdmin.post("/institute-settings", {
+      name: { en: "Markaz Al Azeem", ur: "مرکز العظیم" },
+      shortName: { en: "", ur: "" },
+      parent: { en: "Jama Masjid Al-Azeem", ur: "جامع مسجد العظیم" },
+      address: {
+        en: "92/6-R Road, Sahiwal, Punjab, Pakistan",
+        ur: "92/6-R روڈ، ساہیوال، پنجاب، پاکستان",
+      },
+      visiting: { en: "", ur: "" },
+      phone: "+92 300 0000000",
+      whatsapp: "",
+      email: "office@example.test",
+      map: "",
+      theme: "night-and-paper",
+      founded: 2019,
+      batch: "weekly",
+      principal: staff.admin,
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.json).toEqual({ code: "updated" });
+    const workspace = await auth.getInstituteWorkspace(enrolledAdmin.headers());
+    expect(workspace).toMatchObject({
+      state: "allowed",
+      settings: { contact: { email: "office@example.test", phone: "+92 300 0000000" } },
+    });
+
+    const switched = await enrolledAdmin.post("/module-switches", {
+      modules: ["new_projects"],
+      confirm: false,
+    });
+    expect(switched.status).toBe(200);
+    const hidden = await enrolledAdmin.post("/module-switches", {
+      modules: [],
+      confirm: false,
+    });
+    expect(hidden.status).toBe(409);
+    expect(hidden.json).toEqual({ code: "confirm" });
+    const restored = await enrolledAdmin.post("/module-switches", {
+      modules: [],
+      confirm: true,
+    });
+    expect(restored.status).toBe(200);
+    await enrolledAdmin.post("/institute-settings", {
+      name: { en: "Markaz Al Azeem", ur: "مرکز العظیم" },
+      shortName: { en: "", ur: "" },
+      parent: { en: "Jama Masjid Al-Azeem", ur: "جامع مسجد العظیم" },
+      address: {
+        en: "92/6-R Road, Sahiwal, Punjab, Pakistan",
+        ur: "92/6-R روڈ، ساہیوال، پنجاب، پاکستان",
+      },
+      visiting: { en: "", ur: "" },
+      phone: "",
+      whatsapp: "",
+      email: "",
+      map: "https://www.google.com/maps/search/?api=1&query=Jama%20Masjid%20Al-Azeem%2C%2092%2F6-R%20Road%2C%20Sahiwal",
+      theme: "night-and-paper",
+      founded: 2019,
+      batch: "weekly",
+      principal: null,
+    });
+
+    const editor = new Browser();
+    await editor.post("/sign-in/email", {
+      email: "editor@example.test",
+      password,
+    });
+    expect(await auth.getInstituteWorkspace(editor.headers())).toEqual({
+      state: "denied",
+    });
+    expect(await auth.getPledgeWorkspace(editor.headers())).toEqual({
+      state: "denied",
+    });
+    expect(await auth.getPledgeWorkspace(enrolledAdmin.headers())).toMatchObject({
+      state: "allowed",
+      pledges: [],
+    });
+  });
+
   it("asks for a code at every later sign-in", async () => {
     const browser = new Browser();
     const signIn = await browser.post("/sign-in/email", {
@@ -286,6 +366,635 @@ describe("two-factor for admin and finance officer (03 §6.4)", () => {
     });
     expect(signIn.json).toMatchObject({ twoFactorRedirect: true });
     expect(await browser.access()).toEqual({ state: "signed-out" });
+  });
+
+  it("saves cause donation settings through the admin API and exposes the scholar after publication", async () => {
+    const seeded = await auth.getCauseWorkspace(enrolledAdmin.headers());
+    if (seeded.state !== "allowed") throw new Error("Missing admin access");
+    expect(seeded.causes).toHaveLength(8);
+    expect(
+      seeded.causes.every(
+        (cause) => cause.status === "draft" && !cause.accepts_zakat,
+      ),
+    ).toBe(true);
+    expect(
+      seeded.causes
+        .filter((cause) => cause.receipt_public_by_default)
+        .map((cause) => cause.slug)
+        .sort(),
+    ).toEqual(["electricity", "kitchen-gas", "wheat-stock"]);
+
+    const draft = {
+      kind: "ongoing",
+      slug: "test-zakat-cause",
+      title: { en: "Test cause", ur: "آزمائشی شعبہ" },
+      summary: { en: "Test summary", ur: "آزمائشی خلاصہ" },
+      body: { en: "", ur: "" },
+      target: "",
+      period: "monthly",
+      starts: "",
+      ends: "",
+      zakat: true,
+      scholar: { en: "Test scholar", ur: "" },
+      receiptPublicByDefault: true,
+    };
+    const denied = await new Browser().post("/cause", {
+      action: "create",
+      ...draft,
+    });
+    expect(denied.status).toBe(403);
+    const invalid = await enrolledAdmin.post("/cause", {
+      action: "create",
+      ...draft,
+      zakat: false,
+    });
+    expect(invalid.status).toBe(400);
+    const created = await enrolledAdmin.post("/cause", {
+      action: "create",
+      ...draft,
+    });
+    expect(created.status).toBe(201);
+
+    const read = async () => {
+      const workspace = await auth.getCauseWorkspace(enrolledAdmin.headers());
+      expect(workspace.state).toBe("allowed");
+      if (workspace.state !== "allowed")
+        throw new Error("Missing admin access");
+      return workspace.causes.find((cause) => cause.slug === draft.slug)!;
+    };
+    const cause = await read();
+    expect(cause).toMatchObject({
+      status: "draft",
+      accepts_zakat: true,
+      zakat_approved_by: { en: "Test scholar" },
+      receipt_public_by_default: true,
+    });
+    const published = await enrolledAdmin.post("/cause", {
+      action: "publish",
+      id: cause.id,
+      revision: cause.revision,
+    });
+    expect(published.status).toBe(200);
+    expect(
+      await auth.getPublishedCauses(enrolledAdmin.headers(), draft.slug),
+    ).toMatchObject([{ zakat_approved_by: { en: "Test scholar" } }]);
+
+    const current = await read();
+    const changed = await enrolledAdmin.post("/cause", {
+      action: "edit",
+      ...draft,
+      id: current.id,
+      revision: current.revision,
+      scholar: null,
+      receiptPublicByDefault: false,
+    });
+    expect(changed.status).toBe(200);
+    expect(await read()).toMatchObject({
+      zakat_approved_by: null,
+      receipt_public_by_default: false,
+    });
+  });
+
+  it("cancels a transfer once and records a private replacement receipt", async () => {
+    const [bank] = await asOwner<{ id: string }>(`
+      insert into app.institute_bank_accounts (institute_id, label, bank_name, account_title, account_number)
+      select institute_id, '{"en":"Fixture bank"}', 'Bank', 'Institute', '123456'
+      from app.institute_domains where domain = 'azeem-lateef.com'
+      returning id
+    `);
+    const [cause] = await auth.getPublishedCauses(
+      enrolledAdmin.headers(),
+      "test-zakat-cause",
+    );
+    const email = "fixture-reversal@example.test";
+    const transfer = {
+      operation: crypto.randomUUID(),
+      bank: bank.id,
+      reference: "fixture-reversal-reference",
+      date: karachiDate(),
+      amount: "1200",
+      type: "general",
+      cause: cause.id,
+      email,
+      language: "ur",
+      confirmLarge: false,
+      confirmSimilar: false,
+    };
+    const recorded = await enrolledAdmin.post("/manual-donation", transfer);
+    expect(recorded.status).toBe(201);
+    const receipt = recorded.json.receipt;
+    const issued = await enrolledAdmin.post("/donor-link", {
+      action: "issue",
+      receipt,
+      email,
+      language: "ur",
+      confirm: true,
+    });
+    expect(issued.status).toBe(201);
+    const token = new URL(issued.json.link).hash.slice(1);
+    const correction = {
+      ...transfer,
+      operation: crypto.randomUUID(),
+      cause: "",
+      amount: "1300",
+      replacesReceipt: receipt,
+    };
+    expect(
+      (await enrolledAdmin.post("/manual-donation", correction)).json.code,
+    ).toBe("replacement_unavailable");
+
+    const lookup = { action: "lookup", receipt };
+    expect(
+      (await new Browser().post("/donation-reversal", lookup)).status,
+    ).toBe(403);
+    const before = await enrolledAdmin.post("/donation-reversal", lookup);
+    expect(before.json.transfer).toMatchObject({
+      receipt_number: receipt,
+      amount_paisa: "120000",
+      status: "recorded",
+      has_spending: false,
+    });
+    expect(JSON.stringify(before.json)).not.toContain(email);
+    const reversal = {
+      action: "reverse",
+      receipt,
+      category: "other",
+      note: "Duplicate import from an old spreadsheet",
+    };
+    expect(
+      (await enrolledAdmin.post("/donation-reversal", reversal)).status,
+    ).toBe(400);
+    expect(
+      (
+        await enrolledAdmin.post("/donation-reversal", {
+          ...reversal,
+          confirm: true,
+          note: "",
+        })
+      ).status,
+    ).toBe(400);
+    const changed = await enrolledAdmin.post("/donation-reversal", {
+      ...reversal,
+      confirm: true,
+    });
+    expect(changed.status).toBe(200);
+    expect(changed.json).toMatchObject({
+      code: "reversed",
+      transfer: {
+        receipt_number: receipt,
+        amount_paisa: "120000",
+        status: "reversed",
+        reversal_reason: "other",
+      },
+    });
+    expect(JSON.stringify(changed.json)).not.toContain(reversal.note);
+    const retry = await enrolledAdmin.post("/donation-reversal", {
+      ...reversal,
+      confirm: true,
+    });
+    expect(retry.json.code).toBe("already_reversed");
+
+    const trail = await new Browser().post("/donor-trail", { token });
+    expect(trail.status).toBe(200);
+    expect(trail.json.donations).toMatchObject([
+      {
+        receipt_number: receipt,
+        status: "reversed",
+        reversal_reason: "other",
+        events: [],
+        cause_title: cause.title,
+      },
+    ]);
+    expect(JSON.stringify(trail.json)).not.toContain(reversal.note);
+    expect(
+      (await auth.getPublishedCauses(enrolledAdmin.headers(), cause.slug))[0]
+        .raised_paisa,
+    ).toBe("0");
+    const audit = await asOwner(
+      `
+      select a.reason from app.audit_log a join app.donations d on a.entity_id = d.id::text
+      where d.receipt_number = $1 and a.action = 'donations.reversed'
+    `,
+      [receipt],
+    );
+    expect(audit).toEqual([{ reason: reversal.note }]);
+
+    const replacement = await enrolledAdmin.post(
+      "/manual-donation",
+      correction,
+    );
+    expect(replacement.status).toBe(201);
+    expect(replacement.json.receipt).not.toBe(receipt);
+    expect(
+      (await enrolledAdmin.post("/manual-donation", correction)).json,
+    ).toMatchObject({
+      code: "existing",
+      receipt: replacement.json.receipt,
+    });
+    expect(
+      (
+        await enrolledAdmin.post("/manual-donation", {
+          ...correction,
+          replacesReceipt: "",
+        })
+      ).json.code,
+    ).toBe("operation_conflict");
+    expect(
+      (
+        await enrolledAdmin.post("/manual-donation", {
+          ...correction,
+          operation: crypto.randomUUID(),
+          reference: "duplicate-correction",
+        })
+      ).json.code,
+    ).toBe("replacement_unavailable");
+    expect(
+      (await new Browser().post("/donor-trail", { token })).json.donations,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          receipt_number: replacement.json.receipt,
+          replaces_donation: true,
+          replaces_receipt: receipt,
+        }),
+        expect.objectContaining({
+          receipt_number: receipt,
+          status: "reversed",
+        }),
+      ]),
+    );
+
+    expect(
+      (
+        await enrolledAdmin.post("/donation-reversal", {
+          ...reversal,
+          receipt: replacement.json.receipt,
+          category: "wrong_donor",
+          note: "",
+          confirm: true,
+        })
+      ).status,
+    ).toBe(200);
+    const differentEmail = "fixture-corrected-donor@example.test";
+    const differentDonor = await enrolledAdmin.post("/manual-donation", {
+      ...correction,
+      operation: crypto.randomUUID(),
+      email: differentEmail,
+      replacesReceipt: replacement.json.receipt,
+    });
+    expect(differentDonor.status).toBe(201);
+    const newLink = await enrolledAdmin.post("/donor-link", {
+      action: "issue",
+      receipt: differentDonor.json.receipt,
+      email: differentEmail,
+      language: "ur",
+      confirm: true,
+    });
+    expect(newLink.status).toBe(201);
+    const differentTrail = await new Browser().post("/donor-trail", {
+      token: new URL(newLink.json.link).hash.slice(1),
+    });
+    expect(differentTrail.json.donations).toMatchObject([
+      {
+        receipt_number: differentDonor.json.receipt,
+        replaces_donation: true,
+        replaces_receipt: null,
+      },
+    ]);
+    expect(JSON.stringify(differentTrail.json)).not.toContain(
+      replacement.json.receipt,
+    );
+  });
+
+  it("closes a bank statement atomically and records other credits in the audit log", async () => {
+    const banks = await asOwner<{ id: string; is_active: boolean }>(`
+      insert into app.institute_bank_accounts (institute_id, label, bank_name, account_title, account_number, is_active)
+      select institute_id, '{"en":"Statement fixture"}', 'Bank', 'Institute', reference, active
+      from app.institute_domains cross join (values ('statement-bank', true), ('old-statement-bank', false)) as fixture(reference, active)
+      where domain = 'azeem-lateef.com' returning id, is_active
+    `);
+    const bank = banks.find(({ is_active }) => is_active)!.id;
+    const oldBank = banks.find(({ is_active }) => !is_active)!.id;
+    const today = karachiDate();
+    const period = { bank, from: today, to: today };
+    const post = (action: string, extra: object = {}) =>
+      enrolledAdmin.post("/bank-reconciliation", {
+        action,
+        ...period,
+        ...extra,
+      });
+    const workspace = await auth.getStatementWorkspace(enrolledAdmin.headers());
+    expect(workspace).toMatchObject({ state: "allowed" });
+    if (workspace.state !== "allowed")
+      throw new Error("Missing finance access");
+    expect(workspace.banks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: oldBank, is_active: false }),
+      ]),
+    );
+    expect(
+      (
+        await new Browser().post("/bank-reconciliation", {
+          action: "load",
+          ...period,
+        })
+      ).status,
+    ).toBe(403);
+
+    const record = async (reference: string, amount: string) => {
+      const saved = await enrolledAdmin.post("/manual-donation", {
+        operation: crypto.randomUUID(),
+        bank,
+        reference,
+        date: today,
+        amount,
+        type: "general",
+        cause: "",
+        email: "",
+        language: "en",
+        confirmLarge: false,
+        confirmSimilar: false,
+      });
+      expect(saved.status).toBe(201);
+      return saved.json.receipt;
+    };
+    const first = await record("statement private reference 3021", "400");
+    const before = await post("load");
+    expect(before.json.statement.transfers).toMatchObject([
+      { receipt_number: first, reference_tail: "3021", matched: null },
+    ]);
+    expect(JSON.stringify(before.json)).not.toContain("private reference");
+    const firstId = before.json.statement.transfers[0].id;
+    const second = await record("statement reference 3022", "500");
+    const close = { matched: [firstId], operation: crypto.randomUUID() };
+    expect(
+      (await post("close", { ...close, review: before.json.statement.review }))
+        .status,
+    ).toBe(409);
+
+    const snapshot = await post("load");
+    const review = snapshot.json.statement.review;
+    expect(
+      (
+        await post("close", {
+          ...close,
+          review,
+          matched: [crypto.randomUUID()],
+        })
+      ).status,
+    ).toBe(400);
+    const closed = await post("close", { ...close, review });
+    expect(closed.status).toBe(200);
+    expect(closed.json.statement.transfers).toMatchObject([
+      {
+        receipt_number: first,
+        matched: true,
+        statement_from: today,
+        statement_to: today,
+      },
+      {
+        receipt_number: second,
+        matched: false,
+        statement_from: today,
+        statement_to: today,
+      },
+    ]);
+    expect((await post("close", { ...close, review })).json.code).toBe(
+      "closed",
+    );
+    expect(
+      (await post("close", { ...close, review, matched: [] })).status,
+    ).toBe(400);
+    const [summary] = await asOwner<{ changes: Record<string, unknown> }>(
+      `
+      select changes from app.audit_log where action = 'bank_statement.closed' and entity_id = $1
+    `,
+      [close.operation],
+    );
+    expect(summary.changes).toMatchObject({
+      matched_count: 1,
+      missing_count: 1,
+      matched_paisa: "40000",
+    });
+
+    const otherCredit = {
+      credited: today,
+      amount: "۱۲۵٫۵۰",
+      note: "Supplier refund fixture",
+      operation: crypto.randomUUID(),
+    };
+    const noted = await post("note", otherCredit);
+    expect(noted.json.statement.otherCredits).toMatchObject([
+      { credited_on: today, amount_paisa: "12550" },
+    ]);
+    expect(JSON.stringify(noted.json)).not.toContain(otherCredit.note);
+    expect(
+      (await post("note", otherCredit)).json.statement.otherCredits,
+    ).toHaveLength(1);
+    const notes = await asOwner(
+      `select reason from app.audit_log where action = 'bank_statement.non_donation' and entity_id = $1`,
+      [otherCredit.operation],
+    );
+    expect(notes).toEqual([{ reason: otherCredit.note }]);
+  });
+
+  it("claims only donations for the account’s verified email and replaces the guest link", async () => {
+    await spreadOverTime();
+    const [bank] = await asOwner<{ id: string }>(`
+      select b.id from app.institute_bank_accounts b join app.institute_domains domain using (institute_id)
+      where domain.domain = 'azeem-lateef.com' and b.account_number = 'statement-bank'
+    `);
+    const credited = await enrolledAdmin.post("/manual-donation", {
+      operation: crypto.randomUUID(),
+      bank: bank.id,
+      reference: "private-reference-6721",
+      date: karachiDate(),
+      amount: "900",
+      type: "general",
+      cause: "",
+      email: "Donor@Example.Test",
+      language: "ur",
+      confirmLarge: false,
+      confirmSimilar: false,
+    });
+    expect(credited.status).toBe(201);
+    const receipt = credited.json.receipt;
+    const issued = await enrolledAdmin.post("/donor-link", {
+      action: "issue",
+      receipt,
+      email: "donor@example.test",
+      language: "ur",
+      confirm: true,
+    });
+    expect(issued.status).toBe(201);
+    const token = new URL(issued.json.link).hash.slice(1);
+    await asOwner(
+      "update app.donors set display_name = 'Private display name' where email = 'donor@example.test'",
+    );
+    const guest = new Browser();
+    const guestTrail = await guest.post("/donor-trail", { token });
+    expect(guestTrail.json.donations).toMatchObject([
+      {
+        receipt_number: receipt,
+        bank_reference_tail: "6721",
+        donor_name: null,
+        issuer_name: { en: "Markaz Al Azeem", ur: "مرکز العظیم" },
+        issuer_address: { en: "92/6-R Road, Sahiwal, Punjab, Pakistan" },
+        issuer_logo: "/branding/markaz-al-azeem-emblem-96.webp",
+      },
+    ]);
+    expect(JSON.stringify(guestTrail.json)).not.toContain(
+      "Private display name",
+    );
+    expect(JSON.stringify(guestTrail.json)).not.toContain("private-reference");
+    expect(
+      (
+        await guest.post("/claim-guest-donations", {
+          email: "donor@example.test",
+        })
+      ).status,
+    ).toBe(403);
+
+    const donor = new Browser();
+    expect(
+      (
+        await donor.post("/sign-in/email", {
+          email: "donor@example.test",
+          password,
+        })
+      ).status,
+    ).toBe(200);
+    expect((await donor.post("/account-trail", {})).json.donations).toEqual([]);
+    expect(
+      (
+        await donor.post("/claim-guest-donations", {
+          email: "somebody-else@example.test",
+        })
+      ).json.code,
+    ).toBe("claimed");
+    expect((await guest.post("/donor-trail", { token })).status).toBe(404);
+    expect(
+      (
+        await enrolledAdmin.post("/donor-link", {
+          action: "issue",
+          receipt,
+          email: "donor@example.test",
+          language: "ur",
+          confirm: true,
+        })
+      ).status,
+    ).toBe(404);
+    expect((await donor.post("/claim-guest-donations", {})).json.code).toBe(
+      "none",
+    );
+    const linked = await donor.post("/account-trail", {});
+    expect(linked.status).toBe(200);
+    expect(linked.json.donations).toMatchObject([
+      {
+        receipt_number: receipt,
+        receipt_locale: "ur",
+        bank_reference_tail: "6721",
+        donor_name: null,
+      },
+    ]);
+    const donationRef = linked.json.donations[0].public_ref;
+    expect(
+      (await donor.post("/account-trail", { donationRef })).json.donations,
+    ).toHaveLength(1);
+    expect((await guest.post("/account-trail", { donationRef })).status).toBe(
+      403,
+    );
+
+    await asOwner(
+      `
+      with account as (
+        insert into app.users (institute_id, email, full_name, status, must_change_password, email_verified)
+        select institute_id, 'different-donor@example.test', 'Another donor fixture', 'active', false, true
+        from app.users where id = $1 returning id, institute_id
+      ), donor_role as (
+        insert into app.user_roles (institute_id, user_id, role) select institute_id, id, 'donor' from account
+      )
+      insert into identity.accounts (institute_id, user_id, provider_id, account_id, password)
+      select account.institute_id, account.id, 'credential', account.id::text, old.password
+      from account join identity.accounts old on old.institute_id = account.institute_id
+      where old.user_id = $1 and old.provider_id = 'credential'
+    `,
+      [staff.donor],
+    );
+    const other = new Browser();
+    expect(
+      (
+        await other.post("/sign-in/email", {
+          email: "different-donor@example.test",
+          password,
+        })
+      ).status,
+    ).toBe(200);
+    expect((await other.post("/account-trail", { donationRef })).status).toBe(
+      404,
+    );
+    expect((await other.post("/account-trail", {})).json.donations).toEqual([]);
+
+    const [branding] = await asOwner<{ institute_id: string }>(`
+      with logo as (
+        insert into app.media_assets (institute_id, kind, purpose, visibility, storage_key, mime_type, bytes, status)
+        select institute_id, 'image', 'logo', 'public', institute_id || '/branding/print emblem.webp', 'image/webp', 500, 'ready'
+        from app.institute_domains where domain = 'azeem-lateef.com'
+        returning id, institute_id
+      )
+      update app.institute_settings settings set logo_media_id = logo.id from logo
+      where settings.institute_id = logo.institute_id returning settings.institute_id
+    `);
+    const branded = await donor.post("/account-trail", { donationRef });
+    expect(branded.json.donations).toMatchObject([
+      {
+        donor_name: null,
+        issuer_logo: `https://media.azeem-lateef.com/${branding.institute_id}/branding/print%20emblem.webp`,
+      },
+    ]);
+    await asOwner(
+      "update app.donors set display_name = null where user_id = $1",
+      [staff.donor],
+    );
+    await asOwner(
+      "update app.institute_settings set logo_media_id = null where institute_id = $1",
+      [branding.institute_id],
+    );
+
+    const next = await enrolledAdmin.post("/manual-donation", {
+      operation: crypto.randomUUID(),
+      bank: bank.id,
+      reference: "claimed-receipt-7290",
+      date: karachiDate(),
+      amount: "901",
+      type: "general",
+      cause: "",
+      email: "donor@example.test",
+      emailConfirmed: true,
+      language: "en",
+      confirmLarge: false,
+      confirmSimilar: false,
+    });
+    expect(next.status).toBe(201);
+    expect(
+      (await donor.post("/account-trail", {})).json.donations,
+    ).toHaveLength(2);
+    const [job] = await asOwner<{ job_id: string; claim_token: string }>(
+      `
+      select claim.job_id, claim.claim_token from mail.claim_receipt_emails(10) claim
+      join app.receipt_email_jobs job on job.id = claim.job_id
+      join app.donations gift on (gift.institute_id, gift.id) = (job.institute_id, job.donation_id)
+      where gift.receipt_number = $1
+    `,
+      [next.json.receipt],
+    );
+    const prepared = await asOwner(
+      `
+      select outcome, include_trail from mail.prepare_receipt_email($1::uuid, $2::uuid, repeat('e', 64), null)
+    `,
+      [job.job_id, job.claim_token],
+    );
+    expect(prepared).toEqual([{ outcome: "ready", include_trail: false }]);
   });
 
   it("locks the account for 15 minutes after 5 wrong codes", async () => {

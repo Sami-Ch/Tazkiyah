@@ -1,6 +1,7 @@
 import { routing, type Locale } from "@tazkiyah/i18n/routing";
 import { headers } from "next/headers";
 import { setRequestLocale } from "next-intl/server";
+import { AddressMap } from "@/components/address-map";
 import { Icon } from "@/components/icon";
 import { requireLocale } from "@/i18n/locale";
 import { contactCopy, contactMethods } from "@/institutes/contact";
@@ -60,7 +61,10 @@ export default async function ContactPage({
       : institute.mapUrl);
 
   return (
-    <section className="shell contact-page" aria-labelledby="contact-title">
+    <section
+      className="shell public-stack contact-page"
+      aria-labelledby="contact-title"
+    >
       <a className="contact-back" href={`/${locale}`}>
         {copy.back}
       </a>
@@ -93,6 +97,21 @@ export default async function ContactPage({
             <Icon name="map" />
             {copy.directions}
           </a>
+          {contact?.visiting?.[locale] && (
+            <p>
+              <strong>{copy.visiting}</strong>{" "}
+              <span lang={locale} dir={locale === "ur" ? "rtl" : "ltr"}>
+                {contact.visiting[locale]}
+              </span>
+            </p>
+          )}
+          <AddressMap
+            query={
+              addressQuery ||
+              `${institute.mosque.en}, ${institute.address.roadNumber} ${institute.address.roadLabel.en}, ${institute.address.region.en}`
+            }
+            title={copy.mapTitle}
+          />
         </section>
         {methods.length > 0 && (
           <section className="contact-card" aria-labelledby="contact-reach">

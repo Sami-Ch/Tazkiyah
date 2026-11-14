@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { donationState, type StateEvent } from "./donation-state";
+import { donationState, unspentPaisa, type StateEvent } from "./donation-state";
 
 const received = (amount: string): StateEvent<string> => ({
   event_type: "received",
@@ -77,6 +77,18 @@ describe("donationState", () => {
         "2500000",
       ),
     ).toEqual({ kind: "reported" });
+  });
+
+  it("keeps the unspent remainder after a partial purchase", () => {
+    expect(
+      unspentPaisa({
+        amount_paisa: "2500000",
+        events: [spent("500000"), spent("1000000")],
+      }),
+    ).toBe(1000000n);
+    expect(
+      unspentPaisa({ amount_paisa: "2500000", events: [spent("2500000")] }),
+    ).toBe(0n);
   });
 
   it("gives the reason category of a reversal, and nothing unknown", () => {

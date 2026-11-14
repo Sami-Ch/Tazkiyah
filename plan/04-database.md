@@ -583,6 +583,7 @@ Business rules are in [06](06-donations-and-trail.md). This section gives the fi
 | `starts_on`, `ends_on` | `date null` | `ends_on` required for a campaign, and `ends_on >= starts_on` (REQ-DON-006). |
 | `accepts_zakat` | `bool not null default false` | Admin-set (D-011, REQ-ROL-005). |
 | `zakat_approved_by` | `localized_text null` | Optional scholar name (Q-04). Allowed only when `accepts_zakat`. |
+| `receipt_public_by_default` | `bool not null default false` | Sets the starting visibility on new spending entries (06-P20). |
 | `status` | `text not null default 'draft'` | `draft`, `active`, `closed`, `archived` (REQ-DON-009). |
 | `listed_as_project` | `bool not null default false` | Shown on the new projects page when that module is on, for example future tech costs (REQ-DON-013, [05 §10](05-public-pages-roles-admin.md)). |
 | `category` | `text null` | Free label such as `kitchen`, `clinic`, `tech`. The clinic is only a cause and stores no patient data (REQ-DON-014). |
@@ -647,12 +648,15 @@ A donor is anyone who gives. A guest donor has `user_id` null.
 | `trail_public` | `bool not null default false` | REQ-TRL-008, REQ-TRL-009. Donor can change it. |
 | `receipt_number` | `text not null` | `{prefix}-{year}-{5-digit sequence}`, for example `MAA-2026-00042` (06 §14), `unique (institute_id, receipt_number)` (REQ-DON-010). |
 | `receipt_locale` | `text not null` | `en` or `ur`, copied from the donor at recording time. Named `receipt_language` before D-120. |
+| `replaces_donation_id` | `uuid null` | Same-institute foreign key to the cancelled bank transfer. A cancelled transfer can have one direct replacement. |
 | `status` | `text not null default 'recorded'` | `recorded`, `reversed`. Changed only by the reversal function. |
+| `statement_audit_id` | `bigint null` | Composite foreign key to the institute's audit row for the last statement review. The audit row records the date range and totals. |
+| `statement_matched` | `bool null` | True when found on the statement, false when flagged as missing, null before the first review. |
 | `private_note` | `text null` | Staff only. Must not hold an anonymous donor's name (reviewed in the admin form, [05 §8](05-public-pages-roles-admin.md)). |
 
 **Data-level rules (triggers):**
 
-- After insert, only `is_anonymous`, `trail_public` and (through the reversal function) `status` may change. Any other column change is rejected. Corrections are reversals plus a new donation (REQ-DON-012).
+- After insert, the anonymity and trail choices can change. The reversal function updates `status`, and closing a statement updates `statement_audit_id` and `statement_matched` together. A correction records a reversal and a new donation. The recording transaction sets the replacement link once and audits the link using donation IDs (REQ-DON-012).
 - `cause_id`, when set, must point at a cause with `status = 'active'`. For a campaign, `credited_on <= ends_on` (REQ-DON-006). An admin recording a late bank transfer for a closed campaign records it as all needs; 06 §5 owns that rule.
 - If `donation_type = 'zakat'` and `cause_id` is set, the cause must have `accepts_zakat` (§9.4).
 

@@ -192,6 +192,7 @@ export const instituteSettings = app
         .notNull(),
       receiptPrefix: text("receipt_prefix").notNull(),
       communityEnabled: boolean("community_enabled").default(false).notNull(),
+      spendingBatchMode: text("spending_batch_mode").default("weekly").notNull(),
       updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
         .defaultNow()
         .notNull(),
@@ -314,6 +315,12 @@ export const users = app
         withTimezone: true,
         mode: "string",
       }),
+      onboardingStep: smallint("onboarding_step").default(1).notNull(),
+      onboardingSkipped: text("onboarding_skipped")
+        .array()
+        .default(sql`'{}'::text[]`)
+        .notNull(),
+      publicRole: text("public_role"),
       lastLoginAt: timestamp("last_login_at", {
         withTimezone: true,
         mode: "string",
@@ -872,10 +879,16 @@ export const causes = app
       endsOn: date("ends_on"),
       acceptsZakat: boolean("accepts_zakat").default(false).notNull(),
       zakatApprovedBy: localizedText("zakat_approved_by"),
+      receiptPublicByDefault: boolean("receipt_public_by_default")
+        .default(false)
+        .notNull(),
       status: text().default("draft").notNull(),
       revision: uuid().defaultRandom().notNull(),
       listedAsProject: boolean("listed_as_project").default(false).notNull(),
       category: text(),
+      plannedStart: date("planned_start"),
+      whyItMatters: localizedText("why_it_matters"),
+      costLines: localizedText("cost_lines"),
       displayOrder: smallint("display_order").default(0).notNull(),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
@@ -909,6 +922,14 @@ export const causes = app
       check(
         "causes_zakat_approval_check",
         sql`accepts_zakat or zakat_approved_by is null`,
+      ),
+      check(
+        "causes_project_listed_check",
+        sql`not listed_as_project or category in ('facilities', 'education', 'community', 'technology')`,
+      ),
+      check(
+        "causes_planned_start_check",
+        sql`planned_start is null or (extract(day from planned_start) = 1 and planned_start >= date '2000-01-01' and planned_start < date '2100-01-01')`,
       ),
       check(
         "causes_type_rules_check",
@@ -983,6 +1004,7 @@ export const donors = app
       legalName: text("legal_name"),
       phone: text(),
       displayName: text("display_name"),
+      publicRef: text("public_ref").notNull().default(sql`app.new_public_ref()`),
       photoMediaId: uuid("photo_media_id"),
       profileLinks: jsonb("profile_links").default([]).notNull(),
       profilePublic: boolean("profile_public").default(false).notNull(),
@@ -1000,6 +1022,8 @@ export const donors = app
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.email),
       unique().on(table.instituteId, table.userId),
+      unique("donors_public_ref").on(table.instituteId, table.publicRef),
+      check("donors_public_ref_check", sql`public_ref ~ '^[a-z2-7]{10}$'`),
       foreignKey({
         columns: [table.instituteId, table.userId],
         foreignColumns: [users.instituteId, users.id],
@@ -1175,10 +1199,13 @@ export const donations = app
       ),
       receiptNumber: text("receipt_number").notNull(),
       receiptLocale: text("receipt_locale").notNull(),
+      replacesDonationId: uuid("replaces_donation_id"),
       isAnonymous: boolean("is_anonymous").default(true).notNull(),
       trailPublic: boolean("trail_public").default(false).notNull(),
       status: text().default("recorded").notNull(),
       privateNote: text("private_note"),
+      statementAuditId: bigint("statement_audit_id", { mode: "bigint" }),
+      statementMatched: boolean("statement_matched"),
       recordedBy: uuid("recorded_by").notNull(),
       recordedAt: timestamp("recorded_at", { withTimezone: true })
         .defaultNow()
@@ -1187,9 +1214,22 @@ export const donations = app
     (table) => [
       index("donations_cause").on(table.instituteId, table.causeId),
       index("donations_recorded_by").on(table.instituteId, table.recordedBy),
+      index("donations_statement_audit").on(
+        table.instituteId,
+        table.statementAuditId,
+      ),
       unique().on(table.instituteId, table.id),
       unique().on(table.instituteId, table.operationId),
       unique().on(table.instituteId, table.receiptNumber),
+      unique("donations_replaces_once").on(
+        table.instituteId,
+        table.replacesDonationId,
+      ),
+      foreignKey({
+        columns: [table.instituteId, table.replacesDonationId],
+        foreignColumns: [table.instituteId, table.id],
+        name: "donations_replaces_donation_fkey",
+      }),
       unique().on(table.instituteId, table.publicRef),
       unique().on(table.instituteId, table.gatewayPaymentId),
       uniqueIndex("donations_recorded_bank_reference")
@@ -1243,6 +1283,10 @@ export const donations = app
         columns: [table.instituteId, table.recordedBy],
         foreignColumns: [users.instituteId, users.id],
       }),
+      foreignKey({
+        columns: [table.instituteId, table.statementAuditId],
+        foreignColumns: [auditLog.instituteId, auditLog.id],
+      }),
       check(
         "donations_amount_check",
         sql`amount_paisa between 100 and 99999999999900 and amount_paisa % 100 = 0`,
@@ -1282,7 +1326,14 @@ export const donations = app
       ),
       check("donations_locale_check", sql`receipt_locale in ('en', 'ur')`),
       check("donations_status_check", sql`status in ('recorded', 'reversed')`),
-      check("donations_anonymity_check", sql`is_anonymous`),
+      check(
+        "donations_statement_check",
+        sql`(statement_audit_id is null) = (statement_matched is null) and (statement_audit_id is null or method = 'bank_transfer')`,
+      ),
+      check(
+        "donations_replaces_check",
+        sql`replaces_donation_id is null or (id <> replaces_donation_id and method = 'bank_transfer')`,
+      ),
       manualDonationIsolation(),
       // 04 §6.4: the donor (account or trail token) reads their own
       // donations, through granted columns only (app.donor_trail).
@@ -1378,7 +1429,7 @@ export const spendingEntries = app
       spentOn: date("spent_on").notNull(),
       description: localizedText().notNull(),
       receiptMediaId: uuid("receipt_media_id"),
-      receiptPublic: boolean("receipt_public").default(true).notNull(),
+      receiptPublic: boolean("receipt_public").notNull(),
       reportId: uuid("report_id"),
       status: text().default("draft").notNull(),
       recordedBy: uuid("recorded_by").notNull(),
@@ -1796,6 +1847,7 @@ export const classes = app
         .references(() => institutes.id),
       name: localizedText().notNull(),
       yearLabel: text("year_label"),
+      kind: text().default("class").notNull(),
       createdBy: uuid("created_by").notNull(),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
@@ -1937,6 +1989,11 @@ export const personas = app
         .references(() => institutes.id),
       displayName: text("display_name").notNull(),
       avatarMediaId: uuid("avatar_media_id"),
+      avatarPreset: smallint("avatar_preset"),
+      displayNameChangedAt: timestamp("display_name_changed_at", {
+        withTimezone: true,
+      }),
+      resetNote: text("reset_note"),
       bio: text(),
       bioLanguage: text("bio_language"),
       showRealName: boolean("show_real_name").default(false).notNull(),
@@ -2169,7 +2226,7 @@ export const consentRecords = app
       check(
         "consent_records_guardian_check",
         sql`length(guardian_name) between 1 and 120 and guardian_name = btrim(guardian_name)
-          and guardian_relation in ('father', 'mother', 'guardian', 'other')`,
+          and guardian_relation in ('father', 'mother', 'guardian', 'other', 'principal')`,
       ),
       check(
         "consent_records_method_check",
@@ -2362,7 +2419,10 @@ export const posts = app
       postType: text("post_type").notNull(),
       language: text().notNull(),
       title: text(),
+      summary: text(),
       body: text(),
+      youtubeId: text("youtube_id"),
+      hubLabel: text("hub_label"),
       scope: text().notNull(),
       classId: uuid("class_id"),
       moderationState: text("moderation_state").default("published").notNull(),
@@ -3089,10 +3149,7 @@ export const sponsorMessages = app
         "sponsor_messages_body_check",
         sql`length(body) between 1 and 2000 and body ~ '[^[:space:]]'`,
       ),
-      check(
-        "sponsor_messages_language_check",
-        sql`language ~ '^[a-z]{2,3}$'`,
-      ),
+      check("sponsor_messages_language_check", sql`language ~ '^[a-z]{2,3}$'`),
       pgPolicy("iso", {
         as: "restrictive",
         for: "all",

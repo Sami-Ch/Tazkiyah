@@ -86,10 +86,13 @@ export function ManualDonationForm({
         bank,
         cause,
         reference: values.get("reference"),
+        replacesReceipt: values.get("replacesReceipt"),
         amount: values.get("amount"),
         email: values.get("email"),
         emailConfirmed: values.has("emailConfirmed"),
         language: values.get("language"),
+        named: values.has("named"),
+        wallName: values.get("wallName"),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -196,6 +199,17 @@ export function ManualDonationForm({
           />
         </label>
         <label>
+          {copy.replacesReceipt}
+          <input
+            name="replacesReceipt"
+            maxLength={89}
+            dir="ltr"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+          />
+        </label>
+        <label>
           {copy.cause}
           <select
             name="cause"
@@ -236,6 +250,18 @@ export function ManualDonationForm({
           <input type="checkbox" name="emailConfirmed" />
           {copy.emailConfirmation}
         </label>
+      </fieldset>
+      <fieldset>
+        <label className="manual-donation-email-confirm">
+          <input type="checkbox" name="named" />
+          {copy.showName}
+        </label>
+        <p>{copy.showNameHint}</p>
+        <label>
+          {copy.wallName}
+          <input name="wallName" maxLength={80} autoComplete="off" />
+        </label>
+        <p>{copy.wallNameHint}</p>
       </fieldset>
       {!filteredBanks.length && <p>{copy.noBankType}</p>}
       {code && (

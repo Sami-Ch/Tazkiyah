@@ -11,6 +11,7 @@ import {
   type CauseKind,
   type EditableCause,
 } from "@/institutes/causes";
+import { projectCategories } from "@/institutes/projects";
 import { pageTranslation } from "@/institutes/site-pages";
 
 const languages = { en: "English", ur: "اردو" } as const;
@@ -37,6 +38,7 @@ export function CauseManager({
   const copy = labels.admin;
   const [kind, setKind] = useState<CauseKind>("campaign");
   const [editing, setEditing] = useState<EditableCause>();
+  const [zakat, setZakat] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const formKind = editing?.cause_type ?? kind;
   const settingsLocked =
@@ -123,7 +125,9 @@ export function CauseManager({
           stockMonth: settingsLocked
             ? editing?.stock_year_start_month
             : Number(fields.get("stockMonth")),
-          zakat: settingsLocked ? editing?.accepts_zakat : fields.has("zakat"),
+          zakat,
+          scholar: zakat ? pair("scholar") : null,
+          receiptPublicByDefault: fields.has("receiptPublicByDefault"),
         },
         "form",
       )
@@ -131,6 +135,7 @@ export function CauseManager({
       form.reset();
       setKind("campaign");
       setEditing(undefined);
+      setZakat(false);
     }
   }
 
@@ -297,10 +302,34 @@ export function CauseManager({
           <input
             type="checkbox"
             name="zakat"
-            defaultChecked={editing?.accepts_zakat}
+            checked={zakat}
+            onChange={(event) => setZakat(event.target.checked)}
             disabled={settingsLocked}
           />
           {copy.zakat}
+        </label>
+        <fieldset className="cause-field-grid cause-scholar" hidden={!zakat}>
+          <legend>{copy.scholar}</legend>
+          {(Object.keys(languages) as Locale[]).map((language) => (
+            <label key={language}>
+              <span lang={language}>{languages[language]}</span>
+              <input
+                name={`scholar-${language}`}
+                lang={language}
+                dir="auto"
+                maxLength={causeLimits.scholar}
+                defaultValue={editing?.zakat_approved_by?.[language]}
+              />
+            </label>
+          ))}
+        </fieldset>
+        <label className="cause-zakat">
+          <input
+            type="checkbox"
+            name="receiptPublicByDefault"
+            defaultChecked={editing?.receipt_public_by_default}
+          />
+          {copy.receiptPublicByDefault}
         </label>
         {settingsLocked && <p>{copy.settingsLocked}</p>}
         <div className="sign-in-alternatives">
@@ -318,6 +347,7 @@ export function CauseManager({
               type="button"
               onClick={() => {
                 setEditing(undefined);
+                setZakat(false);
                 setNotice(undefined);
               }}
             >
@@ -334,6 +364,104 @@ export function CauseManager({
           </p>
         )}
       </form>
+      {editing && editing.status !== "archived" && (
+        <form
+          className="sign-in-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const fields = new FormData(event.currentTarget);
+            const pair = (name: string) => ({
+              en: fields.get(`${name}-en`),
+              ur: fields.get(`${name}-ur`),
+            });
+            const planned = String(fields.get("planned") ?? "");
+            void send(
+              {
+                action: "project",
+                id: editing.id,
+                revision: editing.revision,
+                show: fields.has("show"),
+                category: fields.get("category") ?? "",
+                planned,
+                why: pair("why"),
+                costs: pair("costs"),
+              },
+              "form",
+            ).then((saved) => {
+              if (saved) setEditing(undefined);
+            });
+          }}
+        >
+          <h2>{copy.projectTitle}</h2>
+          <p>{copy.projectHelp}</p>
+          <label className="cause-zakat">
+            <input
+              type="checkbox"
+              name="show"
+              defaultChecked={editing.listed_as_project}
+            />
+            {copy.showProject}
+          </label>
+          <div className="cause-field-grid">
+            <label>
+              {copy.projectCategory}
+              <select
+                name="category"
+                defaultValue={editing.category ?? ""}
+              >
+                <option value="">{copy.projectNone}</option>
+                {projectCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {copy.projectCategories[category]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {copy.plannedStart}
+              <input
+                type="date"
+                name="planned"
+                max="2099-12-01"
+                defaultValue={editing.planned_start ?? ""}
+              />
+              <span>{copy.plannedHelp}</span>
+            </label>
+          </div>
+          <div className="page-editor-languages">
+            {(Object.keys(languages) as Locale[]).map((language) => (
+              <fieldset key={language}>
+                <legend lang={language}>{languages[language]}</legend>
+                <label>
+                  {copy.why}
+                  <textarea
+                    name={`why-${language}`}
+                    lang={language}
+                    dir={language === "ur" ? "rtl" : "ltr"}
+                    maxLength={600}
+                    rows={3}
+                    defaultValue={editing.why_it_matters?.[language]}
+                  />
+                </label>
+                <label>
+                  {copy.costs}
+                  <textarea
+                    name={`costs-${language}`}
+                    lang={language}
+                    dir={language === "ur" ? "rtl" : "ltr"}
+                    maxLength={800}
+                    rows={3}
+                    defaultValue={editing.cost_lines?.[language]}
+                  />
+                </label>
+              </fieldset>
+            ))}
+          </div>
+          <button className="button button-primary" disabled={pending} type="submit">
+            {pending ? copy.working : copy.saveProject}
+          </button>
+        </form>
+      )}
       <section aria-labelledby="admin-causes-list">
         <h2 id="admin-causes-list">{copy.list}</h2>
         {causes.length ? (
@@ -354,6 +482,7 @@ export function CauseManager({
                       <p>
                         {labels.kinds[cause.cause_type]} ·{" "}
                         {labels.status[cause.status]}
+                        {cause.listed_as_project ? ` · ${copy.onProjects}` : ""}
                       </p>
                       <bdi dir="ltr">{cause.slug}</bdi>
                       {cause.status === "closed" &&
@@ -369,6 +498,7 @@ export function CauseManager({
                           type="button"
                           onClick={() => {
                             setEditing(cause);
+                            setZakat(cause.accepts_zakat);
                             setNotice(undefined);
                           }}
                         >

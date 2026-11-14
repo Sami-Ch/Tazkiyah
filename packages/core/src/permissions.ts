@@ -49,6 +49,10 @@ export const permissionMatrix = {
     label: "Record a bank-transfer donation",
     grants: { finance_officer: yes, admin: yes },
   },
+  "donation.reconcile": {
+    label: "Reconcile a bank statement",
+    grants: { finance_officer: yes, admin: yes },
+  },
   "transfer_notice.reconcile": {
     label: "Confirm or reject a transfer notice (reconcile)",
     grants: { finance_officer: yes, admin: yes },

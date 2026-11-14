@@ -801,20 +801,20 @@ The local design preview uses clearly labelled and credited sample media from Wa
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
 | P0-E4-T01 | Define the `theme` settings shape (colour, font, radius tokens) and seed Markaz Al Azeem's Direction A values in `institute_settings` | done | P0-E2-T04 | REQ-MIR-005, REQ-MIR-001 |
-| P0-E4-T02 | Load the theme by request domain and write tokens as inline CSS custom properties on `<html>` | todo | P0-E4-T01, P0-E1 | REQ-MIR-005, REQ-MIR-002 |
+| P0-E4-T02 | Load the theme by request domain and write tokens as inline CSS custom properties on `<html>` | done | P0-E4-T01, P0-E1-T01 | REQ-MIR-005, REQ-MIR-002 |
 | P0-E4-T03 | Theme contrast check: refuse saving a theme that fails a §5 pair; automated test over Direction A and B values | done | P0-E4-T01 | REQ-ACC-001, REQ-MIR-005 |
-| P0-E4-T04 | Font pipeline: subset and self-host Noto Naskh Arabic, Source Serif 4 and Noto Nastaliq Urdu; `local()`, preload and `font-display` rules; measure sizes; run shaping test strings | todo | P0-E1 | REQ-PRF-001, REQ-LNG-006 |
-| P0-E4-T05 | Type scale and base text styles for `/ur` and `/en`, in `rem`, with size-adjusted fallback faces | todo | P0-E4-T02, P0-E4-T04 | REQ-LNG-006, REQ-ACC-005 |
-| P0-E4-T06 | Spacing tokens, breakpoints, grid, logical-property base CSS, icon mirroring, and a lint rule against physical left/right properties | todo | P0-E4-T02, P0-E3-T04 | REQ-LNG-006 |
-| P0-E4-T07 | Formatting and bidi helpers: amount, date, date-time, relative time, isolated names and LTR values, with snapshot tests in both languages | todo | P0-E4-T06, P0-E3-T04 | REQ-LNG-007, REQ-LNG-012 |
-| P0-E4-T08 | Buttons, links, text fields, amount field, choice cards, select, checkbox, switch, error summary | todo | P0-E4-T05, P0-E4-T06 | REQ-ACC-002, REQ-ACC-004 |
-| P0-E4-T09 | Header, footer, language switch and logo slot from institute settings; optimised logo exports (48 to 512 px) | todo | P0-E4-T08, P0-E3-T04 | REQ-LNG-003, REQ-PUB-007 |
-| P0-E4-T10 | Feedback components: notice (incl. translation-missing), toast, empty state, skeleton, "Show more" | todo | P0-E4-T08 | REQ-LNG-009, REQ-ACC-002 |
-| P0-E4-T11 | Badges, progress bar, cause card, avatar and persona chip, copy field | todo | P0-E4-T08, P0-E4-T07 | REQ-PUB-002, REQ-ACC-001 |
+| P0-E4-T04 | Font pipeline: subset and self-host Noto Naskh Arabic, Source Serif 4 and Noto Nastaliq Urdu; `local()`, preload and `font-display` rules; measure sizes; run shaping test strings | done | P0-E1-T01 | REQ-PRF-001, REQ-LNG-006 |
+| P0-E4-T05 | Type scale and base text styles for `/ur` and `/en`, in `rem`, with size-adjusted fallback faces | done | P0-E4-T02, P0-E4-T04 | REQ-LNG-006, REQ-ACC-005 |
+| P0-E4-T06 | Spacing tokens, breakpoints, grid, logical-property base CSS, icon mirroring, and a lint rule against physical left/right properties | done | P0-E4-T02, P0-E3-T04 | REQ-LNG-006 |
+| P0-E4-T07 | Formatting and bidi helpers: amount, date, date-time, relative time, isolated names and LTR values, with snapshot tests in both languages | done | P0-E4-T06, P0-E3-T04 | REQ-LNG-007, REQ-LNG-012 |
+| P0-E4-T08 | Buttons, links, text fields, amount field, choice cards, select, checkbox, switch, error summary | done | P0-E4-T05, P0-E4-T06 | REQ-ACC-002, REQ-ACC-004 |
+| P0-E4-T09 | Header, footer, language switch and logo slot from institute settings; optimised logo exports (48 to 512 px) | done | P0-E4-T08, P0-E3-T04 | REQ-LNG-003, REQ-PUB-007 |
+| P0-E4-T10 | Feedback components: notice (incl. translation-missing), toast, empty state, skeleton, "Show more" | done | P0-E4-T08 | REQ-LNG-009, REQ-ACC-002 |
+| P0-E4-T11 | Badges, progress bar, cause card, avatar and persona chip, copy field | done | P0-E4-T08, P0-E4-T07 | REQ-PUB-002, REQ-ACC-001 |
 | P0-E4-T12 | Placeholder kit: SVG pattern generator from tokens, cause icon sprite, 24 persona avatar presets, initials avatar | todo | P0-E4-T02 | REQ-CHS-001, REQ-MIR-005 |
-| P0-E4-T13 | Dialog, bottom sheet, tabs and stepper with focus management | todo | P0-E4-T08 | REQ-ACC-002 |
+| P0-E4-T13 | Dialog, bottom sheet, tabs and stepper with focus management | done | P0-E4-T08 | REQ-ACC-002 |
 | P0-E4-T14 | Media frame: responsive image with `srcset`, YouTube facade, audio player, data-saver "tap to load" | todo | P0-E4-T12, P0-E1 | REQ-PRF-002, REQ-PRF-004 |
-| P0-E4-T15 | Component gallery pages at `/ur/_design` and `/en/_design` (admin only), with keyboard, screen reader, 200% zoom and 320 px checks | todo | P0-E4-T08, P0-E4-T09, P0-E4-T10, P0-E4-T11, P0-E4-T12, P0-E4-T13, P0-E4-T14 | REQ-ACC-002, REQ-ACC-003, REQ-ACC-004, REQ-ACC-005 |
+| P0-E4-T15 | Component gallery pages at `/ur/_design` and `/en/_design` (admin only), with keyboard, screen reader, 200% zoom and 320 px checks | done | P0-E4-T08, P0-E4-T09, P0-E4-T10, P0-E4-T11, P0-E4-T13 | REQ-ACC-002, REQ-ACC-003, REQ-ACC-004, REQ-ACC-005 |
 | P0-E4-T16 | Page-weight budget check in CI (HTML, CSS, JS, fonts) and a manual slow-3G test script for the 5-second target | todo | P0-E4-T04, P0-E4-T15 | REQ-PRF-001 |
 | P0-E4-T17 | Shared terms and tone: seed the §11 glossary and example strings into the translation files; native Urdu review by a staff member | todo | P0-E3-T03 | REQ-LNG-001 |
 
@@ -836,11 +836,11 @@ The local design preview uses clearly labelled and credited sample media from Wa
 
 | Task | Title | Status | Depends on | Requirements |
 | --- | --- | --- | --- | --- |
-| P1-E1-T20 | Home page and cause page layouts with placeholder hero and cause cards | todo | P0-E4-T11, P0-E4-T12 | REQ-PUB-002, REQ-PUB-003 |
+| P1-E1-T20 | Home page and cause page layouts with placeholder hero and cause cards | done | P0-E4-T11 | REQ-PUB-002, REQ-PUB-003 |
 | P1-E1-T21 | Donate flow screens (type, cause, amount, bank details with copy fields and reference code, email and name choice, confirmation) | todo | P0-E4-T08, P0-E4-T11 | REQ-DON-001, REQ-DON-002, REQ-PUB-008, REQ-DPR-001, REQ-DPR-006 |
 | P1-E4-T20 | Trail timeline component and the guest trail page layout, with the public switch | todo | P0-E4-T11, P0-E4-T07 | REQ-TRL-007, REQ-TRL-008, REQ-TRL-009, REQ-DPR-002 |
 | P2-E3-T20 | Zakat choice screens: filtered cause list, scholar line, not-eligible notice | todo | P1-E1-T21 | REQ-DON-004, REQ-TRL-006, REQ-ROL-005 |
-| P2-E5-T20 | Donor wall rows and "My donations" list designs, named and anonymous | todo | P0-E4-T11 | REQ-DPR-007, REQ-DPR-008, REQ-DPR-010 |
+| P2-E5-T20 | Donor wall rows and "My donations" list designs, named and anonymous | done | P0-E4-T11 | REQ-DPR-007, REQ-DPR-008, REQ-DPR-010 |
 | P3-E3-T20 | Post card for each post type, thread view, composer and report dialog | todo | P0-E4-T08, P0-E4-T11 | REQ-STU-005, REQ-STU-006, REQ-STU-011, REQ-LNG-010 |
 | P3-E3-T21 | Poll creation and voting screens, and question and answer layouts | todo | P3-E3-T20 | REQ-STU-007 |
 | P3-E6-T20 | "Turn into verified article" screens (choose posts, edit, verify, scope) and the verified article page | todo | P3-E3-T20 | REQ-TCH-002, REQ-TCH-003, REQ-MOD-004 |

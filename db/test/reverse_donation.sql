@@ -14,6 +14,15 @@ insert into app.users (id, institute_id, email, full_name, status) values
 insert into app.user_roles (institute_id, user_id, role) values
   ('95000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000011', 'finance_officer'),
   ('95000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000012', 'editor');
+update app.users set two_factor_enabled = true, must_change_password = false
+where id = '95000000-0000-4000-8000-000000000011';
+insert into identity.two_factor (institute_id, user_id, secret, backup_codes, verified) values
+  ('95000000-0000-4000-8000-000000000001', '95000000-0000-4000-8000-000000000011', 'fixture-secret', 'fixture-codes', true);
+insert into identity.sessions (id, institute_id, user_id, token, expires_at, two_factor_verified_at) values
+  ('95000000-0000-4000-8000-000000000021', '95000000-0000-4000-8000-000000000001',
+    '95000000-0000-4000-8000-000000000011', 'reverse-verified', now() + interval '1 hour', now()),
+  ('95000000-0000-4000-8000-000000000022', '95000000-0000-4000-8000-000000000001',
+    '95000000-0000-4000-8000-000000000011', 'reverse-unverified', now() + interval '1 hour', null);
 insert into app.institute_bank_accounts (id, institute_id, label, bank_name, account_title, account_number, show_on_donate)
 values ('95000000-0000-4000-8000-000000000031', '95000000-0000-4000-8000-000000000001',
   '{"en":"Main"}', 'Bank', 'Title', 'number', true);
@@ -41,6 +50,7 @@ declare
   to_wheat uuid;
   split uuid;
   spent uuid;
+  spent_receipt text;
   source_allocation uuid;
   spend_allocation uuid;
 begin
@@ -61,7 +71,7 @@ begin
   select tenant, a.donation_id, 'allocated', today, a.amount_paisa, a.cause_id, a.id, a.created_by
   from app.allocations a where a.donation_id = split;
   -- A donation with a spend against it.
-  select donation_id into spent from app.record_donation(gen_random_uuid(), donor, wheat, 'general', 100000,
+  select donation_id, receipt_number into spent, spent_receipt from app.record_donation(gen_random_uuid(), donor, wheat, 'general', 100000,
     today, bank, 'spent', 'en');
   select id into source_allocation from app.allocations where donation_id = spent;
   insert into app.allocations (institute_id, kind, donation_id, donation_type, from_allocation_id, cause_id,
@@ -95,6 +105,16 @@ begin
   end;
 
   -- A spent donation can be reversed since P2-E2-T41; see spending_reversal.sql.
+  -- The Phase 1 staff operation is limited to unspent transfers.
+  assert identity.reverse_manual_donation('95000000-0000-4000-8000-000000000022', spent_receipt, 'wrong_details', null)
+    = 'denied', 'The reversal accepted an unverified session';
+  assert (select has_spending from identity.read_transfer_for_reversal('95000000-0000-4000-8000-000000000021', spent_receipt));
+  assert identity.reverse_manual_donation('95000000-0000-4000-8000-000000000021', spent_receipt, 'wrong_details', null)
+    = 'has_spending', 'The Phase 1 reversal allowed a spent transfer';
+  perform set_config('app.institute_id', '95000000-0000-4000-8000-000000000009', true);
+  assert not exists (select from identity.read_transfer_for_reversal('95000000-0000-4000-8000-000000000021', spent_receipt));
+  assert identity.reverse_manual_donation('95000000-0000-4000-8000-000000000021', spent_receipt, 'wrong_details', null) = 'denied';
+  perform set_config('app.institute_id', tenant::text, true);
 
   -- A donation to one cause: its received and allocated events are reversed.
   perform app.reverse_donation(to_wheat, 'recorded_twice', '  Same statement line entered twice  ');
@@ -117,6 +137,12 @@ begin
   perform app.reverse_donation(split, 'wrong_type');
   assert (select count(*) from app.allocations where donation_id = split and is_reversal) = 2;
   assert (select count(*) from app.trail_events where donation_id = split and event_type = 'reversal') = 3;
+  begin
+    insert into app.allocations (institute_id, kind, donation_id, donation_type, cause_id, amount_paisa, created_by)
+    values (tenant, 'to_cause', split, 'sadaqah', gas, 100, '95000000-0000-4000-8000-000000000011');
+    assert false, 'A stale split can place money from a reversed gift';
+  exception when check_violation then null;
+  end;
 
   -- Totals drop back, and the same bank reference can be recorded again.
   assert (select lifetime_raised_paisa from public_api.causes where id = wheat) = 100000;
@@ -130,6 +156,10 @@ begin
     where id = to_wheat) = 'recorded_twice';
   assert (select reversal_reason from identity.read_guest_trail(repeat('d', 64), null, null)
     where id = split) = 'wrong_type';
+  assert (select cause_title from identity.read_guest_trail(repeat('d', 64), null, null)
+    where id = to_wheat) = '{"en":"Wheat"}', 'The cancelled receipt lost the original cause';
+  assert (select cause_title from identity.read_guest_trail(repeat('d', 64), null, null)
+    where id = split) is null, 'An all-needs gift displayed a later split as its original cause';
   assert (select count(*) from identity.read_guest_trail(repeat('d', 64), null, null)
     where reversal_reason is not null) = 2;
   assert not exists (select from identity.read_guest_trail(repeat('d', 64), null, null) t

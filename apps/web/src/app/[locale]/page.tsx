@@ -12,9 +12,14 @@ import { requireLocale } from "@/i18n/locale";
 import { campusMedia, hasCampusSection } from "@/institutes/campus-media";
 import { institute } from "@/institutes/markaz-al-azeem";
 import { defaultHomeFacts } from "@/institutes/home-facts";
-import { homeFactKeys, pageTranslation } from "@/institutes/site-pages";
+import { pageTranslation } from "@/institutes/site-pages";
 import { readPublishedPages } from "@/server/public-pages";
 import { publicPageMetadata, publicSiteOrigin } from "@/server/public-site";
+import { AddressMap } from "@/components/address-map";
+import { StarRule } from "@/design/ornament";
+import { showSampleBadge } from "@/institutes/public-story";
+import { HomeLedger } from "./home-ledger";
+import { HomeStory } from "./home-story";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]">) {
   const locale = requireLocale((await params).locale);
@@ -49,11 +54,20 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
   const additionalPages = pages.filter(
     ({ slug }) => slug === "facilities" || slug === "daily-life",
   );
+  const [leadPhoto, ...gallery] = campusMedia.photos;
+  const { film, sample } = campusMedia;
+  const namedTitle =
+    homeTitle?.text === institute.name.en ||
+    homeTitle?.text === institute.name.ur;
+  const headline = homeTitle && !namedTitle ? homeTitle : undefined;
   const number = new Intl.NumberFormat(`${locale}-PK`, {
     numberingSystem: "latn",
   });
-  const [leadPhoto, ...gallery] = campusMedia.photos;
-  const { film, sample } = campusMedia;
+  const heroFacts = (["education", "meals", "clinic"] as const).map((key) => ({
+    key,
+    value: facts[key].value,
+    label: facts[key].label[locale],
+  }));
 
   return (
     <>
@@ -66,17 +80,18 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             </p>
             <h1
               id="hero-title"
-              lang={homeTitle?.language}
+              lang={headline?.language}
               dir={
-                homeTitle
-                  ? homeTitle.language === "ur"
+                headline
+                  ? headline.language === "ur"
                     ? "rtl"
                     : "ltr"
                   : undefined
               }
             >
-              {homeTitle?.text ?? institute.name[locale]}
+              {headline?.text ?? t("story.heroHeadline")}
             </h1>
+            <p className="hero-tagline">{t("story.heroTagline")}</p>
             <p
               className="hero-summary published-page-copy"
               lang={homeBody?.language}
@@ -90,24 +105,37 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             >
               {homeBody?.text ?? t("home.summary")}
             </p>
-            {[homeTitle, homeBody].some(
+            {[headline, homeBody].some(
               (field) => field && field.language !== locale,
             ) && (
               <p className="published-page-note">{t("sitePages.fallback")}</p>
             )}
+            <ul className="hero-chips">
+              <li>{t("story.chipTraced")}</li>
+              <li>{t("story.chipFees")}</li>
+              <li>{t("story.chipZakat")}</li>
+            </ul>
+            <ul className="hero-stats">
+              {heroFacts.map((fact) => (
+                <li key={fact.key}>
+                  <bdi>{number.format(fact.value)}</bdi>
+                  <span>{fact.label}</span>
+                </li>
+              ))}
+            </ul>
             <div className="hero-actions">
-              <a className="button button-primary" href="#community">
-                {t("home.explore")}
+              <a className="button button-primary" href={`/${locale}/donate`}>
+                {t("navigation.donate")}
                 <Icon name="arrow" />
               </a>
               <a
                 className="button button-outline"
-                href={film ? "#campus-film" : "#visit"}
+                href={film ? "#campus-film" : `/${locale}/causes`}
               >
-                <Icon name={film ? "play" : "map"} />
+                <Icon name={film ? "play" : "arrow"} />
                 {film
                   ? t(sample ? "campus.watchSample" : "campus.watch")
-                  : t("home.visit")}
+                  : t("giving.explore")}
               </a>
             </div>
           </div>
@@ -171,7 +199,8 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
       <div className="shell content">
         <section className="about" id="about" aria-labelledby="about-title">
           <div>
-            <p className="eyebrow">{t("about.label")}</p>
+            <p className="eyebrow">{t("story.missionLabel")}</p>
+            <StarRule />
             <h2
               id="about-title"
               lang={aboutTitle?.language}
@@ -183,7 +212,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
                   : undefined
               }
             >
-              {aboutTitle?.text ?? t("about.heading")}
+              {aboutTitle?.text ?? t("story.missionHeading")}
             </h2>
             {[aboutTitle, aboutBody].some(
               (field) => field && field.language !== locale,
@@ -203,7 +232,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
                   : undefined
               }
             >
-              {aboutBody?.text ?? t("about.body")}
+              {aboutBody?.text ?? t("story.missionBody")}
             </p>
             {additionalPages.length > 0 && (
               <div className="published-page-links">
@@ -221,32 +250,9 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
           </div>
         </section>
 
-        <section
-          className="community"
-          id="community"
-          aria-labelledby="community-title"
-        >
-          <p className="eyebrow">{t("community.label")}</p>
-          <h2 id="community-title">{t("community.heading")}</h2>
-          <ul className="service-list">
-            {homeFactKeys.map((service) => (
-              <li className="service" key={service}>
-                <span className="service-icon">
-                  <Icon name={service} />
-                </span>
-                <p className="service-stat">
-                  <bdi>{number.format(facts[service].value)}</bdi>
-                  {facts[service].label[locale]}
-                </p>
-                <h3>{t(`community.${service}.title`)}</h3>
-                <p>{t(`community.${service}.body`)}</p>
-              </li>
-            ))}
-          </ul>
-          <a className="button button-outline" href={`/${locale}/causes`}>
-            {t("giving.explore")}
-          </a>
-        </section>
+        <HomeStory locale={locale} />
+
+        <HomeLedger locale={locale} />
 
         {hasCampusSection(campusMedia) && (
           <section
@@ -326,8 +332,31 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
               {t("visit.directions")}
             </a>
           </div>
+          <div className="visit-extra">
+            {showSampleBadge() && (
+              <p className="sample-flag">{t("story.sampleBadge")}</p>
+            )}
+            <h3>{t("story.hoursLabel")}</h3>
+            <p>{t("story.hoursBody")}</p>
+            <AddressMap
+              query={`${institute.mosque.en}, ${institute.address.roadNumber} ${institute.address.roadLabel.en}, ${institute.address.region.en}`}
+              title={t("story.mapTitle")}
+            />
+          </div>
         </section>
       </div>
+      <section className="give-band" aria-labelledby="give-band-title">
+        <div className="shell give-band-inner">
+          <div>
+            <h2 id="give-band-title">{t("story.ctaHeading")}</h2>
+            <p>{t("story.ctaBody")}</p>
+          </div>
+          <a className="button button-primary" href={`/${locale}/donate`}>
+            {t("story.ctaButton")}
+            <Icon name="arrow" />
+          </a>
+        </div>
+      </section>
     </>
   );
 }
