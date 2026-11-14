@@ -29,7 +29,7 @@ Tick a line only when its task is `done` and its test passes. Add a missing requ
 - [ ] REQ-TRL-004 A spending entry draws on the oldest unspent donations in its cause first. MUST → 06 §8
 - [ ] REQ-TRL-005 One spending entry can draw on several donations, and one donation can be split across several spending entries. MUST → 06 §8
 - [ ] REQ-TRL-006 Zakat money is matched only to spending in Zakat-eligible causes. MUST → 06 §6
-- [ ] REQ-TRL-007 Donor can see, for each of their donations, which spending entries it paid for and how much. MUST → 06 §8
+- [x] REQ-TRL-007 Donor can see, for each of their donations, which spending entries it paid for and how much. MUST → 06 §8
 - [ ] REQ-TRL-008 A donation's trail is private by default. MUST → 06 §10
 - [ ] REQ-TRL-009 Donor can make the trail of a donation public. MUST → 06 §10
 - [ ] REQ-TRL-010 Each cause page shows aggregated spending without any donor identity. MUST → 05 §5

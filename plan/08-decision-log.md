@@ -486,3 +486,9 @@ Four points, each the narrower reading. **Sponsor view:** 04 filters `app.sponso
 2026-11-12 · Sami · Vercel handoff and Resend email
 
 Sami will deploy the current Next.js app to Vercel and chose Resend for account emails and donor receipts (Q-06). The handoff adds Vercel request handling and an authenticated receipt job endpoint using the existing outbox. The [Vercel handoff](../docs/vercel.md) describes the project settings and database roles for this release.
+
+## D-143
+
+2026-11-14 · Build agent (P2-E2-T05) · The donor trail reads spending that `app.match_spending()` already writes
+
+P2-E2-T05 depended on P2-E2-T01, the staff batch form, which is still open for the staff workspace. The matching function itself is done (P2-E2-T40). The private trail only reads *spent* and *reported* events; it does not record spending. A receipt photo is included only when the spending entry, the file and the face flag all say it may be shown. Options: wait for the staff form; show events that already exist. Reason: a donor cannot see where money went until the page reads the events, and waiting on a form in another workstream would hide purchases that are already matched.

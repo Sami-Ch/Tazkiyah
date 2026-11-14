@@ -945,7 +945,7 @@ P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals p
 | P2-E2-T02 | Shortfalls: entries larger than unspent money, filled by the next money in (§8.5) *(needs approval)* | todo | P2-E2-T01 | REQ-TRL-004, REQ-TRL-016 (proposed) |
 | P2-E2-T03 | Reversals after spending: release matches and re-run FIFO (§15.3) | todo | P2-E2-T01, P1-E3-T09 | REQ-DON-012, REQ-TRL-003 |
 | P2-E2-T04 | Automated tests: the §8.6 worked example as a fixture, plus the six money rules in §8.3 | todo | P2-E2-T02, P2-E2-T03 | REQ-TRL-004, REQ-TRL-005, REQ-TRL-006, REQ-TRL-007 |
-| P2-E2-T05 | Donor trail shows *spent* and *reported* events, with description, share and public receipt photo | todo | P2-E2-T01, P1-E4-T01 | REQ-TRL-007, REQ-ORP-009 |
+| P2-E2-T05 | Donor trail shows *spent* and *reported* events, with description, share and public receipt photo | done | P2-E2-T40, P1-E4-T01 | REQ-TRL-007, REQ-ORP-009 |
 
 ### P2-E3 Zakat, Sadaqah and general ring-fencing
 
@@ -976,7 +976,9 @@ P1-E3-T12 adds bilingual bank reconciliation. The screen shows recorded totals p
 | P2-E5-T06 | "My donations" list with states and receipts for account donors | in progress | P2-E5-T01, P1-E4-T03 | REQ-DPR-010 |
 | P2-E5-T07 | Anonymity leak test across pages, exports, API, logs, audit log and emails (§10.4) | todo | P2-E5-T04, P2-E5-T05, P2-E7-T60 | REQ-DPR-009, REQ-SEC-008 |
 
-[Migration 0058](../db/drizzle/0058_account_donation_trails.sql) connects the verified-email claim to **My donations**. It revokes existing guest access and prevents both manual issuance and receipt jobs from creating a new guest link for a claimed donor. Signed-in donors can page through their own donations and open an individual trail. [Migration 0059](../db/drizzle/0059_printable_donation_receipts.sql) adds the institute branding and replacement information to both kinds of private trail. The printable receipt spells out the amount in both languages and includes the donor's own trail link. Named receipts still depend on the donor's name choice (P2-E5-T03). Spending events remain in P2-E2-T05.
+[Migration 0058](../db/drizzle/0058_account_donation_trails.sql) connects the verified-email claim to **My donations**. It revokes existing guest access and prevents both manual issuance and receipt jobs from creating a new guest link for a claimed donor. Signed-in donors can page through their own donations and open an individual trail. [Migration 0059](../db/drizzle/0059_printable_donation_receipts.sql) adds the institute branding and replacement information to both kinds of private trail. The printable receipt spells out the amount in both languages and includes the donor's own trail link. Named receipts still depend on the donor's name choice (P2-E5-T03).
+
+2026-11-14 · P2-E2-T05: [`0060_donor_spent_trail.sql`](../db/drizzle/0060_donor_spent_trail.sql) adds each standing *spent* and *reported* event to the private trail, with the purchase or report description and the donor's share. A receipt photo is included only when the entry is public, the file is a ready public image, and it shows no face. Private receipt keys never leave the database. The trail page lists the events and the amount still waiting to be spent, in Urdu and English. The staff form that records a batch remains P2-E1-T01; this page only reads events `app.match_spending()` already writes ([D-143](08-decision-log.md#d-143)). Tests: [`db/test/donor_trail_spending.sql`](../db/test/donor_trail_spending.sql).
 
 ### P2-E6 Spending reports and public cause transparency
 

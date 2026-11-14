@@ -12,15 +12,17 @@ import {
   pageTranslation,
   type LocalizedPageText,
 } from "@/institutes/site-pages";
-import { donationState } from "./donation-state";
+import { donationState, unspentPaisa } from "./donation-state";
 import { trailCopy } from "./trail-copy";
 
 type TrailCursor = { recorded_at: string; id: string };
 type TrailEvent = {
-  event_type: "received" | "allocated";
+  event_type: "received" | "allocated" | "spent" | "reported";
   occurred_on: string;
   amount_paisa: string;
   cause_title: LocalizedPageText | null;
+  description?: LocalizedPageText | null;
+  receipt_key?: string | null;
 };
 type TrailDonation = TrailCursor & {
   receipt_number: string;
@@ -129,6 +131,16 @@ function TrailDate({
     timeZone: issueDate ? "Asia/Karachi" : "UTC",
   }).format(new Date(value));
   return <time dateTime={value}>{formatted}</time>;
+}
+
+function receiptPhoto(key: string | null | undefined) {
+  const parts = key?.split("/");
+  if (
+    !parts?.length ||
+    parts.some((part) => !part || part === "." || part === "..")
+  )
+    return null;
+  return `https://media.azeem-lateef.com/${parts.map(encodeURIComponent).join("/")}`;
 }
 
 function CauseTitle({
@@ -467,26 +479,59 @@ function DonationRecord({
           </div>
         </dl>
         {donation.events.length > 0 && (
-          <details className="trail-events">
+          <details className="trail-events" open>
             <summary>{copy.activity}</summary>
             <ol>
-              {donation.events.map((event, index) => (
-                <li key={index}>
-                  <strong>{copy[event.event_type]}</strong>
-                  <p>
-                    <TrailDate value={event.occurred_on} locale={locale} />
-                    {" · "}
-                    <bdi>{formatPkr(event.amount_paisa, locale)}</bdi>
-                    {event.event_type === "allocated" && (
-                      <>
-                        {" · "}
-                        <CauseTitle title={event.cause_title} locale={locale} />
-                      </>
+              {donation.events.map((event, index) => {
+                const description = pageTranslation(
+                  event.description ?? undefined,
+                  locale,
+                );
+                const photo = receiptPhoto(event.receipt_key);
+                return (
+                  <li key={index}>
+                    <strong>{copy[event.event_type]}</strong>
+                    <p>
+                      <TrailDate value={event.occurred_on} locale={locale} />
+                      {" · "}
+                      <bdi>{formatPkr(event.amount_paisa, locale)}</bdi>
+                      {event.event_type !== "received" && event.cause_title && (
+                        <>
+                          {" · "}
+                          <CauseTitle
+                            title={event.cause_title}
+                            locale={locale}
+                          />
+                        </>
+                      )}
+                    </p>
+                    {description && (
+                      <p lang={description.language} dir="auto">
+                        {description.text}
+                      </p>
                     )}
-                  </p>
-                </li>
-              ))}
+                    {photo && (
+                      <Image
+                        src={photo}
+                        width={320}
+                        height={180}
+                        alt={copy.receiptPhoto}
+                        unoptimized
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                  </li>
+                );
+              })}
             </ol>
+            {unspentPaisa(donation) > 0n && (
+              <p>
+                {copy.waiting.replace(
+                  "{amount}",
+                  formatPkr(unspentPaisa(donation), locale),
+                )}
+              </p>
+            )}
           </details>
         )}
         <button

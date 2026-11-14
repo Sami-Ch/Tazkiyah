@@ -56,6 +56,11 @@ export const trailCopy = {
     activity: "Donation activity",
     received: "Donation received",
     allocated: "Funds allocated",
+    spent: "Spent",
+    reported: "Reported",
+    waiting:
+      "{amount} is still waiting to be spent. It will show here when it is used.",
+    receiptPhoto: "Receipt photo",
     pages: "Donation pages",
     previous: "Previous page",
     next: "Next page",
@@ -137,6 +142,11 @@ export const trailCopy = {
     activity: "عطیے کی تفصیل",
     received: "عطیہ موصول ہوا",
     allocated: "رقم مختص کی گئی",
+    spent: "خرچ",
+    reported: "رپورٹ شدہ",
+    waiting:
+      "{amount} ابھی خرچ ہونا باقی ہیں۔ جب یہ استعمال ہوں گے تو یہاں نظر آئیں گے۔",
+    receiptPhoto: "رسید کی تصویر",
     pages: "عطیات کے صفحات",
     previous: "پچھلا صفحہ",
     next: "اگلا صفحہ",
