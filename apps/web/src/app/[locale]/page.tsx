@@ -39,6 +39,12 @@ export async function generateMetadata({ params }: PageProps<"/[locale]">) {
   });
 }
 
+const trustItems = [
+  ["shield", "story.chipTraced"],
+  ["coins", "story.chipFees"],
+  ["scale", "story.chipZakat"],
+] as const;
+
 export default async function Home({ params }: PageProps<"/[locale]">) {
   const locale = requireLocale((await params).locale);
   setRequestLocale(locale);
@@ -68,10 +74,13 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
     value: facts[key].value,
     label: facts[key].label[locale],
   }));
+  const direction = (language?: string) =>
+    language ? (language === "ur" ? "rtl" : "ltr") : undefined;
 
   return (
     <>
       <section className="hero" aria-labelledby="hero-title">
+        <div className="hero-ornament" aria-hidden="true" />
         <div className="shell hero-inner">
           <div className="hero-copy">
             <p className="eyebrow hero-eyebrow">
@@ -81,13 +90,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             <h1
               id="hero-title"
               lang={headline?.language}
-              dir={
-                headline
-                  ? headline.language === "ur"
-                    ? "rtl"
-                    : "ltr"
-                  : undefined
-              }
+              dir={direction(headline?.language)}
             >
               {headline?.text ?? t("story.heroHeadline")}
             </h1>
@@ -95,13 +98,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             <p
               className="hero-summary published-page-copy"
               lang={homeBody?.language}
-              dir={
-                homeBody
-                  ? homeBody.language === "ur"
-                    ? "rtl"
-                    : "ltr"
-                  : undefined
-              }
+              dir={direction(homeBody?.language)}
             >
               {homeBody?.text ?? t("home.summary")}
             </p>
@@ -110,19 +107,6 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             ) && (
               <p className="published-page-note">{t("sitePages.fallback")}</p>
             )}
-            <ul className="hero-chips">
-              <li>{t("story.chipTraced")}</li>
-              <li>{t("story.chipFees")}</li>
-              <li>{t("story.chipZakat")}</li>
-            </ul>
-            <ul className="hero-stats">
-              {heroFacts.map((fact) => (
-                <li key={fact.key}>
-                  <bdi>{number.format(fact.value)}</bdi>
-                  <span>{fact.label}</span>
-                </li>
-              ))}
-            </ul>
             <div className="hero-actions">
               <a className="button button-primary" href={`/${locale}/donate`}>
                 {t("navigation.donate")}
@@ -138,13 +122,25 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
                   : t("giving.explore")}
               </a>
             </div>
+            <ul className="hero-stats">
+              {heroFacts.map((fact) => (
+                <li key={fact.key}>
+                  <bdi>{number.format(fact.value)}</bdi>
+                  <span>{fact.label}</span>
+                </li>
+              ))}
+            </ul>
           </div>
           {leadPhoto ? (
             <figure className="hero-visual hero-photo">
-              <CampusPicture photo={leadPhoto} locale={locale} lead />
-              {sample && (
-                <span className="sample-badge">{t("campus.samplePhoto")}</span>
-              )}
+              <div className="hero-frame">
+                <CampusPicture photo={leadPhoto} locale={locale} lead />
+                {sample && (
+                  <span className="sample-badge">
+                    {t("campus.samplePhoto")}
+                  </span>
+                )}
+              </div>
               <figcaption>
                 {leadPhoto.caption[locale]}
                 {leadPhoto.credit && (
@@ -157,22 +153,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             </figure>
           ) : (
             <div className="hero-visual hero-emblem">
-              <div className="hero-medallion">
-                <svg
-                  className="medallion-frame"
-                  viewBox="0 0 400 400"
-                  aria-hidden="true"
-                >
-                  <g fill="none" stroke="currentColor">
-                    <path d="M200 14 258 64 336 64 336 142 386 200 336 258 336 336 258 336 200 386 142 336 64 336 64 258 14 200 64 142 64 64 142 64Z" />
-                    <path d="M200 30 320 80 370 200 320 320 200 370 80 320 30 200 80 80Z" />
-                    <circle cx="200" cy="200" r="155" />
-                  </g>
-                  <g fill="currentColor">
-                    <path d="M200 2 206 14 200 26 194 14ZM200 374 206 386 200 398 194 386Z" />
-                    <path d="M2 200 14 194 26 200 14 206ZM374 200 386 194 398 200 386 206Z" />
-                  </g>
-                </svg>
+              <div className="hero-frame hero-frame-emblem">
                 <picture>
                   <source
                     type="image/webp"
@@ -196,24 +177,31 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
         </div>
       </section>
 
+      <section className="trust-strip" aria-label={t("story.programmesLabel")}>
+        <ul className="shell trust-strip-inner">
+          {trustItems.map(([icon, label]) => (
+            <li key={icon} className="trust-item">
+              <span className="trust-icon">
+                <Icon name={icon} />
+              </span>
+              <span>{t(label)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <div className="shell content">
         <section className="about" id="about" aria-labelledby="about-title">
           <div>
             <p className="eyebrow">{t("story.missionLabel")}</p>
-            <StarRule />
             <h2
               id="about-title"
               lang={aboutTitle?.language}
-              dir={
-                aboutTitle
-                  ? aboutTitle.language === "ur"
-                    ? "rtl"
-                    : "ltr"
-                  : undefined
-              }
+              dir={direction(aboutTitle?.language)}
             >
               {aboutTitle?.text ?? t("story.missionHeading")}
             </h2>
+            <StarRule />
             {[aboutTitle, aboutBody].some(
               (field) => field && field.language !== locale,
             ) && (
@@ -224,13 +212,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             <p
               className="published-page-copy"
               lang={aboutBody?.language}
-              dir={
-                aboutBody
-                  ? aboutBody.language === "ur"
-                    ? "rtl"
-                    : "ltr"
-                  : undefined
-              }
+              dir={direction(aboutBody?.language)}
             >
               {aboutBody?.text ?? t("story.missionBody")}
             </p>
@@ -243,6 +225,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
                     href={`/${locale}/${slug}`}
                   >
                     {t(`sitePages.slugs.${slug}`)}
+                    <Icon name="arrow" />
                   </a>
                 ))}
               </div>
@@ -260,11 +243,15 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             id="campus"
             aria-labelledby="campus-title"
           >
-            <p className="eyebrow">{t("campus.label")}</p>
-            <h2 id="campus-title">
-              {t(sample ? "campus.previewHeading" : "campus.heading")}
-            </h2>
-            {sample && <p className="campus-note">{t("campus.previewNote")}</p>}
+            <div className="section-intro">
+              <p className="eyebrow">{t("campus.label")}</p>
+              <h2 id="campus-title">
+                {t(sample ? "campus.previewHeading" : "campus.heading")}
+              </h2>
+              {sample && (
+                <p className="campus-note">{t("campus.previewNote")}</p>
+              )}
+            </div>
             {film && (
               <figure className="campus-film" id="campus-film">
                 <CampusMovie
@@ -311,33 +298,40 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
         )}
 
         <section className="visit" id="visit" aria-labelledby="visit-title">
-          <div>
+          <div className="visit-info">
             <p className="eyebrow">{t("visit.label")}</p>
             <h2 id="visit-title">{t("visit.heading")}</h2>
             <address>
-              {institute.mosque[locale]}
+              <strong>{institute.mosque[locale]}</strong>
               <br />
               <bdi dir="ltr">{institute.address.roadNumber}</bdi>{" "}
               {institute.address.roadLabel[locale]}
               <br />
               {institute.address.region[locale]}
             </address>
+            <div className="visit-hours">
+              <span className="trust-icon">
+                <Icon name="clock" />
+              </span>
+              <div>
+                <h3>{t("story.hoursLabel")}</h3>
+                <p>{t("story.hoursBody")}</p>
+                {showSampleBadge() && (
+                  <p className="sample-flag">{t("story.sampleBadge")}</p>
+                )}
+              </div>
+            </div>
+            <div className="visit-actions">
+              <a className="button button-primary" href={institute.mapUrl}>
+                <Icon name="map" />
+                {t("visit.directions")}
+              </a>
+              <a className="button button-outline" href={`/${locale}/contact`}>
+                {t("navigation.visit")}
+              </a>
+            </div>
           </div>
-          <div className="visit-actions">
-            <a className="button button-outline" href={`/${locale}/contact`}>
-              {t("navigation.visit")}
-            </a>
-            <a className="button button-primary" href={institute.mapUrl}>
-              <Icon name="map" />
-              {t("visit.directions")}
-            </a>
-          </div>
-          <div className="visit-extra">
-            {showSampleBadge() && (
-              <p className="sample-flag">{t("story.sampleBadge")}</p>
-            )}
-            <h3>{t("story.hoursLabel")}</h3>
-            <p>{t("story.hoursBody")}</p>
+          <div className="visit-map">
             <AddressMap
               query={`${institute.mosque.en}, ${institute.address.roadNumber} ${institute.address.roadLabel.en}, ${institute.address.region.en}`}
               title={t("story.mapTitle")}
@@ -346,15 +340,22 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
         </section>
       </div>
       <section className="give-band" aria-labelledby="give-band-title">
+        <div className="give-band-ornament" aria-hidden="true" />
         <div className="shell give-band-inner">
           <div>
+            <p className="eyebrow">{t("story.zakatLabel")}</p>
             <h2 id="give-band-title">{t("story.ctaHeading")}</h2>
             <p>{t("story.ctaBody")}</p>
           </div>
-          <a className="button button-primary" href={`/${locale}/donate`}>
-            {t("story.ctaButton")}
-            <Icon name="arrow" />
-          </a>
+          <div className="give-band-actions">
+            <a className="button button-primary" href={`/${locale}/donate`}>
+              {t("story.ctaButton")}
+              <Icon name="arrow" />
+            </a>
+            <a className="button button-outline" href={`/${locale}/causes`}>
+              {t("giving.explore")}
+            </a>
+          </div>
         </div>
       </section>
     </>

@@ -79,12 +79,15 @@ export default async function LocaleLayout({
   const footerLinks = [
     ...links,
     { href: `/${locale}/sign-in`, label: t("signIn.heading") },
+  ];
+  const contactLinks = [
     ...(contact?.phone
       ? [{ href: contact.phone.href, label: contact.phone.label }]
       : []),
     ...(contact?.email
       ? [{ href: contact.email.href, label: contact.email.label }]
       : []),
+    { href: `/${locale}/donate`, label: t("navigation.donate") },
   ];
   const language = <LanguageSwitch locale={locale} {...switchLabels} />;
 
@@ -116,16 +119,24 @@ export default async function LocaleLayout({
         </main>
         <SiteFooter
           name={institute.name[locale]}
+          logoSrc={institute.logo.small}
           platform={t("footer.platform")}
+          exploreLabel={t("footer.explore")}
+          contactLabel={t("footer.contact")}
+          contactLinks={contactLinks}
           tagline={t("footer.tagline")}
           address={
             <>
               {institute.mosque[locale]}
               {", "}
-              <bdi dir="ltr">{institute.address.roadNumber}</bdi>{" "}
-              {institute.address.roadLabel[locale]}
-              {", "}
-              {contact?.address[locale] ?? institute.address.region[locale]}
+              {contact?.address[locale] ?? (
+                <>
+                  <bdi dir="ltr">{institute.address.roadNumber}</bdi>{" "}
+                  {institute.address.roadLabel[locale]}
+                  {", "}
+                  {institute.address.region[locale]}
+                </>
+              )}
             </>
           }
           links={footerLinks}

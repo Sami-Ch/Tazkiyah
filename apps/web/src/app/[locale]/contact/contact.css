@@ -1,45 +1,64 @@
 .contact-page {
   display: grid;
   gap: clamp(1.25rem, 3vw, 2.5rem);
-  max-inline-size: 68rem;
-  padding-block: clamp(2rem, 6vw, 5rem);
+  max-inline-size: 72rem;
 }
 
 .contact-back {
   justify-self: start;
+  font-weight: 600;
 }
 
 .contact-heading {
   display: grid;
-  gap: 0.5rem;
-  max-inline-size: 42rem;
+  gap: 0.65rem;
+  max-inline-size: 44rem;
+}
+
+.contact-heading h1 {
+  color: var(--navy);
+  font-size: clamp(2.25rem, 1.5rem + 3vw, 3.75rem);
 }
 
 .contact-heading > p {
   margin: 0;
   color: var(--muted);
+  font-size: 1.0625rem;
 }
 
 .contact-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
-  gap: 1rem;
+  gap: 1.25rem;
   align-items: start;
 }
 
 .contact-card {
+  position: relative;
   display: grid;
   justify-items: start;
   gap: 1rem;
   min-inline-size: 0;
-  padding: clamp(1.25rem, 4vw, 2.5rem);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  overflow: clip;
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  border-radius: 1.25rem;
   background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+.contact-card h2 {
+  font-size: 1.6rem;
 }
 
 .contact-location {
-  background: var(--navy-soft);
+  background:
+    radial-gradient(
+      28rem 12rem at 100% 0%,
+      color-mix(in srgb, var(--gold) 16%, transparent),
+      transparent 70%
+    ),
+    var(--surface);
 }
 
 .contact-kicker {
@@ -47,19 +66,36 @@
   align-items: center;
   gap: 0.5rem;
   margin: 0;
-  color: var(--navy);
-  font-weight: 700;
+  color: var(--color-verified, #7a5a12);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.contact-kicker:lang(en) {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.contact-kicker svg {
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
 }
 
 .contact-location address {
   display: grid;
   gap: 0.5rem;
+  color: var(--muted);
   font-style: normal;
+  line-height: 1.7;
 }
 
 .contact-location address p {
   margin: 0;
   text-align: match-parent;
+}
+
+.contact-location .map-frame {
+  margin-block-start: 0.5rem;
 }
 
 .contact-methods {
@@ -73,11 +109,31 @@
   border-block-start: 1px solid var(--border);
 }
 
+.contact-methods li:first-child {
+  border-block-start: 0;
+}
+
 .contact-methods a {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.5rem 1rem;
-  padding-block: 0.8rem;
+  min-block-size: 3.25rem;
+  padding-block: 0.9rem;
   overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.contact-methods a:hover bdi {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.contact-methods strong {
+  color: var(--text);
+}
+
+.contact-methods bdi {
+  color: var(--color-link);
+  font-variant-numeric: tabular-nums;
 }

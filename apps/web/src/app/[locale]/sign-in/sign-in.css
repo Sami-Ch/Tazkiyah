@@ -1,21 +1,23 @@
 .sign-in-section {
   display: grid;
   justify-items: center;
-  padding-block: clamp(2rem, 8vw, 5.5rem);
+  padding-block: clamp(2.5rem, 8vw, 5.5rem);
 }
 
 .sign-in-card {
-  inline-size: min(100%, 29rem);
+  inline-size: min(100%, 30rem);
   display: grid;
   gap: 1.25rem;
-  padding: clamp(1.25rem, 4vw, 2rem);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  border-radius: 1.5rem;
   background: var(--surface);
+  box-shadow: var(--shadow-3);
 }
 
 .sign-in-card h1 {
   color: var(--navy);
+  font-size: clamp(1.85rem, 1.4rem + 1.4vw, 2.4rem);
 }
 
 .sign-in-form,
@@ -36,13 +38,21 @@
 .sign-in-form select {
   inline-size: 100%;
   min-block-size: 3rem;
-  padding-inline: 0.75rem;
-  border: 1px solid var(--navy);
-  border-radius: var(--radius);
-  background: var(--paper);
+  padding-inline: 0.9rem;
+  border: 1px solid var(--color-border-strong, var(--navy));
+  border-radius: 0.75rem;
+  background: var(--surface);
   color: var(--text);
   font: inherit;
   font-weight: 400;
+  box-shadow: var(--shadow-1);
+}
+
+.sign-in-form input:hover,
+.sign-in-form select:hover,
+.sign-in-form input:focus-visible,
+.sign-in-form select:focus-visible {
+  border-color: var(--navy);
 }
 
 .sign-in-form button {
@@ -59,7 +69,7 @@
 .sign-in-alternatives {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.5rem 1rem;
 }
 
 .sign-in-error {
@@ -70,8 +80,9 @@
 .auth-setup-key {
   overflow-wrap: anywhere;
   background: var(--paper);
-  border-radius: var(--radius);
-  padding: 0.75rem;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .auth-recovery-codes {

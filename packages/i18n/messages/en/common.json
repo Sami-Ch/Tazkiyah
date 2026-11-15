@@ -387,7 +387,9 @@
   },
   "footer": {
     "platform": "A Tazkiyah project",
-    "tagline": "A record of every gift, from the transfer to the spending."
+    "tagline": "A record of every gift, from the transfer to the spending.",
+    "explore": "Explore",
+    "contact": "Contact"
   },
   "campus": {
     "label": "Campus",

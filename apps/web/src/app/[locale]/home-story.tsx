@@ -1,5 +1,6 @@
 import type { Locale } from "@tazkiyah/i18n/routing";
 import { getTranslations } from "next-intl/server";
+import { Icon } from "@/components/icon";
 import { ProgrammeMark } from "@/design/programme-mark";
 import { StarRule } from "@/design/ornament";
 import { showSampleBadge } from "@/institutes/public-story";
@@ -45,18 +46,25 @@ export async function HomeStory({ locale }: { locale: Locale }) {
   return (
     <>
       <section
-        className="band band-emerald bleed reveal"
+        className="band band-sunken bleed reveal"
         id="programmes"
         aria-labelledby="programmes-title"
       >
-        <p className="eyebrow">{t("story.programmesLabel")}</p>
-        <h2 id="programmes-title">{t("story.programmesHeading")}</h2>
-        <StarRule />
+        <div className="section-intro">
+          <p className="eyebrow">{t("story.programmesLabel")}</p>
+          <h2 id="programmes-title">{t("story.programmesHeading")}</h2>
+          <StarRule />
+        </div>
         <ol className="programme-cards">
-          {programmeKeys.map(([name, title, body, sample]) => (
+          {programmeKeys.map(([name, title, body, sample], index) => (
             <li key={name}>
               <article className="programme-card">
-                <ProgrammeMark name={name} />
+                <div className="programme-card-head">
+                  <ProgrammeMark name={name} />
+                  <span className="programme-index">
+                    <bdi>{String(index + 1).padStart(2, "0")}</bdi>
+                  </span>
+                </div>
                 <h3>{t(title)}</h3>
                 {sample && <SampleFlag label={t("story.sampleBadge")} />}
                 <p>{t(body)}</p>
@@ -71,9 +79,11 @@ export async function HomeStory({ locale }: { locale: Locale }) {
         id="gift-path"
         aria-labelledby="gift-path-title"
       >
-        <p className="eyebrow">{t("story.flowLabel")}</p>
-        <h2 id="gift-path-title">{t("story.flowHeading")}</h2>
-        <StarRule />
+        <div className="section-intro">
+          <p className="eyebrow">{t("story.flowLabel")}</p>
+          <h2 id="gift-path-title">{t("story.flowHeading")}</h2>
+          <StarRule />
+        </div>
         <ol className="timeline">
           {steps.map(([title, body], index) => (
             <li key={title}>
@@ -92,9 +102,11 @@ export async function HomeStory({ locale }: { locale: Locale }) {
         id="zakat-and-sadaqah"
         aria-labelledby="zakat-title"
       >
-        <p className="eyebrow">{t("story.zakatLabel")}</p>
-        <h2 id="zakat-title">{t("story.zakatHeading")}</h2>
-        <StarRule />
+        <div className="section-intro">
+          <p className="eyebrow">{t("story.zakatLabel")}</p>
+          <h2 id="zakat-title">{t("story.zakatHeading")}</h2>
+          <StarRule />
+        </div>
         <div className="kind-cards">
           {kinds.map(([kind, name, body]) => (
             <article key={kind} className={`kind-card kind-card-${kind}`}>
@@ -106,14 +118,15 @@ export async function HomeStory({ locale }: { locale: Locale }) {
       </section>
 
       <section className="verse bleed" aria-labelledby="verse-title">
+        <div className="verse-ornament" aria-hidden="true" />
         <p className="eyebrow" id="verse-title">
           {t("story.verseLabel")}
         </p>
-        <StarRule />
         <blockquote>
           <p className="verse-arabic" lang="ar" dir="rtl">
             {t("story.verseArabic")}
           </p>
+          <StarRule />
           <p lang={locale}>{t("story.verseText")}</p>
           <footer>
             <cite>{t("story.verseRef")}</cite>
@@ -126,13 +139,18 @@ export async function HomeStory({ locale }: { locale: Locale }) {
         id="voices"
         aria-labelledby="voices-title"
       >
-        <p className="eyebrow">{t("story.quotesLabel")}</p>
-        <h2 id="voices-title">{t("story.quotesHeading")}</h2>
-        <SampleFlag label={t("story.sampleBadge")} />
-        <StarRule />
+        <div className="section-intro">
+          <p className="eyebrow">{t("story.quotesLabel")}</p>
+          <h2 id="voices-title">{t("story.quotesHeading")}</h2>
+          <SampleFlag label={t("story.sampleBadge")} />
+          <StarRule />
+        </div>
         <div className="quote-cards">
           {quotes.map(([quote, role]) => (
             <blockquote key={quote} className="quote-card">
+              <span className="quote-mark" aria-hidden="true">
+                <Icon name="quote" />
+              </span>
               <p>{t(quote)}</p>
               <footer className="quote-role">{t(role)}</footer>
             </blockquote>
@@ -141,20 +159,24 @@ export async function HomeStory({ locale }: { locale: Locale }) {
       </section>
 
       <section
-        className="band band-emerald bleed reveal"
+        className="band band-sunken bleed reveal"
         id="questions"
         aria-labelledby="questions-title"
       >
-        <p className="eyebrow">{t("story.faqLabel")}</p>
-        <h2 id="questions-title">{t("story.faqHeading")}</h2>
-        <StarRule />
-        <div className="faq-list">
-          {faqs.map(([question, answer]) => (
-            <details key={question}>
-              <summary>{t(question)}</summary>
-              <p>{t(answer)}</p>
-            </details>
-          ))}
+        <div className="faq-layout">
+          <div className="section-intro">
+            <p className="eyebrow">{t("story.faqLabel")}</p>
+            <h2 id="questions-title">{t("story.faqHeading")}</h2>
+            <StarRule />
+          </div>
+          <div className="faq-list">
+            {faqs.map(([question, answer]) => (
+              <details key={question}>
+                <summary>{t(question)}</summary>
+                <p>{t(answer)}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
     </>

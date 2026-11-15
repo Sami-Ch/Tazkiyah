@@ -2,7 +2,7 @@
 
 Shared by the public site. Staff and donor screens can import the same pieces from `@/design/ui` and `@/design/format`.
 
-Direction A, **Night and Paper**, is the Markaz Al Azeem theme (`packages/core/src/theme.ts`). `themeStyle()` writes it onto `<html>` as `--color-*` custom properties. Do not put hex colours in components.
+Direction A, **Night and Paper**, is the Markaz Al Azeem theme (`packages/core/src/theme.ts`). `themeStyle()` writes it onto `<html>` as `--color-*` custom properties. Do not put hex colours in components. Gradients, glows and shadows are mixed from those tokens with `color-mix()`; see plan 02 §4.1 for the premium rules (photography, depth, motion, type) that replaced the earlier bans.
 
 ## Use
 

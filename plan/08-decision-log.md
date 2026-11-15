@@ -200,7 +200,7 @@ Each specialist document records its own decisions in its §3, with the options 
 | D-035 | PD-02-04 | [02](02-design-ui-ux.md) | Numbers use Western digits (0 to 9) in both languages. | proposed |
 | D-036 | PD-02-05 | [02](02-design-ui-ux.md) | Theme values live only in `institute_settings`. | proposed |
 | D-037 | PD-02-06 | [02](02-design-ui-ux.md) | Students choose a persona avatar from preset pattern avatars. | proposed |
-| D-038 | PD-02-07 | [02](02-design-ui-ux.md) | No stock photos, and no generated images of the madrasa or of children, are used as placeholders. | proposed |
+| D-038 | PD-02-07 | [02](02-design-ui-ux.md) | No stock photos, and no generated images of the madrasa or of children, are used as placeholders. | superseded by D-172 |
 | D-039 | PD-02-08 | [02](02-design-ui-ux.md) | Lists use a "Show more" button with 20 items per page, not infinite scroll. | proposed |
 | D-040 | AR-01 | [03](03-architecture.md) | Run Next.js on Cloudflare Workers with the OpenNext adapter (`@opennextjs/cloudflare`). | proposed |
 | D-041 | AR-02 | [03](03-architecture.md) | Connect through Cloudflare Hyperdrive with node-postgres (`pg`), one explicit transaction per request, with transaction-local settings for RLS. | proposed |
@@ -660,3 +660,9 @@ The staff queue could only approve or reject a public request. Hide sets `hidden
 2026-11-14 · Build agent · Giving, cause, trail, hub and sponsor interface text lives in the message catalogues
 
 The six `*-copy.ts` modules no longer store sentences. They read `packages/i18n/messages/{en,ur}/donate.json`, `causes.json`, `trail.json`, `hub.json` and `sponsor.json`. The catalogue test fails when a key exists in only one language. REQ-LNG-002 stays open: sample campus alt text and a few authentication error sentences are still in code, and the literal-string lint rule from [03 §7.3](03-architecture.md) is not added. Options: leave the sentences in the TypeScript modules; move them into the catalogues now. Reason: REQ-LNG-002 says interface text belongs in the translation files, and moving these modules does not change what a visitor reads.
+
+## D-172
+
+2026-11-15 · Sami · Premium design rules replace the bans on gradients, motion and photographs
+
+Sami asked for a redesign that looks premium to donors in Pakistan and abroad while staying fast. The bans in 02 §4 and PD-02-07 are withdrawn and replaced by the rules in [02 §4.1](02-design-ui-ux.md#41-premium-and-trust-cues-added-2026-11-15-d-172): photography first (real campus photographs preferred, credited sample photographs allowed with a visible *Sample* label, never a child's face, never framed as the institute); token-mixed gradients and one glow on navy surfaces; CSS-only purposeful motion with hard time limits and full `prefers-reduced-motion` support; editorial serif display type with an italic weight; sourced impact numbers; a trust strip under the hero; a Donate pill visible at every width; and a first-load budget of 350 KB with a 3-second 4G and 5-second slow-3G target. Options: keep the bans; drop all rules; replace them with context-fit rules. Reason: the bans made the site read as plain, and donors judge trust partly on finish. The new rules keep the honesty and speed goals the bans were protecting.

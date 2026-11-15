@@ -1,6 +1,8 @@
 import type { Locale } from "@tazkiyah/i18n/routing";
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { Icon } from "@/components/icon";
+import { NavLinks } from "@/components/nav-links";
 
 export type ShellLink = { href: string; label: string };
 
@@ -27,11 +29,7 @@ export function SiteHeader({
   menuLabel: string;
   language: ReactNode;
 }) {
-  const items = links.map((link) => (
-    <a key={link.href} href={link.href}>
-      {link.label}
-    </a>
-  ));
+  const items = <NavLinks links={links} />;
   return (
     <header className="site-header">
       <div className="shell header-bar">
@@ -57,7 +55,10 @@ export function SiteHeader({
           </a>
           {language}
           <details className="nav-menu">
-            <summary className="nav-toggle">{menuLabel}</summary>
+            <summary className="nav-toggle" aria-label={menuLabel}>
+              <Icon name="menu" />
+              <span className="nav-toggle-label">{menuLabel}</span>
+            </summary>
             <nav className="nav-panel" aria-label={menuLabel}>
               {items}
             </nav>
@@ -72,46 +73,67 @@ export function PatternBand() {
   return <div className="pattern-band" aria-hidden="true" />;
 }
 
+function isContactHref(href: string) {
+  return href.startsWith("tel:") || href.startsWith("mailto:");
+}
+
 export function SiteFooter({
   name,
+  logoSrc,
   platform,
   tagline,
   address,
   links,
+  contactLinks,
+  exploreLabel,
+  contactLabel,
   language,
 }: {
   name: string;
+  logoSrc: string;
   platform: string;
   tagline: string;
   address: ReactNode;
   links: ShellLink[];
+  contactLinks: ShellLink[];
+  exploreLabel: string;
+  contactLabel: string;
   language: ReactNode;
 }) {
   return (
     <footer className="site-footer">
       <div className="shell footer-grid">
-        <div>
+        <div className="footer-brand">
+          <Image src={logoSrc} alt="" width={56} height={56} unoptimized />
           <p className="footer-name">{name}</p>
           <p className="footer-tagline">{tagline}</p>
           <p className="footer-muted">{address}</p>
-          <p className="footer-muted">{platform}</p>
         </div>
-        <nav className="footer-links" aria-label={name}>
+        <nav className="footer-links" aria-label={exploreLabel}>
+          <p className="footer-heading">{exploreLabel}</p>
           {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              dir={
-                link.href.startsWith("tel:") || link.href.startsWith("mailto:")
-                  ? "ltr"
-                  : undefined
-              }
-            >
+            <a key={link.href} href={link.href}>
               {link.label}
             </a>
           ))}
         </nav>
-        {language}
+        <div className="footer-links footer-aside">
+          <p className="footer-heading">{contactLabel}</p>
+          {contactLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              dir={isContactHref(link.href) ? "ltr" : undefined}
+            >
+              {link.label}
+            </a>
+          ))}
+          <div className="footer-language">{language}</div>
+        </div>
+      </div>
+      <div className="shell footer-bottom">
+        <p className="footer-muted">{platform}</p>
+        <p className="footer-muted">{name}</p>
       </div>
     </footer>
   );

@@ -1,6 +1,6 @@
 # 02 Design, UI and UX
 
-**Status:** planning · **Last updated:** 2026-11-07 · **Owner document for:** P0-E4, P3-E7
+**Status:** planning · **Last updated:** 2026-11-15 · **Owner document for:** P0-E4, P3-E7
 
 Read [00-MASTER-PLAN.md](00-MASTER-PLAN.md) first. It wins over this document if they disagree. Words such as *cause*, *trail*, *persona* and *scope* have the meanings in the [glossary (00 §8)](00-MASTER-PLAN.md#8-glossary).
 
@@ -68,12 +68,12 @@ New design decisions made in this document. They need `D-` numbers in [08](08-de
 | PD-02-04 | Numbers use Western digits (0 to 9) in both languages. Urdu month names are used on Urdu pages. Amounts group in thousands (`25,000`). | Urdu digits (۰ to ۹); Western digits. | Bank statements, receipts and phone keypads in Pakistan use Western digits, so donors can match amounts to their bank app. Urdu `Intl` formatting for `ur-PK` uses Western digits by default. |
 | PD-02-05 | Theme values live only in `institute_settings`. Code knows token names, never colour values. A theme that fails the contrast pairs in §5 cannot be saved. | Hard-coded theme; settings without checks; settings with checks. | Meets REQ-MIR-005 and keeps future institutes from breaking REQ-ACC-001 with their own colours. |
 | PD-02-06 | Students choose a persona avatar from preset pattern avatars. The design has no face photo slot for students. | Photo upload; presets only. | Faces are hidden by default (REQ-CHS-001). Presets cost 2 KB each and look consistent. If [07 §11](07-content-hub-student-teacher.md) later allows avatar uploads, they follow its face rules. |
-| PD-02-07 | No stock photos, and no generated images of the madrasa or of children, are used as placeholders. Placeholders are geometric patterns and line icons drawn from theme tokens. | Stock photos; generated images; patterns and icons. | A donation site must not show pictures that are not real. Patterns are honest, tiny and match each institute's colours. |
+| PD-02-07 (revised 2026-11-15, D-172) | Photography is the main atmosphere device. Real photographs of the institute's buildings, courtyard, kitchen, books and daily life are preferred. Until they exist, licensed or generated photographs of Islamic architecture, calligraphy, food and texture may set the mood, each labelled *Sample* and credited. No photograph, real or generated, may show a child's face without the consent flow in 07 §11, and no generated image may be captioned or framed as if it were the institute. Where no photograph fits, the fallback is the geometric pattern and line icon kit (§14). | Patterns only; any image; photographs with honesty rules. | Donors in Pakistan and abroad decide in seconds whether a site feels real and well run. Photographs do that work. The honesty rules keep the site truthful, and the size rules in §9 keep it fast. |
 | PD-02-08 | Lists use a "Show more" button with 20 items per page, not infinite scroll. | Infinite scroll; pages; "Show more". | Predictable data use on 3G, works with keyboard and screen readers, and the footer stays reachable. |
 
 ## 4. Visual directions
 
-Both directions are dignified, calm and trustworthy. Both use plenty of white space, few colours, no gradients, no auto-moving carousels and no decorative animation. Both use the same tokens, type scale and components; only the token values change.
+Both directions are dignified, calm and trustworthy, and both should feel *premium*: the quality of a well-run international foundation, not a plain notice board. Both use generous white space, a small palette with one metallic accent, large editorial serif headings, photography with depth, and quiet motion. Both use the same tokens, type scale and components; only the token values change. The premium rules in §4.1 apply to both.
 
 ### Direction A: "Night and Paper" (recommended)
 
@@ -81,8 +81,25 @@ Both directions are dignified, calm and trustworthy. Both use plenty of white sp
 - **Feel:** an old, well-kept library or a trusted bank. Quiet and serious, warm rather than cold because the page is off-white, not pure white.
 - **Logo.** Display the emblem in a circular frame on both light and dark surfaces. Its source file keeps the original artwork and navy background.
 - **Headings:** Source Serif 4 (Latin), Noto Nastaliq Urdu when cached, else Noto Naskh Arabic (Urdu).
-- **Shapes:** 8 px radius on cards and inputs, thin `border` lines, one soft shadow level only on raised sheets.
-- **Ornament:** one thin 8-point star pattern band (SVG, under 2 KB) under the header on public pages. Nowhere else.
+- **Shapes:** pill buttons and chips, 12 to 20 px radius on cards and inputs, arched (`radius-arch`) photo frames on the hero and campus sections, thin hairlines in `border`, and a three-step shadow scale (§7).
+- **Depth:** navy surfaces may carry a two-stop gradient between `primary` and a darker mix of `primary`, plus one soft radial glow in `verified-on-primary` or `accent` at low opacity. Gradients are built with `color-mix()` from tokens, never from new hex values, and never sit behind body text at under 4.5:1.
+- **Ornament:** an 8-point star and girih lattice drawn from tokens (SVG, under 2 KB each) as a faint texture on navy surfaces, as a thin band under the header, and as the corner mark on cards and empty states. Gold (`verified-on-primary`) is the only metallic and is used for the donate button, hero numbers, ornaments and the verified mark.
+
+### 4.1 Premium and trust cues (added 2026-11-15, D-172)
+
+The earlier bans on gradients, decorative motion and photographs are withdrawn. They are replaced by rules that keep the site fast and honest while letting it look like the foundations that donors in Lahore, London and Toronto already trust.
+
+| Area | Rule | Why |
+| --- | --- | --- |
+| Photography | Prefer real campus photographs. Sample or generated photographs of architecture, calligraphy, food and texture are allowed while real ones are prepared, always marked *Sample* and credited, never with a child's face, never framed as the institute itself. One eager hero image per page at ≤ 80 KB (720 px wide); everything else lazy. Navy overlays and duotones are done in CSS, not baked into the file. | Photographs are the strongest trust signal donors see first. Marking samples keeps the site honest. |
+| Gradients and glow | Allowed on `primary` surfaces (hero, verse, CTA band, footer) and on the donate button. Two stops from tokens via `color-mix()`, plus at most one radial glow per surface. Never behind running text that would drop under 4.5:1. Never on light surfaces except a 2 to 4% tint. | Depth reads as quality. Token-only mixing keeps every institute on-brand. |
+| Motion | Purpose-led, CSS-only motion is encouraged: reveal on scroll (`animation-timeline: view()` with a static fallback), hover lift and shadow on cards and buttons, a one-time progress-bar fill, accordion open. Limits: 200 ms for state changes, 700 ms for reveals, nothing that loops or moves by itself, no parallax that moves text, no animation libraries, everything off under `prefers-reduced-motion`. | Motion guides the eye and feels finished. The limits keep it cheap on low-end phones. |
+| Typography | Display headings use Source Serif 4 at up to 5.6 rem on wide screens, tracking -0.02 em. Italic 400 is loaded for pull quotes, the verse translation and testimonials. Urdu keeps Naskh for body and Nastaliq for h1 and h2 when cached. | Editorial serif at scale is the shared visual language of trusted foundations. |
+| Numbers | Impact numbers are large serif figures in gold on navy or `primary` on paper, each with a dated or sourced label ("People served lunch daily, institute figure 2026"). Never a bare number. | Specific, sourced numbers are what international donors look for. |
+| Trust strip | Under the hero, three icon items from the copy keys `story.chipTraced`, `story.chipFees`, `story.chipZakat`. The donate page repeats the same promises beside the bank details. | Donors want the proof devices next to the ask. |
+| Donate path | A gold Donate pill stays visible in the header at every width, including phones. The give band repeats it at the end of the page. | Most visits are on phones; the ask must never hide in a menu. |
+| International donors | English copy is written to international standard; amounts show `Rs` with thousands grouping; the donate page says plainly how to send from abroad and what proof arrives. Contact details and visiting hours are visible without a tap. | Diaspora givers compare the site with UK and US charity sites. |
+| Speed | Readable text and the donate button within 3 seconds on 4G and 5 seconds on slow 3G (D-026). First-load budget in §9 (now ≤ 350 KB public). No third-party scripts on public pages. | The site must work on an ordinary phone in Sahiwal. |
 
 ### Direction B: "Garden and Clay"
 
@@ -360,7 +377,7 @@ Steps:
 | `space-7` | 48 | Between sections on wide screens |
 | `space-8` | 64 | Hero top and bottom on wide screens |
 
-Radius: `radius-sm` 4 px (badges), `radius-md` 8 px (cards, inputs, buttons), `radius-lg` 12 px (sheets, dialogs), `radius-full` (avatars, pills). Shadow: one level only, `0 2px 8px rgb(13 37 77 / 0.12)`, for sheets and dialogs. Cards use a border, not a shadow (cheaper on low-end GPUs).
+Radius: `radius-sm` 4 px (badges), `radius-md` 8 px (inputs), `radius-lg` 12 to 16 px (cards), `radius-xl` 20 to 24 px (sheets, media frames), `radius-pill` (buttons, chips, avatars), `radius-arch` (hero and campus photo frames: a rounded arch, `999px 999px radius-xl radius-xl / 70% 70% radius-xl radius-xl`). Shadow scale, all tinted from `primary`: `shadow-1` `0 1px 2px / 0.06` for inputs and chips, `shadow-2` `0 12px 32px / 0.08` for cards at rest, `shadow-3` `0 24px 56px / 0.16` for cards on hover, sheets and dialogs. Shadows are static (no animated blur) so they stay cheap on low-end GPUs.
 
 ### Grid and breakpoints
 
@@ -493,11 +510,11 @@ At about 50 KB per second with four round trips spent on connections, roughly 17
 | --- | --- | --- | --- |
 | HTML | ≤ 30 KB | ≤ 30 KB | ≤ 40 KB |
 | CSS (all, inlined critical part ≤ 14 KB) | ≤ 20 KB | ≤ 25 KB | ≤ 25 KB |
-| Fonts on critical path | ≤ 90 KB (`/ur`), ≤ 30 KB (`/en`) | same | same |
+| Fonts on critical path | ≤ 90 KB (`/ur`), ≤ 60 KB (`/en`: serif 600 and italic 400) | same | same |
 | Logo | ≤ 8 KB | ≤ 8 KB | ≤ 8 KB |
 | JavaScript (not render-blocking) | ≤ 100 KB | ≤ 180 KB | ≤ 220 KB |
-| Images on first screen | ≤ 60 KB | ≤ 40 KB | 0 |
-| **Total first load** | **≤ 300 KB** | **≤ 350 KB** | **≤ 400 KB** |
+| Images on first screen | ≤ 80 KB (one hero photograph) | ≤ 40 KB | 0 |
+| **Total first load** | **≤ 350 KB** | **≤ 350 KB** | **≤ 400 KB** |
 
 Public pages must show readable text and the donate button before JavaScript runs. Forms submit without JavaScript where the stack allows ([03 §4](03-architecture.md)).
 
@@ -514,7 +531,7 @@ The [source emblem](<../assets/logo/Markaz Al Azeem Emblem.png>) is about 3.1 MB
 | Avatar | 32 to 64 px | 64, 128 | ≤ 4 KB | Lazy |
 | YouTube poster (facade) | full width | 360, 720 | ≤ 25 KB | Lazy |
 
-Rules: AVIF first, WebP second, JPEG fallback; `srcset` and `sizes` on every image; width and height attributes always set so nothing jumps; no images in CSS backgrounds except the tiny pattern SVGs. Processing and caps are in [03 §8](03-architecture.md) (REQ-PRF-002, REQ-PRF-003).
+Rules: AVIF first, WebP second, JPEG fallback; `srcset` and `sizes` on every image; width and height attributes always set so nothing jumps; no images in CSS backgrounds except the tiny pattern SVGs. Overlays, duotones and arch masks are applied in CSS so one file serves both languages and every theme. Processing and caps are in [03 §8](03-architecture.md) (REQ-PRF-002, REQ-PRF-003).
 
 ### Video and audio
 
@@ -533,7 +550,7 @@ When the browser sends `Save-Data: on` or the user turns on "Use less data" in t
 
 ### Other low-end rules
 
-- No carousels that move by themselves, no parallax, no animation longer than 200 ms, and none at all with `prefers-reduced-motion`.
+- No carousels that move by themselves and no parallax that moves text. State-change animation is 200 ms or less, reveal animation 700 ms or less, CSS only, and none at all with `prefers-reduced-motion` (§4.1).
 - Icons are an inline SVG sprite, not an icon font.
 - Lists show 20 items, then "Show more" (PD-02-08).
 - Pages work at 320 px wide with no horizontal scroll.
@@ -758,7 +775,8 @@ The local design preview uses clearly labelled and credited sample media from Wa
 | --- | --- | --- | --- |
 | **Pattern tile** | Cause card header, hero, empty states, walkthrough | An 8-point star or girih pattern drawn as SVG, coloured from `primary-soft` and `primary` (or `primary` and `accent` on dark), generated from theme tokens, so another institute gets its own colours | ≤ 2 KB |
 | **Cause icon** | On top of the pattern tile on cause cards and cause pages | Line icons at 2 px stroke: wheat, gas flame, cooking pot (lunch), clinic cross, book (education), building (construction), laptop (tech costs), heart-hand (all needs), star (orphan sponsorship). Admin picks the icon per cause | ≤ 1 KB each, in the sprite |
-| **Hero without photo** | Home page | A navy frame with the selected emblem beside the institute introduction on paper | Responsive emblem WebP |
+| **Hero without photo** | Home page | A navy hero with gradient depth, the girih texture and the emblem in an arched frame beside the headline | Responsive emblem WebP |
+| **Sample photograph** | Hero, campus, cause cards until real media exists | A credited photograph of Islamic architecture, calligraphy, food or texture, labelled *Sample* in both languages, never showing a child (PD-02-07 revised) | ≤ 80 KB at 720 px |
 | **Persona avatar** | Hub | One of 24 presets: 12 patterns by 2 colourways from theme tokens | ≤ 2 KB each |
 | **Initials avatar** | Teachers and donors without a photo | Initials (Latin) or first letter (Urdu) on `primary-soft`, text `primary` | 0 KB (CSS) |
 | **Receipt placeholder** | Spending entry without a photo | Document icon and "No receipt photo" in `text-muted` | 0 KB |
