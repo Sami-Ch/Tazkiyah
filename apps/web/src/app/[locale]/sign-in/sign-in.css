@@ -1,24 +1,140 @@
-.sign-in-section {
-  display: grid;
-  justify-items: center;
-  padding-block: clamp(2.5rem, 8vw, 5.5rem);
-}
+/* Signed-out screens: brand panel beside the form card */
 
-.sign-in-card {
-  inline-size: min(100%, 30rem);
+.auth-layout {
   display: grid;
   gap: 1.25rem;
+  align-items: stretch;
+  padding-block: clamp(1.5rem, 5vw, 4.5rem) clamp(3rem, 8vw, 6rem);
+}
+
+.auth-panel {
+  position: relative;
+  display: grid;
+  gap: 1.25rem;
+  align-content: end;
+  overflow: clip;
+  padding: clamp(1.25rem, 4vw, 2.75rem);
+  border-radius: var(--radius-xl, 1.5rem);
+  background:
+    radial-gradient(
+      120% 90% at 100% 0%,
+      color-mix(in srgb, var(--gold) 22%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 60%, color-mix(in srgb, var(--navy) 85%, var(--gold)) 100%);
+  color: var(--color-on-primary, var(--on-navy));
+  box-shadow: var(--shadow-3);
+}
+
+.auth-ornament {
+  position: absolute;
+  inset: 0;
+  background: var(--color-on-primary, var(--on-navy));
+  opacity: 0.07;
+  -webkit-mask: var(--pattern-girih) center / 7rem 7rem repeat;
+  mask: var(--pattern-girih) center / 7rem 7rem repeat;
+  pointer-events: none;
+}
+
+.auth-panel > :not(.auth-ornament) {
+  position: relative;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.auth-brand img {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 70%, transparent);
+}
+
+.auth-brand strong {
+  display: block;
+  font-family: var(--heading-font);
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.auth-brand small {
+  display: block;
+  opacity: 0.75;
+  font-size: 0.85rem;
+}
+
+.auth-tagline {
+  margin: 0;
+  max-inline-size: 24ch;
+  font-family: var(--heading-font);
+  font-size: clamp(1.35rem, 1rem + 1.3vw, 1.95rem);
+  font-weight: 400;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.auth-tagline:lang(en) {
+  font-style: italic;
+}
+
+.auth-points {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-points li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-weight: 500;
+}
+
+.auth-points svg {
+  flex: 0 0 auto;
+  color: var(--gold);
+}
+
+/* Card */
+
+.sign-in-card {
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+  inline-size: min(100%, 30rem);
+  justify-self: center;
   padding: clamp(1.5rem, 4vw, 2.5rem);
   border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
-  border-radius: 1.5rem;
+  border-radius: var(--radius-xl, 1.5rem);
   background: var(--surface);
   box-shadow: var(--shadow-3);
 }
 
 .sign-in-card h1 {
+  margin: 0;
   color: var(--navy);
   font-size: clamp(1.85rem, 1.4rem + 1.4vw, 2.4rem);
+  line-height: 1.1;
 }
+
+.sign-in-card h1 + p,
+.sign-in-intro {
+  margin: 0;
+  color: var(--muted);
+}
+
+.sign-in-card > a {
+  justify-self: start;
+  font-weight: 600;
+}
+
+/* Forms (also reused by staff screens) */
 
 .sign-in-form,
 .sign-in-form label {
@@ -30,12 +146,23 @@
   gap: 1rem;
 }
 
+.sign-in-form > p:first-child {
+  margin: 0;
+  color: var(--muted);
+}
+
 .sign-in-form label {
   font-weight: 600;
 }
 
+.sign-in-form label small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
 .sign-in-form input,
-.sign-in-form select {
+.sign-in-form select,
+.sign-in-form textarea {
   inline-size: 100%;
   min-block-size: 3rem;
   padding-inline: 0.9rem;
@@ -48,11 +175,60 @@
   box-shadow: var(--shadow-1);
 }
 
+.sign-in-form textarea {
+  min-block-size: 7rem;
+  padding-block: 0.65rem;
+}
+
 .sign-in-form input:hover,
 .sign-in-form select:hover,
+.sign-in-form textarea:hover,
 .sign-in-form input:focus-visible,
-.sign-in-form select:focus-visible {
+.sign-in-form select:focus-visible,
+.sign-in-form textarea:focus-visible {
   border-color: var(--navy);
+}
+
+.sign-in-form label:has(> input[type="checkbox"]),
+.sign-in-form label:has(> input[type="radio"]) {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-block-size: 2.5rem;
+  font-weight: 500;
+}
+
+.sign-in-form input[type="checkbox"],
+.sign-in-form input[type="radio"] {
+  inline-size: 1.25rem;
+  min-block-size: 1.25rem;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--navy);
+  box-shadow: none;
+}
+
+.sign-in-form fieldset:has(> legend) {
+  display: grid;
+  gap: 0.75rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--paper) 55%, var(--surface));
+}
+
+.sign-in-form legend {
+  padding-inline: 0.45rem;
+  color: var(--navy);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.sign-in-form legend:lang(en) {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .sign-in-form button {
@@ -69,26 +245,83 @@
 .sign-in-alternatives {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+}
+
+.sign-in-alternatives a {
+  font-weight: 600;
 }
 
 .sign-in-error {
-  border-inline-start: 3px solid var(--focus);
-  padding-inline-start: 0.75rem;
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  border-inline-start: 3px solid var(--color-danger, var(--focus));
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-danger, var(--focus)) 8%, var(--surface));
+  color: var(--color-danger, var(--text));
 }
 
 .auth-setup-key {
   overflow-wrap: anywhere;
-  background: var(--paper);
+  padding: 0.85rem 1rem;
+  border: 1px dashed color-mix(in srgb, var(--navy) 35%, transparent);
   border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
+  background: var(--paper);
+  font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
 }
 
 .auth-recovery-codes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  gap: 0.25rem 1rem;
-  padding-inline-start: 1.25rem;
+  gap: 0.35rem 1rem;
   margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--paper);
+  list-style: none;
+}
+
+.auth-recovery-codes code {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 60rem) {
+  .auth-layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 2.5rem;
+  }
+
+  .auth-panel {
+    min-block-size: 34rem;
+  }
+
+  .sign-in-card {
+    align-self: center;
+  }
+}
+
+@media (max-width: 59.99rem) {
+  .auth-panel {
+    gap: 0.9rem;
+  }
+
+  .auth-tagline {
+    font-size: 1.2rem;
+    max-inline-size: none;
+  }
+
+  .auth-points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.1rem;
+    font-size: 0.9rem;
+  }
+
+  .auth-points svg {
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+  }
 }

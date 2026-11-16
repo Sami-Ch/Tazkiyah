@@ -3,6 +3,7 @@
 import type { Locale } from "@tazkiyah/i18n/routing";
 import { useEffect, useState } from "react";
 import { authRequest } from "@/components/auth-request";
+import { Icon } from "@/components/icon";
 import { hubUiCopy } from "../hub/hub-ui-copy";
 
 const links: Record<string, string> = {
@@ -44,17 +45,28 @@ export function SetupChecklist({ locale }: { locale: Locale }) {
   }, []);
 
   if (!items || items.every((item) => item.done)) return null;
+  const done = items.filter((item) => item.done).length;
 
   return (
-    <section className="ui-card" aria-labelledby="setup-title">
-      <h2 id="setup-title">{copy.checklistTitle}</h2>
-      <ul>
+    <section className="ui-card setup-card" aria-labelledby="setup-title">
+      <div className="setup-head">
+        <h2 id="setup-title">{copy.checklistTitle}</h2>
+        <span className="ui-badge ui-badge-neutral" dir="ltr">
+          {done}/{items.length}
+        </span>
+      </div>
+      <div className="setup-track" aria-hidden="true">
+        <span style={{ inlineSize: `${Math.round((done / items.length) * 100)}%` }} />
+      </div>
+      <ul className="setup-list">
         {items.map((item) => (
-          <li key={item.key}>
-            {labels[item.key] ?? item.key}
-            {": "}
+          <li key={item.key} data-done={item.done ? "true" : undefined}>
+            <span className="setup-mark" aria-hidden="true">
+              {item.done && <Icon name="check" />}
+            </span>
+            <span className="setup-label">{labels[item.key] ?? item.key}</span>
             {item.done ? (
-              copy.checklistDone
+              <span className="setup-state">{copy.checklistDone}</span>
             ) : (
               <a href={`/${locale}/${links[item.key] ?? "admin"}`}>{copy.checklistOpen}</a>
             )}

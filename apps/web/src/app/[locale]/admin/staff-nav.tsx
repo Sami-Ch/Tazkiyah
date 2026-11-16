@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import {
   staffLinkIsCurrent,
   type StaffLink,
@@ -17,11 +18,20 @@ export function StaffNav({
   names: Record<StaffLinkId, string>;
 }) {
   const pathname = usePathname();
+  const strip = useRef<HTMLElement>(null);
   const currentHref = links
     .filter((link) => staffLinkIsCurrent(pathname, link.href))
     .sort((left, right) => right.href.length - left.href.length)[0]?.href;
+
+  useEffect(() => {
+    const current = strip.current?.querySelector<HTMLElement>(
+      '[aria-current="page"]',
+    );
+    current?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [currentHref]);
+
   return (
-    <nav className="filter-row" aria-label={label}>
+    <nav className="staff-nav" aria-label={label} ref={strip}>
       {links.map((link) => {
         const current = link.href === currentHref;
         return (

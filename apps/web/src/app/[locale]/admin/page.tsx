@@ -5,6 +5,7 @@ import { requireLocale } from "@/i18n/locale";
 import { formatAmount } from "@/design/format";
 import { getAdminAccess, getPublicOverview } from "@/server/auth";
 import { Button } from "@/design/ui";
+import { AuthFrame } from "../sign-in/auth-frame";
 import { StaffInvitationForm } from "./staff-invitation-form";
 import { staffLinks, type StaffLinkId } from "./staff-links";
 import { StaffOverview } from "./staff-overview";
@@ -52,19 +53,9 @@ export default async function AdminPage({
             },
           ]
         : [];
-    return (
-      <section className="staff-stack" aria-labelledby="admin-title">
-        <StaffOverview
-          heading={copy.heading}
-          welcome={copy.welcome}
-          name={access.name}
-          intro={workspace.intro}
-          links={staffLinks(locale, access)}
-          names={workspace.links as Record<StaffLinkId, string>}
-          blurbs={workspace.blurbs}
-          stats={stats}
-        />
-        <div className="ui-actions">
+    const actions =
+      access.canRecordTransfers || access.canRecordSpending ? (
+        <>
           {access.canRecordTransfers && (
             <Button href={`/${locale}/admin/donations`}>
               {workspace.recordDonation}
@@ -75,7 +66,23 @@ export default async function AdminPage({
               {workspace.recordSpending}
             </Button>
           )}
-        </div>
+        </>
+      ) : undefined;
+    return (
+      <section className="staff-stack" aria-labelledby="admin-title">
+        <StaffOverview
+          heading={copy.heading}
+          eyebrow={workspace.navLabel}
+          welcome={copy.welcome}
+          name={access.name}
+          intro={workspace.intro}
+          links={staffLinks(locale, access)}
+          names={workspace.links as Record<StaffLinkId, string>}
+          blurbs={workspace.blurbs}
+          groups={workspace.groups}
+          stats={stats}
+          actions={actions}
+        />
         <SetupChecklist locale={locale} />
         {access.canInvite && (
           <StaffInvitationForm copy={common.staffInvite} locale={locale} />
@@ -84,20 +91,16 @@ export default async function AdminPage({
     );
   }
   return (
-    <section className="shell sign-in-section" aria-labelledby="admin-title">
-      <div className="sign-in-card">
-        <h1 id="admin-title">{copy.setupHeading}</h1>
-        {access.state === "enroll" ? (
-          <TwoFactorSetup copy={copy} workspaceHref={`/${locale}/admin`} />
-        ) : (
-          <p>
-            {access.state === "denied"
-              ? copy.denied
-              : common.signIn.unavailable}
-          </p>
-        )}
-        <a href={signInHref}>{common.signIn.backToSignIn}</a>
-      </div>
-    </section>
+    <AuthFrame locale={locale} labelledBy="admin-title">
+      <h1 id="admin-title">{copy.setupHeading}</h1>
+      {access.state === "enroll" ? (
+        <TwoFactorSetup copy={copy} workspaceHref={`/${locale}/admin`} />
+      ) : (
+        <p className="sign-in-intro">
+          {access.state === "denied" ? copy.denied : common.signIn.unavailable}
+        </p>
+      )}
+      <a href={signInHref}>{common.signIn.backToSignIn}</a>
+    </AuthFrame>
   );
 }

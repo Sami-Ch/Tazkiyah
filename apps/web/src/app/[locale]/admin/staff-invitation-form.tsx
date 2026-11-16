@@ -55,12 +55,12 @@ export function StaffInvitationForm({
 
   return (
     <section
-      className="sign-in-form"
+      className="ui-card staff-invite"
       aria-labelledby="staff-invitation-heading"
     >
       <h2 id="staff-invitation-heading">{copy.heading}</h2>
       <form
-        className="sign-in-form"
+        className="sign-in-form staff-invite-form"
         method="post"
         onSubmit={submit}
         aria-busy={busy}

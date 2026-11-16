@@ -23,13 +23,30 @@ const paths = {
   mail: "M4 6h16v12H4V6Zm0 1 8 6 8-6",
   phone:
     "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z",
+  user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0",
+  users:
+    "M9 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 8a6 6 0 0 1 12 0M16 5a3.5 3.5 0 0 1 0 7m2 2.5a6 6 0 0 1 3 5.5",
+  heart:
+    "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z",
+  receipt: "M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6M9 12h6M9 16h4",
+  file: "M7 3h7l5 5v13H7V3Zm7 0v5h5M10 13h6m-6 4h6",
+  gear:
+    "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7.5 7.5 0 0 0-2-1.2L14.6 3H9.4L9 5.7a7.5 7.5 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7.4 7.4 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7.5 7.5 0 0 0 2 1.2l.4 2.7h5.2l.4-2.7a7.5 7.5 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z",
+  logout: "M10 4H5v16h5m4-4 4-4-4-4m4 4H9",
+  chat: "M4 5h16v11H9l-5 4V5Z",
+  bank: "M3 10 12 4l9 6H3Zm2 0v8m4-8v8m6-8v8m4-8v8M3 20h18",
+  key: "M14 10a4 4 0 1 1 1.2 2.8L10 18H7v-3l5.8-5.8A4 4 0 0 1 14 10Z",
+  grid: "M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z",
+  clipboard: "M9 4h6v3H9V4Zm6 1h3v16H6V5h3m0 7h6m-6 4h4",
 };
 
 export function Icon({ name }: { name: keyof typeof paths }) {
   return (
     <svg
       aria-hidden="true"
-      className={name === "arrow" ? "directional-icon" : undefined}
+      className={
+        name === "arrow" || name === "logout" ? "directional-icon" : undefined
+      }
       viewBox="0 0 24 24"
       width="22"
       height="22"

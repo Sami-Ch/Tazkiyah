@@ -1,7 +1,7 @@
 import type { Locale } from "@tazkiyah/i18n/routing";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { AccountForm, type AccountFormMode } from "./account-form";
-import "./sign-in.css";
+import { AuthFrame } from "./auth-frame";
 
 export async function AccountFormPage({
   locale,
@@ -31,18 +31,16 @@ export async function AccountFormPage({
           ? account.firstPassword
           : undefined;
   return (
-    <section className="shell sign-in-section" aria-labelledby="account-title">
-      <div className="ui-card sign-in-card">
-        <h1 id="account-title">{heading}</h1>
-        {intro && <p>{intro}</p>}
-        <AccountForm
-          mode={mode}
-          locale={locale}
-          token={token}
-          copy={account}
-          signIn={signIn}
-        />
-      </div>
-    </section>
+    <AuthFrame locale={locale} labelledBy="account-title">
+      <h1 id="account-title">{heading}</h1>
+      {intro && <p className="sign-in-intro">{intro}</p>}
+      <AccountForm
+        mode={mode}
+        locale={locale}
+        token={token}
+        copy={account}
+        signIn={signIn}
+      />
+    </AuthFrame>
   );
 }

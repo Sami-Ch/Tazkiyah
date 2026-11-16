@@ -1,7 +1,7 @@
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
+import { AuthFrame } from "../sign-in/auth-frame";
 import { AcceptStaffInvitation } from "./accept-staff-invitation";
-import "../sign-in/sign-in.css";
 
 export default async function StaffInvitationPage({
   params,
@@ -12,14 +12,9 @@ export default async function StaffInvitationPage({
   const { staffInvite: copy } = common;
 
   return (
-    <section
-      className="shell sign-in-section"
-      aria-labelledby="staff-setup-title"
-    >
-      <div className="sign-in-card">
-        <h1 id="staff-setup-title">{copy.setupHeading}</h1>
-        <AcceptStaffInvitation copy={copy} signInHref={`/${locale}/sign-in`} />
-      </div>
-    </section>
+    <AuthFrame locale={locale} labelledBy="staff-setup-title">
+      <h1 id="staff-setup-title">{copy.setupHeading}</h1>
+      <AcceptStaffInvitation copy={copy} signInHref={`/${locale}/sign-in`} />
+    </AuthFrame>
   );
 }

@@ -96,3 +96,21 @@ a.hub-card {
   text-decoration: none;
   align-content: center;
 }
+
+/* Quiet states */
+
+.community > p[role="status"],
+.community > p[role="alert"] {
+  max-inline-size: 42rem;
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border: 1px dashed var(--border);
+  border-inline-start: 3px solid var(--gold);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.community-heading h1 {
+  color: var(--navy);
+}

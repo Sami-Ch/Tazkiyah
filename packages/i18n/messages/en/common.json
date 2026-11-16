@@ -469,7 +469,15 @@
     "profileSaved": "Your public profile was saved.",
     "profileNameNeeded": "A public profile needs a display name.",
     "photoLater": "A photo can be added when file storage is connected. Until then the page shows the first letter of your display name.",
-    "viewProfile": "View public profile"
+    "viewProfile": "View public profile",
+    "spaces": "Your spaces",
+    "cards": {
+      "donations": "Receipts and the trail of every gift you have made.",
+      "sponsorship": "Updates from the child you sponsor and messages to the madrasa.",
+      "profile": "Choose the name and links visitors see on the donor wall.",
+      "hub": "Class posts, notes and polls for students and teachers.",
+      "admin": "Record transfers and spending, and manage the public site."
+    }
   },
   "admin": {
     "heading": "Admin workspace",
@@ -651,6 +659,12 @@
       "pledges": "Expected gifts",
       "settings": "Institute",
       "modules": "Modules"
+    },
+    "groups": {
+      "money": "Money",
+      "site": "Causes and site",
+      "people": "People and classes",
+      "settings": "Records and settings"
     }
   },
   "staffAllNeeds": {

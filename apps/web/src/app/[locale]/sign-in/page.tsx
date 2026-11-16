@@ -1,7 +1,7 @@
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { requireLocale } from "@/i18n/locale";
+import { AuthFrame } from "./auth-frame";
 import { SignInForm } from "./sign-in-form";
-import "./sign-in.css";
 
 export default async function SignInPage({
   params,
@@ -11,11 +11,9 @@ export default async function SignInPage({
   const { common } = await getMessages({ locale });
 
   return (
-    <section className="shell sign-in-section" aria-labelledby="sign-in-title">
-      <div className="ui-card sign-in-card">
-        <h1 id="sign-in-title">{common.signIn.heading}</h1>
-        <SignInForm copy={common.signIn} locale={locale} />
-      </div>
-    </section>
+    <AuthFrame locale={locale} labelledBy="sign-in-title">
+      <h1 id="sign-in-title">{common.signIn.heading}</h1>
+      <SignInForm copy={common.signIn} locale={locale} />
+    </AuthFrame>
   );
 }
